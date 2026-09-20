@@ -1,0 +1,7 @@
+﻿services:
+  inventory.web:
+    image: inventory.web
+    build:
+      context: .
+      dockerfile: Inventory.Web/Dockerfile
+
