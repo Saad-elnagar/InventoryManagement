@@ -1,0 +1,23 @@
+﻿using System;
+using System.Collections.Generic;
+
+namespace WebApplication2.Models;
+
+public partial class SupplierProduct
+{
+    public int SupplierProductId { get; set; }
+
+    public int SupplierId { get; set; }
+
+    public int ProductId { get; set; }
+
+    public string? SupplierSku { get; set; }
+
+    public decimal ContractPrice { get; set; }
+
+    public int LeadTimeDays { get; set; }
+
+    public virtual Product Product { get; set; } = null!;
+
+    public virtual Supplier Supplier { get; set; } = null!;
+}
