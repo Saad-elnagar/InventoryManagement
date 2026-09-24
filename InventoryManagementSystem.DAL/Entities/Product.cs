@@ -3,9 +3,9 @@ using System.Collections.Generic;
 
 namespace InventoryManagementSystem.DAL.Entities;
 
-public partial class Product
+public partial class Product : BaseEntitiy
 {
-    public int ProductId { get; set; }
+    
 
     public string Sku { get; set; } = null!;
 

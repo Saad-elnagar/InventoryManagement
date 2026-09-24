@@ -3,9 +3,9 @@ using System.Collections.Generic;
 
 namespace InventoryManagementSystem.DAL.Entities;
 
-public partial class Sale
+public partial class Sale : BaseEntitiy
 {
-    public int SaleId { get; set; }
+    
 
     public DateTime SaleDate { get; set; }
 

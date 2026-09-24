@@ -3,9 +3,9 @@ using System.Collections.Generic;
 
 namespace InventoryManagementSystem.DAL.Entities;
 
-public partial class Supplier
+public partial class Supplier :BaseEntitiy
 {
-    public int SupplierId { get; set; }
+   
 
     public string SupplierName { get; set; } = null!;
 

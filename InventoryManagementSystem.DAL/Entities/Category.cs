@@ -3,9 +3,9 @@ using System.Collections.Generic;
 
 namespace InventoryManagementSystem.DAL.Entities;
 
-public partial class Category
+public partial class Category :BaseEntitiy
 {
-    public int CategoryId { get; set; }
+    
 
     public string CategoryName { get; set; } = null!;
 

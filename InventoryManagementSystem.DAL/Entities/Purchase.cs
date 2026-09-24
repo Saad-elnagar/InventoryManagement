@@ -3,9 +3,9 @@ using System.Collections.Generic;
 
 namespace InventoryManagementSystem.DAL.Entities;
 
-public partial class Purchase
+public partial class Purchase : BaseEntitiy
 {
-    public int PurchaseId { get; set; }
+   
 
     public int SupplierId { get; set; }
 
