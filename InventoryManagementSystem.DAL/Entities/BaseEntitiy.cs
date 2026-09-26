@@ -1,6 +1,6 @@
 namespace InventoryManagementSystem.DAL.Entities;
 
-public class BaseEntitiy
+public class BaseEntity
 {
     public int ID { get; set; }
 }

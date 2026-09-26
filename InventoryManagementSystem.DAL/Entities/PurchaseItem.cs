@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace InventoryManagementSystem.DAL.Entities;
 
-public partial class PurchaseItem : BaseEntitiy
+public partial class PurchaseItem : BaseEntity
 {
    
 
