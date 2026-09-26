@@ -23,7 +23,7 @@ public class SupplierService   : ISupplierService
          return supplier
              .Select(s => new SupplierDTO
              {
-                 Id = s.ID,
+                 Id = s.Id,
                  SupplierName = s.SupplierName,
                  Phone = s.Phone,
                  Email = s.Email,
@@ -41,7 +41,7 @@ public class SupplierService   : ISupplierService
 
         return new SupplierDTO
         {   
-            Id = supplier.ID,
+            Id = supplier.Id,
             SupplierName = supplier.SupplierName,
             ContactName = supplier.ContactName,
             Phone = supplier.Phone,
@@ -67,7 +67,7 @@ public class SupplierService   : ISupplierService
 
     await _supplierRepository.AddAsync(supplier);
     await _supplierRepository.SaveChangesAsync();
-    dto.Id = supplier.ID;
+    dto.Id = supplier.Id;
     return dto;
 
     }
@@ -80,7 +80,7 @@ public class SupplierService   : ISupplierService
             return false;
 
         var exists = await _supplierRepository.AnyAsync(
-            s => s.ID != id &&
+            s => s.Id != id &&
                  s.SupplierName == dto.SupplierName);
 
         if (exists)

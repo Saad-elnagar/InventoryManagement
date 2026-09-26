@@ -26,7 +26,7 @@ public class ProductService : IProductService
 
             return products.Select(p => new ProductDTO
             {
-                Id = p.ID,
+                Id = p.Id,
                 Name = p.Name,
                 Description = p.Description,
                 Price = p.UnitPrice,
@@ -52,7 +52,7 @@ public class ProductService : IProductService
 
             return new ProductDTO
             {
-                Id = product.ID,
+                Id = product.Id,
                 Name = product.Name,
                 Description = product.Description,
                 Price = product.UnitPrice,
@@ -73,7 +73,7 @@ public class ProductService : IProductService
         {
             var categoryExists =
                 await _categoryRepository.AnyAsync(
-                    c => c.ID == dto.CategoryId);
+                    c => c.Id == dto.CategoryId);
 
             if (!categoryExists)
                 throw new Exception("Category not found.");
@@ -91,7 +91,7 @@ public class ProductService : IProductService
 
             await _productRepository.AddAsync(product);
 
-            dto.Id = product.ID;
+            dto.Id = product.Id;
 
             return dto;
         }
@@ -112,7 +112,7 @@ public class ProductService : IProductService
 
             var categoryExists =
                 await _categoryRepository.AnyAsync(
-                    c => c.ID == dto.CategoryId);
+                    c => c.Id == dto.CategoryId);
 
             if (!categoryExists)
                 throw new Exception("Category not found.");
@@ -163,7 +163,7 @@ public class ProductService : IProductService
                 .Where(p => p.StockQuantity <= p.LowStockThreshold)
                 .Select(p => new ProductDTO
                 {
-                    Id = p.ID,
+                    Id = p.Id,
                     Name = p.Name,
                     Description = p.Description,
                     Price = p.UnitPrice,

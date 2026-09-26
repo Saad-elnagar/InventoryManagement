@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace InventoryManagementSystem.DAL.Entities;
 
-public partial class Supplier :BaseEntity
+public partial class Supplier : BaseEntity
 {
    
     public string SupplierName { get; set; } = null!;
