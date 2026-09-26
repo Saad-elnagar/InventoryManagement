@@ -5,11 +5,11 @@ namespace InventoryManagementSystem.DAL.Entities;
 
 public partial class Product : BaseEntity
 {
-    
+  
 
     public string Sku { get; set; } = null!;
 
-    public string ProductName { get; set; } = null!;
+    public string Name { get; set; } = null!;
 
     public int CategoryId { get; set; }
 
@@ -18,6 +18,8 @@ public partial class Product : BaseEntity
     public int StockQuantity { get; set; }
 
     public int LowStockThreshold { get; set; }
+
+    public string? Description { get; set; }
 
     public virtual Category Category { get; set; } = null!;
 

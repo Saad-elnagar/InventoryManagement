@@ -23,6 +23,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\InventoryManagementSystem.BLL\InventoryManagementSystem.BLL.csproj" />
       <ProjectReference Include="..\InventoryManagementSystem.DAL\InventoryManagementSystem.DAL.csproj" />
     </ItemGroup>
 

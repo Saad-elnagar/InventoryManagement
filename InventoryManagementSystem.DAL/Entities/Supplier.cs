@@ -6,7 +6,6 @@ namespace InventoryManagementSystem.DAL.Entities;
 public partial class Supplier :BaseEntity
 {
    
-
     public string SupplierName { get; set; } = null!;
 
     public string ContactName { get; set; } = null!;
