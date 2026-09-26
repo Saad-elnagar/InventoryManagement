@@ -2,22 +2,23 @@ using System.ComponentModel.DataAnnotations;
 
 namespace InventoryManagementSystem.BLL.DTOs;
 
-public class SupplierDTO
+public class SupplierDTO 
 {
-    public int Id { get; set; }
+    [Required]
+    public  int Id { get; set; }
+    [Required]
+    public string SupplierName { get; set; } = string.Empty;
 
     [Required]
-    [MaxLength(150)]
-    public string Name { get; set; } = string.Empty;
+    public string ContactName { get; set; } = string.Empty;
 
-    [Phone]
-    [MaxLength(20)]
-    public string? Phone { get; set; }
+    [Required]
+    public string Phone { get; set; } = string.Empty;
 
+    [Required]
     [EmailAddress]
-    [MaxLength(150)]
-    public string? Email { get; set; }
+    public string Email { get; set; } = string.Empty;
 
-    [MaxLength(300)]
-    public string? Address { get; set; }
+    [Required]
+    public string Address { get; set; } = string.Empty;
 }

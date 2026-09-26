@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using InventoryManagementSystem.DAL.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,7 +15,7 @@ public class GenaricRepository<T> : IGenaricRepository<T> where T : BaseEntity
 
     public async Task<IEnumerable<T>> GetAllAsync()
     {
-        return await _context.Set<T>().ToListAsync();
+        return await _context.Set<T>().AsNoTracking().ToListAsync();
     }
 
     public async Task<T> GetByIdAsync(int id)
@@ -26,18 +27,28 @@ public class GenaricRepository<T> : IGenaricRepository<T> where T : BaseEntity
     public async Task AddAsync(T entity)
     {
         await _context.Set<T>().AddAsync(entity);
-        await _context.SaveChangesAsync();
+        
     }
 
     public void Update(T entity)
     {
         _context.Set<T>().Update(entity);
-        _context.SaveChangesAsync();
+       
     }
 
     public void Delete(T entity)
     {
         _context.Set<T>().Remove(entity);
-        _context.SaveChangesAsync();
+        
+    }
+    public async Task SaveChangesAsync()
+    {
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<bool> AnyAsync(Expression<Func<T, bool>> predicate)
+    {
+        return await _context.Set<T>().AnyAsync(predicate);
+        
     }
 }
