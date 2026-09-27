@@ -1,5 +1,6 @@
 using InventoryManagementSystem.BLL.DTOs;
 using InventoryManagementSystem.BLL.Interfaces;
+using InventoryManagementSystem.DAL;
 using InventoryManagementSystem.DAL.Entities;
 using InventoryManagementSystem.DAL.Repository;
 
@@ -7,27 +8,12 @@ namespace InventoryManagementSystem.BLL.Service;
 
 public class DashboardService : IDashboardService
 {
-    private readonly IGenaricRepository<Product> _productRepository;
-    private readonly IGenaricRepository<Category> _categoryRepository;
-    private readonly IGenaricRepository<Supplier> _supplierRepository;
-    private readonly IGenaricRepository<Customer> _customerRepository;
-    private readonly IGenaricRepository<Purchase> _purchaseRepository;
-    private readonly IGenaricRepository<Sale> _saleRepository;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public DashboardService(
-        IGenaricRepository<Product> productRepository,
-        IGenaricRepository<Category> categoryRepository,
-        IGenaricRepository<Supplier> supplierRepository,
-        IGenaricRepository<Customer> customerRepository,
-        IGenaricRepository<Purchase> purchaseRepository,
-        IGenaricRepository<Sale> saleRepository)
+    public DashboardService(IUnitOfWork unitOfWork)
+
     {
-        _productRepository = productRepository;
-        _categoryRepository = categoryRepository;
-        _supplierRepository = supplierRepository;
-        _customerRepository = customerRepository;
-        _purchaseRepository = purchaseRepository;
-        _saleRepository = saleRepository;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<DashboardDTO> GetDashboardAsync()
@@ -35,28 +21,25 @@ public class DashboardService : IDashboardService
         try
         {
             var totalProducts =
-                await _productRepository.CountAsync();
+                await _unitOfWork.GenaricRepository<Product>().CountAsync();
 
             var totalCategories =
-                await _categoryRepository.CountAsync();
+                await _unitOfWork.GenaricRepository<Category>().CountAsync();
 
             var totalSuppliers =
-                await _supplierRepository.CountAsync();
+                await _unitOfWork.GenaricRepository<Supplier>().CountAsync();
 
             var totalCustomers =
-                await _customerRepository.CountAsync();
+                await _unitOfWork.GenaricRepository<Customer>().CountAsync();
 
             var lowStockProducts =
-                await _productRepository.CountAsync(
-                    p => p.StockQuantity <= p.LowStockThreshold);
+                await _unitOfWork.GenaricRepository<Product>().CountAsync(p => p.StockQuantity <= p.LowStockThreshold);
 
             var totalPurchases =
-                await _purchaseRepository.SumAsync(
-                    p => p.TotalAmount);
+                await _unitOfWork.GenaricRepository<Purchase>().SumAsync(p => p.TotalAmount);
 
             var totalSales =
-                await _saleRepository.SumAsync(
-                    s => s.TotalAmount);
+                await _unitOfWork.GenaricRepository<Sale>().SumAsync(s => s.TotalAmount);
 
             return new DashboardDTO
             {

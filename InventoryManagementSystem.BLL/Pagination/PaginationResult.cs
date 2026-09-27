@@ -2,9 +2,9 @@ using InventoryManagementSystem.DAL.Entities;
 
 namespace InventoryManagementSystem.BLL.Pagination;
 
-public class PaginationResult<T> 
+public class PaginationResult<T>
 {
-    public IReadOnlyList<T> Data { get; set; }
+    public IReadOnlyList<T> Data { get; set; } = null !;
 
     public int Page { get; set; }
 

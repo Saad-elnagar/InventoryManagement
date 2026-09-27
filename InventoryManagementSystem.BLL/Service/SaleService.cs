@@ -1,5 +1,6 @@
 using InventoryManagementSystem.BLL.DTOs;
 using InventoryManagementSystem.BLL.Interfaces;
+using InventoryManagementSystem.DAL;
 using InventoryManagementSystem.DAL.Entities;
 using InventoryManagementSystem.DAL.Repository;
 
@@ -7,19 +8,11 @@ namespace InventoryManagementSystem.BLL.Service;
 
 public class SaleService : ISaleService
 {
-    private readonly IGenaricRepository<Sale> _saleRepository;
-    private readonly IGenaricRepository<Product> _productRepository;
-    private readonly IGenaricRepository<SaleItem> _saleItemRepository;
-    private readonly IGenaricRepository<Customer> _customerRepository;
+    private readonly IUnitOfWork _unitOfWork;
     
-    
-
-    public SaleService(IGenaricRepository<Sale> saleRepository ,IGenaricRepository<Product> productRepository, IGenaricRepository<SaleItem> saleItemRepository,  IGenaricRepository<Customer> customerRepository)
+    public SaleService(IUnitOfWork unitOfWork)
     {
-        _saleRepository = saleRepository;
-        _productRepository = productRepository;
-        _saleItemRepository = saleItemRepository;
-        _customerRepository = customerRepository;
+        _unitOfWork = unitOfWork;
     }
 
 
@@ -28,7 +21,7 @@ public class SaleService : ISaleService
         try
         {
             var sales =
-                await _saleRepository.GetAllAsync();
+                await _unitOfWork.GenaricRepository<Sale>().GetAllAsync();
 
             return sales.Select(s => new SaleDTO
             {
@@ -49,7 +42,7 @@ public class SaleService : ISaleService
     {
         try
         {
-            var sale = await _saleRepository.GetByIdAsync(id);
+            var sale = await _unitOfWork.GenaricRepository<Sale>().GetByIdAsync(id);
             var saleDto = new SaleDTO
             {
                 CustomerName = sale.CustomerInfo,
@@ -69,7 +62,7 @@ public class SaleService : ISaleService
         try
         {
             var customerExists =
-                await _customerRepository.AnyAsync(
+                await _unitOfWork.GenaricRepository<Customer>().AnyAsync(
                     c => c.Id == dto.CustomerId);
 
             if (!customerExists)
@@ -91,7 +84,7 @@ public class SaleService : ISaleService
                         "Unit price must be greater than zero.");
 
                 var product =
-                    await _productRepository.GetByIdAsync(
+                    await _unitOfWork.GenaricRepository<Product>().GetByIdAsync(
                         item.ProductId);
 
                 if (product == null)
@@ -113,7 +106,7 @@ public class SaleService : ISaleService
                 TotalAmount = totalAmount
             };
 
-            await _saleRepository.AddAsync(sale);
+             _unitOfWork.GenaricRepository<Sale>().AddAsync(sale);
 
             foreach (var item in dto.Items)
             {
@@ -125,15 +118,15 @@ public class SaleService : ISaleService
                     UnitPrice = item.UnitPrice
                 };
 
-                await _saleItemRepository.AddAsync(saleItem);
+                 _unitOfWork.GenaricRepository<SaleItem>().AddAsync(saleItem);
 
                 var product =
-                    await _productRepository.GetByIdAsync(
+                    await _unitOfWork.GenaricRepository<Product>().GetByIdAsync(
                         item.ProductId);
 
                 product!.StockQuantity -= item.Quantity;
 
-                _productRepository.Update(product);
+                _unitOfWork.GenaricRepository<Product>().Update(product);
             }
 
             dto.Id = sale.Id;

@@ -1,6 +1,7 @@
 using InventoryManagementSystem.BLL.DTOs;
 using InventoryManagementSystem.BLL.Interfaces;
 using InventoryManagementSystem.BLL.Pagination;
+using InventoryManagementSystem.DAL;
 using InventoryManagementSystem.DAL.Entities;
 using InventoryManagementSystem.DAL.Repository;
 
@@ -8,22 +9,19 @@ namespace InventoryManagementSystem.BLL.Service;
 
 public class ProductService : IProductService
 {
-    private readonly IGenaricRepository<Product> _productRepository;
-    private readonly IGenaricRepository<Category> _categoryRepository;
+  private readonly IUnitOfWork _unitOfWork;
 
-    public ProductService(
-        IGenaricRepository<Product> productRepository,
-        IGenaricRepository<Category> categoryRepository)
+    public ProductService(IUnitOfWork unitOfWork)
+
     {
-        _productRepository = productRepository;
-        _categoryRepository = categoryRepository;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<IEnumerable<ProductDTO>> GetAllAsync()
     {
         try
         {
-            var products = await _productRepository.GetAllAsync();
+            var products = await _unitOfWork.GenaricRepository<Product>().GetAllAsync();
 
             return products.Select(p => new ProductDTO
             {
@@ -46,7 +44,7 @@ public class ProductService : IProductService
     {
         try
         {
-            var product = await _productRepository.GetByIdAsync(id);
+            var product = await _unitOfWork.GenaricRepository<Product>().GetByIdAsync(id);
 
             if (product == null)
                 return null;
@@ -73,7 +71,7 @@ public class ProductService : IProductService
         try
         {
             var categoryExists =
-                await _categoryRepository.AnyAsync(
+                await _unitOfWork.GenaricRepository<Category>().AnyAsync(
                     c => c.Id == dto.CategoryId);
 
             if (!categoryExists)
@@ -90,7 +88,7 @@ public class ProductService : IProductService
                 CategoryId = dto.CategoryId
             };
 
-            await _productRepository.AddAsync(product);
+             _unitOfWork.GenaricRepository<Product>().AddAsync(product);
 
             dto.Id = product.Id;
 
@@ -106,13 +104,13 @@ public class ProductService : IProductService
     {
         try
         {
-            var product = await _productRepository.GetByIdAsync(id);
+            var product = await _unitOfWork.GenaricRepository<Product>().GetByIdAsync(id);
 
             if (product == null)
                 return false;
 
             var categoryExists =
-                await _categoryRepository.AnyAsync(
+                await _unitOfWork.GenaricRepository<Category>().AnyAsync(
                     c => c.Id == dto.CategoryId);
 
             if (!categoryExists)
@@ -125,7 +123,7 @@ public class ProductService : IProductService
             product.LowStockThreshold = dto.ReorderLevel;
             product.CategoryId = dto.CategoryId;
 
-            _productRepository.Update(product);
+            _unitOfWork.GenaricRepository<Product>().Update(product);
 
             return true;
         }
@@ -139,12 +137,12 @@ public class ProductService : IProductService
     {
         try
         {
-            var product = await _productRepository.GetByIdAsync(id);
+            var product = await _unitOfWork.GenaricRepository<Product>().GetByIdAsync(id);
 
             if (product == null)
                 return false;
 
-            _productRepository.Delete(product);
+            _unitOfWork.GenaricRepository<Product>().Delete(product);
 
             return true;
         }
@@ -158,7 +156,7 @@ public class ProductService : IProductService
     {
         try
         {
-            var products = await _productRepository.GetAllAsync();
+            var products = await _unitOfWork.GenaricRepository<Product>().GetAllAsync();
 
             return products
                 .Where(p => p.StockQuantity <= p.LowStockThreshold)
@@ -187,7 +185,7 @@ public class ProductService : IProductService
             PageSize = pageSize
         };
 
-        var result = await _productRepository.GetPagedAsync(
+        var result = await _unitOfWork.GenaricRepository<Product>().GetPagedAsync(
             parameters.Page,
             parameters.PageSize);
 

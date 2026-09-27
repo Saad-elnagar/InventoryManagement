@@ -30,7 +30,7 @@ public interface IGenaricRepository<T>
         Expression<Func<T, bool>>? predicate = null);
 
 
-    Task AddAsync(T entity);
+    void AddAsync(T entity);
 
     void Update(T entity);
 

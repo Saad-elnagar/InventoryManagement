@@ -95,13 +95,11 @@ public class GenaricRepository<T> : IGenaricRepository<T>
         return (items, totalCount);
     }
 
-    public async Task AddAsync(T entity)
+    public async void AddAsync(T entity)
     {
         await _context
             .Set<T>()
             .AddAsync(entity);
-
-        await _context.SaveChangesAsync();
     }
 
     public void Update(T entity)
@@ -110,7 +108,7 @@ public class GenaricRepository<T> : IGenaricRepository<T>
             .Set<T>()
             .Update(entity);
 
-        _context.SaveChangesAsync();
+        
     }
 
     public void Delete(T entity)
@@ -119,6 +117,6 @@ public class GenaricRepository<T> : IGenaricRepository<T>
             .Set<T>()
             .Remove(entity);
 
-        _context.SaveChangesAsync();
+       
     }
 }

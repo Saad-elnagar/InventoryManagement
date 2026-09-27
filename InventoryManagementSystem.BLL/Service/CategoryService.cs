@@ -1,5 +1,6 @@
 ﻿using InventoryManagementSystem.BLL.DTOs;
 using InventoryManagementSystem.BLL.Interfaces;
+using InventoryManagementSystem.DAL;
 using InventoryManagementSystem.DAL.Entities;
 using InventoryManagementSystem.DAL.Repository;
 
@@ -7,19 +8,19 @@ namespace InventoryManagementSystem.BLL.Service;
 
 public class CategoryService : ICategoryService
 {
-    private readonly IGenaricRepository<Category> _categoryRepository;
+    private readonly IUnitOfWork _unitOfWork;
 
     public CategoryService(
-        IGenaricRepository<Category> categoryRepository)
+        IUnitOfWork unitOfWorky)
     {
-        _categoryRepository = categoryRepository;
+        _unitOfWork =  unitOfWorky;
     }
 
     public async Task<IEnumerable<CategoryDTO>> GetAllAsync()
     {
         try
         {
-            var categories = await _categoryRepository.GetAllAsync();
+            var categories = await _unitOfWork.GenaricRepository<Category>().GetAllAsync();
 
             return categories.Select(c => new CategoryDTO
             {
@@ -38,7 +39,7 @@ public class CategoryService : ICategoryService
     {
         try
         {
-            var category = await _categoryRepository.GetByIdAsync(id);
+            var category = await _unitOfWork.GenaricRepository<Category>().GetByIdAsync(id);
 
             if (category == null)
                 return null;
@@ -60,7 +61,7 @@ public class CategoryService : ICategoryService
     {
         try
         {
-            var exists = await _categoryRepository.AnyAsync(
+            var exists = await _unitOfWork.GenaricRepository<Category>().AnyAsync(
                 c => c.CategoryName == dto.Name);
 
             if (exists)
@@ -72,7 +73,7 @@ public class CategoryService : ICategoryService
                 Description = dto.Description
             };
 
-            await _categoryRepository.AddAsync(category);
+             _unitOfWork.GenaricRepository<Category>().AddAsync(category);
 
             dto.Id = category.Id;
 
@@ -88,12 +89,12 @@ public class CategoryService : ICategoryService
     {
         try
         {
-            var category = await _categoryRepository.GetByIdAsync(id);
+            var category = await _unitOfWork.GenaricRepository<Category>().GetByIdAsync(id);
 
             if (category == null)
                 return false;
 
-            var exists = await _categoryRepository.AnyAsync(
+            var exists = await _unitOfWork.GenaricRepository<Category>().AnyAsync(
                 c => c.Id != id &&
                      c.CategoryName == dto.Name);
 
@@ -103,7 +104,7 @@ public class CategoryService : ICategoryService
             category.CategoryName = dto.Name;
             category.Description = dto.Description;
 
-            _categoryRepository.Update(category);
+            _unitOfWork.GenaricRepository<Category>().Update(category);
 
             return true;
         }
@@ -117,12 +118,12 @@ public class CategoryService : ICategoryService
     {
         try
         {
-            var category = await _categoryRepository.GetByIdAsync(id);
+            var category = await _unitOfWork.GenaricRepository<Category>().GetByIdAsync(id);
 
             if (category == null)
                 return false;
 
-            _categoryRepository.Delete(category);
+            _unitOfWork.GenaricRepository<Category>().Delete(category);
 
             return true;
         }
