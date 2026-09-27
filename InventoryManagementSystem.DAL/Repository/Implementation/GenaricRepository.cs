@@ -39,6 +39,27 @@ public class GenaricRepository<T> : IGenaricRepository<T>
             .AnyAsync(predicate);
     }
 
+    public async Task<int> CountAsync(
+        Expression<Func<T, bool>>? predicate = null)
+    {
+        var query = _context.Set<T>().AsNoTracking();
+
+        if (predicate != null)
+        {
+            query = query.Where(predicate);
+        }
+
+        return await query.CountAsync();
+    }
+
+    public async Task<decimal> SumAsync(
+        Expression<Func<T, decimal>> selector)
+    {
+        return await _context
+            .Set<T>()
+            .AsNoTracking()
+            .SumAsync(selector);
+    }
     public async Task<IEnumerable<T>> GetWhereAsync(
         Expression<Func<T, bool>> predicate)
     {

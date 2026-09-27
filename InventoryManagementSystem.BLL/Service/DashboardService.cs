@@ -34,39 +34,39 @@ public class DashboardService : IDashboardService
     {
         try
         {
-            var products =
-                await _productRepository.GetAllAsync();
+            var totalProducts =
+                await _productRepository.CountAsync();
 
-            var categories =
-                await _categoryRepository.GetAllAsync();
+            var totalCategories =
+                await _categoryRepository.CountAsync();
 
-            var suppliers =
-                await _supplierRepository.GetAllAsync();
+            var totalSuppliers =
+                await _supplierRepository.CountAsync();
 
-            var customers =
-                await _customerRepository.GetAllAsync();
+            var totalCustomers =
+                await _customerRepository.CountAsync();
 
-            var purchases =
-                await _purchaseRepository.GetAllAsync();
+            var lowStockProducts =
+                await _productRepository.CountAsync(
+                    p => p.StockQuantity <= p.LowStockThreshold);
 
-            var sales =
-                await _saleRepository.GetAllAsync();
+            var totalPurchases =
+                await _purchaseRepository.SumAsync(
+                    p => p.TotalAmount);
+
+            var totalSales =
+                await _saleRepository.SumAsync(
+                    s => s.TotalAmount);
 
             return new DashboardDTO
             {
-                TotalProducts = products.Count(),
-                TotalCategories = categories.Count(),
-                TotalSuppliers = suppliers.Count(),
-                TotalCustomers = customers.Count(),
-
-                LowStockProducts = products.Count(
-                    p => p.StockQuantity <= p.LowStockThreshold),
-
-                TotalPurchases = purchases.Sum(
-                    p => p.TotalAmount),
-
-                TotalSales = sales.Sum(
-                    s => s.TotalAmount)
+                TotalProducts = totalProducts,
+                TotalCategories = totalCategories,
+                TotalSuppliers = totalSuppliers,
+                TotalCustomers = totalCustomers,
+                LowStockProducts = lowStockProducts,
+                TotalPurchases = totalPurchases,
+                TotalSales = totalSales
             };
         }
         catch (Exception ex)

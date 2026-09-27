@@ -12,6 +12,13 @@ public interface IGenaricRepository<T>
 
     Task<bool> AnyAsync(
         Expression<Func<T, bool>> predicate);
+    
+    Task<int> CountAsync(
+        Expression<Func<T, bool>>? predicate = null);
+
+    Task<decimal> SumAsync(
+        Expression<Func<T, decimal>> selector);
+
 
    
     Task<IEnumerable<T>> GetWhereAsync(
