@@ -66,7 +66,7 @@ public class SupplierService   : ISupplierService
     };
 
     await _supplierRepository.AddAsync(supplier);
-    await _supplierRepository.SaveChangesAsync();
+  //  await _supplierRepository.SaveChangesAsync();
     dto.Id = supplier.Id;
     return dto;
 
@@ -94,7 +94,7 @@ public class SupplierService   : ISupplierService
 
         _supplierRepository.Update(supplier);
 
-        await _supplierRepository.SaveChangesAsync();
+        // await _supplierRepository.SaveChangesAsync();
 
         return true;
     }
@@ -115,7 +115,7 @@ public class SupplierService   : ISupplierService
 
         _supplierRepository.Delete(supplier);
 
-        await _supplierRepository.SaveChangesAsync();
+     //   await _supplierRepository.SaveChangesAsync();
 
         return true;
     }

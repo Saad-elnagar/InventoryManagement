@@ -43,7 +43,7 @@ public partial class ApplicationDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("PK__Categori__19093A2BE43052F5");
 
-            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.Id).HasColumnName("Id");
             entity.Property(e => e.Description).HasMaxLength(500);
             entity.Property(e => e.CategoryName).HasMaxLength(100);
         });
@@ -52,7 +52,7 @@ public partial class ApplicationDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("PK__Customer__3214EC271B8F7848");
 
-            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.Id).HasColumnName("Id");
             entity.Property(e => e.Address).HasMaxLength(250);
             entity.Property(e => e.ContactName).HasMaxLength(150);
             entity.Property(e => e.CustomerName).HasMaxLength(150);
@@ -64,7 +64,7 @@ public partial class ApplicationDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("PK__Products__B40CC6ED2A091627");
 
-            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.Id).HasColumnName("Id");
             entity.Property(e => e.CategoryId).HasColumnName("CategoryID");
             entity.Property(e => e.Description).HasMaxLength(500);
             entity.Property(e => e.LowStockThreshold).HasDefaultValue(10);
@@ -84,7 +84,7 @@ public partial class ApplicationDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("PK__Purchase__6B0A6BDEDA6E8D57");
 
-            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.Id).HasColumnName("Id");
             entity.Property(e => e.PurchaseDate).HasDefaultValueSql("(getdate())");
             entity.Property(e => e.SupplierId).HasColumnName("SupplierID");
             entity.Property(e => e.TotalAmount).HasColumnType("decimal(18, 2)");
@@ -99,7 +99,7 @@ public partial class ApplicationDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("PK__Purchase__B48BB6A79007EE25");
 
-            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.Id).HasColumnName("Id");
             entity.Property(e => e.ProductId).HasColumnName("ProductID");
             entity.Property(e => e.PurchaseId).HasColumnName("PurchaseID");
             entity.Property(e => e.UnitCost).HasColumnType("decimal(18, 2)");
@@ -118,7 +118,7 @@ public partial class ApplicationDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("PK__Sales__1EE3C41F7EBA0028");
 
-            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.Id).HasColumnName("Id");
             entity.Property(e => e.CustomerInfo).HasMaxLength(500);
             entity.Property(e => e.SaleDate).HasDefaultValueSql("(getdate())");
             entity.Property(e => e.TotalAmount).HasColumnType("decimal(18, 2)");
@@ -132,7 +132,7 @@ public partial class ApplicationDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("PK__SaleItem__C60594611C1E0FA5");
 
-            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.Id).HasColumnName("Id");
             entity.Property(e => e.ProductId).HasColumnName("ProductID");
             entity.Property(e => e.SaleId).HasColumnName("SaleID");
             entity.Property(e => e.UnitPrice).HasColumnType("decimal(18, 2)");
@@ -151,7 +151,7 @@ public partial class ApplicationDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("PK__Supplier__4BE6669468E62417");
 
-            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.Id).HasColumnName("Id");
             entity.Property(e => e.Address).HasMaxLength(500);
             entity.Property(e => e.ContactName).HasMaxLength(150);
             entity.Property(e => e.Email).HasMaxLength(150);
@@ -165,7 +165,7 @@ public partial class ApplicationDbContext : DbContext
 
             entity.HasIndex(e => new { e.SupplierId, e.ProductId }, "UQ_SupplierProducts").IsUnique();
 
-            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.Id).HasColumnName("Id");
             entity.Property(e => e.ContractPrice).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.ProductId).HasColumnName("ProductID");
             entity.Property(e => e.SupplierId).HasColumnName("SupplierID");

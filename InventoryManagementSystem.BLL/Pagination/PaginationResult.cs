@@ -1,0 +1,20 @@
+using InventoryManagementSystem.DAL.Entities;
+
+namespace InventoryManagementSystem.BLL.Pagination;
+
+public class PaginationResult<T> 
+{
+    public IReadOnlyList<T> Data { get; set; }
+
+    public int Page { get; set; }
+
+    public int PageSize { get; set; }
+
+    public int TotalCount { get; set; }
+
+    public int TotalPages { get; set; }
+
+    public bool HasPrevious => Page > 1;
+
+    public bool HasNext => Page < TotalPages;
+}

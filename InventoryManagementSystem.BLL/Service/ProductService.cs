@@ -1,5 +1,6 @@
 using InventoryManagementSystem.BLL.DTOs;
 using InventoryManagementSystem.BLL.Interfaces;
+using InventoryManagementSystem.BLL.Pagination;
 using InventoryManagementSystem.DAL.Entities;
 using InventoryManagementSystem.DAL.Repository;
 
@@ -176,5 +177,36 @@ public class ProductService : IProductService
         {
             throw new Exception("Error while getting low stock products.", ex);
         }
+    }
+
+    public async Task<PaginationResult<ProductDTO>> GetPagedAsync(int page = 1, int pageSize = 10)
+    {
+        var parameters = new PaginationParams
+        {
+            Page = page,
+            PageSize = pageSize
+        };
+
+        var result = await _productRepository.GetPagedAsync(
+            parameters.Page,
+            parameters.PageSize);
+
+        var data = result.Items
+            .Select(p => new ProductDTO
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Description = p.Description,
+                Price = p.UnitPrice,
+                Quantity = p.StockQuantity,
+                ReorderLevel = p.LowStockThreshold,
+                CategoryId = p.CategoryId
+            })
+            .ToList();
+
+        return PaginationHelper.Create(
+            data,
+            parameters,
+            result.TotalCount);
     }
 }

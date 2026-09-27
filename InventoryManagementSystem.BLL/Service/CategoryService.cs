@@ -23,7 +23,7 @@ public class CategoryService : ICategoryService
 
             return categories.Select(c => new CategoryDTO
             {
-                Id = c.ID,
+                Id = c.Id,
                 Name = c.CategoryName,
                 Description = c.Description
             });
@@ -45,7 +45,7 @@ public class CategoryService : ICategoryService
 
             return new CategoryDTO
             {
-                Id = category.ID,
+                Id = category.Id,
                 Name = category.CategoryName,
                 Description = category.Description
             };
@@ -74,7 +74,7 @@ public class CategoryService : ICategoryService
 
             await _categoryRepository.AddAsync(category);
 
-            dto.Id = category.ID;
+            dto.Id = category.Id;
 
             return dto;
         }
@@ -94,7 +94,7 @@ public class CategoryService : ICategoryService
                 return false;
 
             var exists = await _categoryRepository.AnyAsync(
-                c => c.ID != id &&
+                c => c.Id != id &&
                      c.CategoryName == dto.Name);
 
             if (exists)
