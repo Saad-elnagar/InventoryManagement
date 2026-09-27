@@ -19,24 +19,25 @@ public class ProductService : IProductService
 
     public async Task<IEnumerable<ProductDTO>> GetAllAsync()
     {
-        try
-        {
-            var products = await _unitOfWork.GenaricRepository<Product>().GetAllAsync();
+       try{ 
+        var products = await _unitOfWork.GenaricRepository<Product>().GetAllAsync();
 
-            return products.Select(p => new ProductDTO
-            {
-                Id = p.Id,
-                Name = p.Name,
-                Description = p.Description,
-                Price = p.UnitPrice,
-                Quantity = p.StockQuantity,
-                ReorderLevel = p.LowStockThreshold,
-                CategoryId = p.CategoryId
-            });
-        }
+        if (products == null) return new List<ProductDTO>();
+
+        return products.Select(p => new ProductDTO
+        {
+            Id = p.Id,
+            Name = p.Name,
+            Description = p.Description,
+            Price = p.UnitPrice,
+            Quantity = p.StockQuantity,
+            ReorderLevel = p.LowStockThreshold,
+            CategoryId = p.CategoryId
+        }).ToList(); 
+    }
         catch (Exception ex)
         {
-            throw new Exception("Error while getting products.", ex);
+            throw ex;
         }
     }
 

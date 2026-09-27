@@ -1,0 +1,56 @@
+﻿@model IEnumerable<InventoryManagementSystem.BLL.DTOs.ProductDTO>
+
+@{
+    ViewData["Title"] = "Products";
+}
+
+<div class="container-fluid p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Products Inventory List</h2>
+        <a href="#" class="btn btn-primary">+ Add New Product</a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <table class="table table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Product Name</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Stock Quantity</th>
+                        <th>Reorder Level</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>@item.Id</td>
+                                <td>@item.Name</td>
+                                <td>@(item.CategoryName ?? "N/A")</td>
+                                <td>@item.Price.ToString("C")</td>
+                                <td>@item.Quantity</td>
+                                <td>@item.ReorderLevel</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-warning">Edit</button>
+                                    <button class="btn btn-sm btn-outline-danger">Delete</button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center text-muted">No products found.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
