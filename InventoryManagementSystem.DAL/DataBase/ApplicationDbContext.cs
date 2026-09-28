@@ -50,7 +50,7 @@ public partial class ApplicationDbContext : DbContext
 
             entity.Property(e => e.Id).HasColumnName("ID");
             entity.Property(e => e.Description).HasMaxLength(500);
-            entity.Property(e => e.CategoryName).HasMaxLength(100);
+            entity.Property(e => e.Name).HasMaxLength(100);
         });
 
         modelBuilder.Entity<Customer>(entity =>
