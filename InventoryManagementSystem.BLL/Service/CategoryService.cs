@@ -1,6 +1,5 @@
 ﻿using InventoryManagementSystem.BLL.DTOs;
 using InventoryManagementSystem.BLL.Interfaces;
-using InventoryManagementSystem.DAL;
 using InventoryManagementSystem.DAL.Entities;
 using InventoryManagementSystem.DAL.Repository;
 
@@ -10,10 +9,10 @@ public class CategoryService : ICategoryService
 {
     private readonly IUnitOfWork _unitOfWork;
 
-    public CategoryService(
-        IUnitOfWork unitOfWorky)
+    public CategoryService(IUnitOfWork unitOfWork
+        )
     {
-        _unitOfWork =  unitOfWorky;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<IEnumerable<CategoryDTO>> GetAllAsync()
@@ -25,7 +24,7 @@ public class CategoryService : ICategoryService
             return categories.Select(c => new CategoryDTO
             {
                 Id = c.Id,
-                Name = c.CategoryName,
+                Name = c.Name,
                 Description = c.Description
             });
         }
@@ -47,7 +46,7 @@ public class CategoryService : ICategoryService
             return new CategoryDTO
             {
                 Id = category.Id,
-                Name = category.CategoryName,
+                Name = category.Name,
                 Description = category.Description
             };
         }
@@ -62,20 +61,21 @@ public class CategoryService : ICategoryService
         try
         {
             var exists = await _unitOfWork.GenaricRepository<Category>().AnyAsync(
-                c => c.CategoryName == dto.Name);
+                c => c.Name == dto.Name);
 
             if (exists)
                 throw new Exception("Category already exists.");
 
             var category = new Category
             {
-                CategoryName = dto.Name,
+                Name = dto.Name,
                 Description = dto.Description
             };
 
-             _unitOfWork.GenaricRepository<Category>().AddAsync(category);
+            await _unitOfWork.GenaricRepository<Category>().AddAsync(category);
 
             dto.Id = category.Id;
+           await _unitOfWork.SaveChangesAsync();
 
             return dto;
         }
@@ -96,15 +96,16 @@ public class CategoryService : ICategoryService
 
             var exists = await _unitOfWork.GenaricRepository<Category>().AnyAsync(
                 c => c.Id != id &&
-                     c.CategoryName == dto.Name);
+                     c.Name == dto.Name);
 
             if (exists)
                 throw new Exception("Category already exists.");
 
-            category.CategoryName = dto.Name;
+            category.Name = dto.Name;
             category.Description = dto.Description;
 
             _unitOfWork.GenaricRepository<Category>().Update(category);
+            await _unitOfWork.SaveChangesAsync();
 
             return true;
         }
@@ -124,6 +125,7 @@ public class CategoryService : ICategoryService
                 return false;
 
             _unitOfWork.GenaricRepository<Category>().Delete(category);
+           await _unitOfWork.SaveChangesAsync();
 
             return true;
         }

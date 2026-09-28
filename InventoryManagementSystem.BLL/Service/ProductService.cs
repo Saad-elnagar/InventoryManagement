@@ -3,41 +3,40 @@ using InventoryManagementSystem.BLL.Interfaces;
 using InventoryManagementSystem.BLL.Pagination;
 using InventoryManagementSystem.DAL;
 using InventoryManagementSystem.DAL.Entities;
-using InventoryManagementSystem.DAL.Repository;
 
 namespace InventoryManagementSystem.BLL.Service;
 
 public class ProductService : IProductService
 {
-  private readonly IUnitOfWork _unitOfWork;
+    private readonly IUnitOfWork _unitOfWork;
 
     public ProductService(IUnitOfWork unitOfWork)
-
     {
         _unitOfWork = unitOfWork;
     }
 
     public async Task<IEnumerable<ProductDTO>> GetAllAsync()
     {
-       try{ 
-        var products = await _unitOfWork.GenaricRepository<Product>().GetAllAsync();
-
-        if (products == null) return new List<ProductDTO>();
-
-        return products.Select(p => new ProductDTO
+        try
         {
-            Id = p.Id,
-            Name = p.Name,
-            Description = p.Description,
-            Price = p.UnitPrice,
-            Quantity = p.StockQuantity,
-            ReorderLevel = p.LowStockThreshold,
-            CategoryId = p.CategoryId
-        }).ToList(); 
-    }
+            var repository = _unitOfWork.GenaricRepository<Product>();
+
+            var products = await repository.GetAllAsync();
+
+            return products.Select(p => new ProductDTO
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Description = p.Description,
+                Price = p.UnitPrice,
+                Quantity = p.StockQuantity,
+                ReorderLevel = p.LowStockThreshold,
+                CategoryId = p.CategoryId
+            });
+        }
         catch (Exception ex)
         {
-            throw ex;
+            throw new Exception("Error while getting products.", ex);
         }
     }
 
@@ -45,7 +44,9 @@ public class ProductService : IProductService
     {
         try
         {
-            var product = await _unitOfWork.GenaricRepository<Product>().GetByIdAsync(id);
+            var repository = _unitOfWork.GenaricRepository<Product>();
+
+            var product = await repository.GetByIdAsync(id);
 
             if (product == null)
                 return null;
@@ -71,9 +72,14 @@ public class ProductService : IProductService
     {
         try
         {
-            var categoryExists =
-                await _unitOfWork.GenaricRepository<Category>().AnyAsync(
-                    c => c.Id == dto.CategoryId);
+            var categoryRepository =
+                _unitOfWork.GenaricRepository<Category>();
+
+            var productRepository =
+                _unitOfWork.GenaricRepository<Product>();
+
+            var categoryExists = await categoryRepository.AnyAsync(
+                c => c.Id == dto.CategoryId);
 
             if (!categoryExists)
                 throw new Exception("Category not found.");
@@ -81,15 +87,16 @@ public class ProductService : IProductService
             var product = new Product
             {
                 Name = dto.Name,
-                
-               Description = dto.Description,
+                Description = dto.Description,
                 UnitPrice = dto.Price,
                 StockQuantity = dto.Quantity,
                 LowStockThreshold = dto.ReorderLevel,
                 CategoryId = dto.CategoryId
             };
 
-             _unitOfWork.GenaricRepository<Product>().AddAsync(product);
+            await productRepository.AddAsync(product);
+
+            await _unitOfWork.SaveChangesAsync();
 
             dto.Id = product.Id;
 
@@ -105,14 +112,19 @@ public class ProductService : IProductService
     {
         try
         {
-            var product = await _unitOfWork.GenaricRepository<Product>().GetByIdAsync(id);
+            var productRepository =
+                _unitOfWork.GenaricRepository<Product>();
+
+            var categoryRepository =
+                _unitOfWork.GenaricRepository<Category>();
+
+            var product = await productRepository.GetByIdAsync(id);
 
             if (product == null)
                 return false;
 
-            var categoryExists =
-                await _unitOfWork.GenaricRepository<Category>().AnyAsync(
-                    c => c.Id == dto.CategoryId);
+            var categoryExists = await categoryRepository.AnyAsync(
+                c => c.Id == dto.CategoryId);
 
             if (!categoryExists)
                 throw new Exception("Category not found.");
@@ -124,7 +136,9 @@ public class ProductService : IProductService
             product.LowStockThreshold = dto.ReorderLevel;
             product.CategoryId = dto.CategoryId;
 
-            _unitOfWork.GenaricRepository<Product>().Update(product);
+            productRepository.Update(product);
+
+            await _unitOfWork.SaveChangesAsync();
 
             return true;
         }
@@ -138,12 +152,37 @@ public class ProductService : IProductService
     {
         try
         {
-            var product = await _unitOfWork.GenaricRepository<Product>().GetByIdAsync(id);
+            var productRepository =
+                _unitOfWork.GenaricRepository<Product>();
+
+            var product = await productRepository.GetByIdAsync(id);
 
             if (product == null)
                 return false;
 
-            _unitOfWork.GenaricRepository<Product>().Delete(product);
+            var purchaseItemRepository =
+                _unitOfWork.GenaricRepository<PurchaseItem>();
+
+            var saleItemRepository =
+                _unitOfWork.GenaricRepository<SaleItem>();
+
+            var hasPurchaseHistory =
+                await purchaseItemRepository.AnyAsync(x => x.ProductId == id);
+
+            if (hasPurchaseHistory)
+                throw new Exception(
+                    "Cannot delete product because it has purchase history.");
+
+            var hasSaleHistory =
+                await saleItemRepository.AnyAsync(x => x.ProductId == id);
+
+            if (hasSaleHistory)
+                throw new Exception(
+                    "Cannot delete product because it has sales history.");
+
+            productRepository.Delete(product);
+
+            await _unitOfWork.SaveChangesAsync();
 
             return true;
         }
@@ -157,10 +196,49 @@ public class ProductService : IProductService
     {
         try
         {
-            var products = await _unitOfWork.GenaricRepository<Product>().GetAllAsync();
+            var repository = _unitOfWork.GenaricRepository<Product>();
 
-            return products
-                .Where(p => p.StockQuantity <= p.LowStockThreshold)
+            var products = await repository.GetWhereAsync(
+                p => p.StockQuantity <= p.LowStockThreshold);
+
+            return products.Select(p => new ProductDTO
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Description = p.Description,
+                Price = p.UnitPrice,
+                Quantity = p.StockQuantity,
+                ReorderLevel = p.LowStockThreshold,
+                CategoryId = p.CategoryId
+            });
+        }
+        catch (Exception ex)
+        {
+            throw new Exception(
+                "Error while getting low stock products.", ex);
+        }
+    }
+
+    public async Task<PaginationResult<ProductDTO>> GetPagedAsync(
+        int page = 1,
+        int pageSize = 10)
+    {
+        try
+        {
+            var parameters = new PaginationParams
+            {
+                Page = page,
+                PageSize = pageSize
+            };
+
+            var repository =
+                _unitOfWork.GenaricRepository<Product>();
+
+            var result = await repository.GetPagedAsync(
+                parameters.Page,
+                parameters.PageSize);
+
+            var data = result.Items
                 .Select(p => new ProductDTO
                 {
                     Id = p.Id,
@@ -170,42 +248,18 @@ public class ProductService : IProductService
                     Quantity = p.StockQuantity,
                     ReorderLevel = p.LowStockThreshold,
                     CategoryId = p.CategoryId
-                });
+                })
+                .ToList();
+
+            return PaginationHelper.Create(
+                data,
+                parameters,
+                result.TotalCount);
         }
         catch (Exception ex)
         {
-            throw new Exception("Error while getting low stock products.", ex);
+            throw new Exception(
+                "Error while getting paginated products.", ex);
         }
-    }
-
-    public async Task<PaginationResult<ProductDTO>> GetPagedAsync(int page = 1, int pageSize = 10)
-    {
-        var parameters = new PaginationParams
-        {
-            Page = page,
-            PageSize = pageSize
-        };
-
-        var result = await _unitOfWork.GenaricRepository<Product>().GetPagedAsync(
-            parameters.Page,
-            parameters.PageSize);
-
-        var data = result.Items
-            .Select(p => new ProductDTO
-            {
-                Id = p.Id,
-                Name = p.Name,
-                Description = p.Description,
-                Price = p.UnitPrice,
-                Quantity = p.StockQuantity,
-                ReorderLevel = p.LowStockThreshold,
-                CategoryId = p.CategoryId
-            })
-            .ToList();
-
-        return PaginationHelper.Create(
-            data,
-            parameters,
-            result.TotalCount);
     }
 }

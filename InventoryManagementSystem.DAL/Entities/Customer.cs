@@ -3,9 +3,9 @@ using System.Collections.Generic;
 
 namespace InventoryManagementSystem.DAL.Entities;
 
-public partial class Customer : BaseEntity
+public partial class Customer  : BaseEntity
 {
-  
+    
 
     public string CustomerName { get; set; } = null!;
 

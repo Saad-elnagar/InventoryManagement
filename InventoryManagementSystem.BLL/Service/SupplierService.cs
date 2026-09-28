@@ -64,8 +64,8 @@ public class SupplierService : ISupplierService
             Address = dto.Address
         };
 
-         _unitOfWork.GenaricRepository<Supplier>().AddAsync(supplier);
-        //  await _supplierRepository.SaveChangesAsync();
+       await  _unitOfWork.GenaricRepository<Supplier>().AddAsync(supplier);
+         await _unitOfWork.SaveChangesAsync();
         dto.Id = supplier.Id;
         return dto;
     }
@@ -91,7 +91,7 @@ public class SupplierService : ISupplierService
 
         _unitOfWork.GenaricRepository<Supplier>().Update(supplier);
 
-        // await _supplierRepository.SaveChangesAsync();
+         await _unitOfWork.SaveChangesAsync();
 
         return true;
     }
@@ -111,7 +111,7 @@ public class SupplierService : ISupplierService
 
         _unitOfWork.GenaricRepository<Supplier>().Delete(supplier);
 
-        //   await _supplierRepository.SaveChangesAsync();
+          await _unitOfWork.SaveChangesAsync();
 
         return true;
     }

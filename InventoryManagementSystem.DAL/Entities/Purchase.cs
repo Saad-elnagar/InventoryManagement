@@ -5,7 +5,7 @@ namespace InventoryManagementSystem.DAL.Entities;
 
 public partial class Purchase : BaseEntity
 {
-   
+    
 
     public int SupplierId { get; set; }
 

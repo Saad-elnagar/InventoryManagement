@@ -95,7 +95,7 @@ public class GenaricRepository<T> : IGenaricRepository<T>
         return (items, totalCount);
     }
 
-    public async void AddAsync(T entity)
+    public async Task AddAsync(T entity)
     {
         await _context
             .Set<T>()

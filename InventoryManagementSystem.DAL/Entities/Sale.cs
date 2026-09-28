@@ -13,7 +13,7 @@ public partial class Sale : BaseEntity
 
     public string? CustomerInfo { get; set; }
 
-    public int? CustomerId { get; set; }
+    public int  CustomerId { get; set; }
 
     public virtual Customer? Customer { get; set; }
 
