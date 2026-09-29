@@ -219,6 +219,11 @@ public class ProductService : IProductService
         }
     }
 
+    public async Task<PaginationResult<ProductDTO>> GetPagedAsync()
+    {
+        throw new NotImplementedException();
+    }
+
     public async Task<PaginationResult<ProductDTO>> GetPagedAsync(
         int page = 1,
         int pageSize = 10)

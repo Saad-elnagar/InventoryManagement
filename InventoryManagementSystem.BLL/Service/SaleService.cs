@@ -110,7 +110,7 @@ public class SaleService : ISaleService
                     throw new Exception(
                         "Unit price must be greater than zero.");
             }
-
+            
             var products = new Dictionary<int, Product>();
             decimal totalAmount = 0;
 
@@ -185,7 +185,7 @@ public class SaleService : ISaleService
 
             dto.Id = sale.Id;
             dto.TotalAmount = totalAmount;
-
+            
             return dto;
         }
         catch (Exception ex)
