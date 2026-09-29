@@ -1,5 +1,5 @@
-using Exception = System.Exception;
 using InventoryManagementSystem.BLL.DTOs;
+using InventoryManagementSystem.BLL.Enums;
 using InventoryManagementSystem.BLL.Interfaces;
 using InventoryManagementSystem.DAL.Entities;
 
@@ -18,30 +18,28 @@ public class SaleService : ISaleService
     {
         try
         {
-            var saleRepository =
-                _unitOfWork.GenaricRepository<Sale>();
+            // get all sales
+            var sales =
+                await _unitOfWork.GenaricRepository<Sale>()
+                    .GetAllAsync();
 
-            var customerRepository =
-                _unitOfWork.GenaricRepository<Customer>();
-
-            var sales = await saleRepository.GetAllAsync();
-
+            // get ids of customers who have made sales 
             var customerIds = sales
                 .Select(s => s.CustomerId)
                 .Distinct()
-                .ToList();
-
-            var customers = await customerRepository.GetWhereAsync(
-                c => customerIds.Contains(c.Id));
-
-            // Chage from List to Dic To Search Fast 
+                .ToHashSet();
+            
+            var customers =
+                await _unitOfWork.GenaricRepository<Customer>()
+                    .GetWhereAsync(c => customerIds.Contains(c.Id));
+             
             var customerDictionary = customers
                 .ToDictionary(c => c.Id, c => c.CustomerName);
 
             return sales.Select(s => new SaleDTO
             {
                 Id = s.Id,
-                CustomerId = s.CustomerId  ,
+                CustomerId = s.CustomerId,
                 CustomerName = customerDictionary.TryGetValue(
                     s.CustomerId,
                     out var customerName)
@@ -61,19 +59,16 @@ public class SaleService : ISaleService
     {
         try
         {
-            var saleRepository =
-                _unitOfWork.GenaricRepository<Sale>();
-
-            var customerRepository =
-                _unitOfWork.GenaricRepository<Customer>();
-
-            var sale = await saleRepository.GetByIdAsync(id);
+            var sale =
+                await _unitOfWork.GenaricRepository<Sale>()
+                    .GetByIdAsync(id);
 
             if (sale == null)
                 return null;
 
             var customer =
-                await customerRepository.GetByIdAsync(sale.CustomerId);
+                await _unitOfWork.GenaricRepository<Customer>()
+                    .GetByIdAsync(sale.CustomerId);
 
             return new SaleDTO
             {
@@ -94,21 +89,10 @@ public class SaleService : ISaleService
     {
         try
         {
-            var customerRepository =
-                _unitOfWork.GenaricRepository<Customer>();
-
-            var saleRepository =
-                _unitOfWork.GenaricRepository<Sale>();
-
-            var saleItemRepository =
-                _unitOfWork.GenaricRepository<SaleItem>();
-
-            var productRepository =
-                _unitOfWork.GenaricRepository<Product>();
-
+            // check is exit 
             var customerExists =
-                await customerRepository.AnyAsync(
-                    c => c.Id == dto.CustomerId);
+                await _unitOfWork.GenaricRepository<Customer>()
+                    .AnyAsync(c => c.Id == dto.CustomerId);
 
             if (!customerExists)
                 throw new Exception("Customer not found.");
@@ -128,32 +112,24 @@ public class SaleService : ISaleService
             }
 
             var products = new Dictionary<int, Product>();
-
-            var groupedItems = dto.Items
-                .GroupBy(x => x.ProductId)
-                .ToList();
-
             decimal totalAmount = 0;
 
-            foreach (var group in groupedItems)
+            foreach (var group in dto.Items.GroupBy(x => x.ProductId))
             {
                 var product =
-                    await productRepository.GetByIdAsync(group.Key);
+                    await _unitOfWork.GenaricRepository<Product>()
+                        .GetByIdAsync(group.Key);
 
                 if (product == null)
-                {
                     throw new Exception(
                         $"Product {group.Key} not found.");
-                }
 
                 var totalQuantity =
                     group.Sum(x => x.Quantity);
 
                 if (product.StockQuantity < totalQuantity)
-                {
                     throw new Exception(
                         $"Not enough stock for product {group.Key}.");
-                }
 
                 products[group.Key] = product;
 
@@ -168,27 +144,41 @@ public class SaleService : ISaleService
                 TotalAmount = totalAmount
             };
 
-            await saleRepository.AddAsync(sale);
+            await _unitOfWork.GenaricRepository<Sale>()
+                .AddAsync(sale);
 
             await _unitOfWork.SaveChangesAsync();
 
             foreach (var item in dto.Items)
             {
-                var saleItem = new SaleItem
-                {
-                    SaleId = sale.Id,
-                    ProductId = item.ProductId,
-                    Quantity = item.Quantity,
-                    UnitPrice = item.UnitPrice
-                };
-
-                await saleItemRepository.AddAsync(saleItem);
+                await _unitOfWork.GenaricRepository<SaleItem>()
+                    .AddAsync(new SaleItem
+                    {
+                        SaleId = sale.Id,
+                        ProductId = item.ProductId,
+                        Quantity = item.Quantity,
+                        UnitPrice = item.UnitPrice
+                    });
 
                 var product = products[item.ProductId];
 
                 product.StockQuantity -= item.Quantity;
 
-                productRepository.Update(product);
+                _unitOfWork.GenaricRepository<Product>()
+                    .Update(product);
+
+                await _unitOfWork.GenaricRepository<StockMovement>()
+                    .AddAsync(new StockMovement
+                    {
+                        ProductId = item.ProductId,
+                        Quantity = -item.Quantity,
+                        MovementType =
+                            StockMovementType.Sale.ToString(),
+                        MovementDate = DateTime.UtcNow,
+                        ReferenceType = "Sale",
+                        ReferenceId = sale.Id,
+                        Reason = "Product sold"
+                    });
             }
 
             await _unitOfWork.SaveChangesAsync();

@@ -1,8 +1,6 @@
 using InventoryManagementSystem.BLL.DTOs;
 using InventoryManagementSystem.BLL.Interfaces;
-using InventoryManagementSystem.DAL;
 using InventoryManagementSystem.DAL.Entities;
-using InventoryManagementSystem.DAL.Repository;
 
 namespace InventoryManagementSystem.BLL.Service;
 
@@ -17,24 +15,29 @@ public class SupplierService : ISupplierService
 
     public async Task<IEnumerable<SupplierDTO>> GetAllAsync()
     {
-        var supplier = await _unitOfWork.GenaricRepository<Supplier>().GetAllAsync();
-        return supplier
-            .Select(s => new SupplierDTO
-            {
-                Id = s.Id,
-                SupplierName = s.SupplierName,
-                Phone = s.Phone,
-                Email = s.Email,
-                Address = s.Address
-            });
+        var suppliers =
+            await _unitOfWork.GenaricRepository<Supplier>()
+                .GetAllAsync();
+
+        return suppliers.Select(s => new SupplierDTO
+        {
+            Id = s.Id,
+            SupplierName = s.SupplierName,
+            ContactName = s.ContactName,
+            Phone = s.Phone,
+            Email = s.Email,
+            Address = s.Address
+        });
     }
 
     public async Task<SupplierDTO?> GetByIdAsync(int id)
     {
-        var supplier = await _unitOfWork.GenaricRepository<Supplier>().GetByIdAsync(id);
+        var supplier =
+            await _unitOfWork.GenaricRepository<Supplier>()
+                .GetByIdAsync(id);
 
         if (supplier == null)
-            throw new Exception("Supplier not exists");
+            return null;
 
         return new SupplierDTO
         {
@@ -49,13 +52,14 @@ public class SupplierService : ISupplierService
 
     public async Task<SupplierDTO> CreateAsync(SupplierDTO dto)
     {
-        var excit = _unitOfWork.GenaricRepository<Supplier>().GetByIdAsync(dto.Id);
-        if (excit != null)
-        {
-            throw new Exception("Supplier already exists");
-        }
+        var exists =
+            await _unitOfWork.GenaricRepository<Supplier>()
+                .AnyAsync(s => s.SupplierName == dto.SupplierName);
 
-        var supplier = new Supplier()
+        if (exists)
+            throw new Exception("Supplier already exists.");
+
+        var supplier = new Supplier
         {
             SupplierName = dto.SupplierName,
             ContactName = dto.ContactName,
@@ -64,21 +68,30 @@ public class SupplierService : ISupplierService
             Address = dto.Address
         };
 
-       await  _unitOfWork.GenaricRepository<Supplier>().AddAsync(supplier);
-         await _unitOfWork.SaveChangesAsync();
+        await _unitOfWork.GenaricRepository<Supplier>()
+            .AddAsync(supplier);
+
+        await _unitOfWork.SaveChangesAsync();
+
         dto.Id = supplier.Id;
+
         return dto;
     }
 
     public async Task<bool> UpdateAsync(int id, SupplierDTO dto)
     {
-        var supplier = await _unitOfWork.GenaricRepository<Supplier>().GetByIdAsync(id);
+        var supplier =
+            await _unitOfWork.GenaricRepository<Supplier>()
+                .GetByIdAsync(id);
 
-        if (supplier is null)
+        if (supplier == null)
             return false;
 
-        var exists = await _unitOfWork.GenaricRepository<Supplier>().AnyAsync(s => s.Id != id &&
-                                                             s.SupplierName == dto.SupplierName);
+        var exists =
+            await _unitOfWork.GenaricRepository<Supplier>()
+                .AnyAsync(s =>
+                    s.Id != id &&
+                    s.SupplierName == dto.SupplierName);
 
         if (exists)
             throw new Exception("Supplier already exists.");
@@ -89,29 +102,35 @@ public class SupplierService : ISupplierService
         supplier.Email = dto.Email;
         supplier.Address = dto.Address;
 
-        _unitOfWork.GenaricRepository<Supplier>().Update(supplier);
+        _unitOfWork.GenaricRepository<Supplier>()
+            .Update(supplier);
 
-         await _unitOfWork.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync();
 
         return true;
     }
 
     public async Task<bool> DeleteAsync(int id)
     {
-        var supplier = await _unitOfWork.GenaricRepository<Supplier>().GetByIdAsync(id);
+        var supplier =
+            await _unitOfWork.GenaricRepository<Supplier>()
+                .GetByIdAsync(id);
 
         if (supplier == null)
             return false;
 
-        var hasPurchases = await _unitOfWork.GenaricRepository<Purchase>().AnyAsync(p => p.SupplierId == id);
+        var hasPurchases =
+            await _unitOfWork.GenaricRepository<Purchase>()
+                .AnyAsync(p => p.SupplierId == id);
 
         if (hasPurchases)
             throw new Exception(
                 "Cannot delete supplier because it has purchase history.");
 
-        _unitOfWork.GenaricRepository<Supplier>().Delete(supplier);
+        _unitOfWork.GenaricRepository<Supplier>()
+            .Delete(supplier);
 
-          await _unitOfWork.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync();
 
         return true;
     }
