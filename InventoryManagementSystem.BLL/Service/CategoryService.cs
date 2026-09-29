@@ -1,7 +1,7 @@
 ﻿using InventoryManagementSystem.BLL.DTOs;
 using InventoryManagementSystem.BLL.Interfaces;
 using InventoryManagementSystem.DAL.Entities;
-using InventoryManagementSystem.DAL.Repository;
+
 
 namespace InventoryManagementSystem.BLL.Service;
 
