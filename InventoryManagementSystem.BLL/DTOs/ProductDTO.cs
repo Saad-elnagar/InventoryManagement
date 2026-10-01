@@ -5,6 +5,7 @@ namespace InventoryManagementSystem.BLL.DTOs;
 public class ProductDTO
 {
     public int Id { get; set; }
+    public string SKU { get; set; }  
 
     [Required]
     [MaxLength(100)]

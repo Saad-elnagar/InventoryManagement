@@ -2,6 +2,7 @@ using InventoryManagementSystem.BLL.DTOs;
 using InventoryManagementSystem.BLL.Interfaces;
 using InventoryManagementSystem.BLL.Pagination;
 using InventoryManagementSystem.DAL;
+using Microsoft.EntityFrameworkCore;
 using InventoryManagementSystem.DAL.Entities;
 
 namespace InventoryManagementSystem.BLL.Service;
@@ -42,32 +43,32 @@ public class ProductService : IProductService
 
     public async Task<ProductDTO?> GetByIdAsync(int id)
     {
-        try
+        var product =
+            await _unitOfWork
+                .GenaricRepository<Product>()
+                .GetByIdAsync(id);
+
+        if (product == null)
+            return null;
+
+        var category =
+            await _unitOfWork
+                .GenaricRepository<Category>()
+                .GetByIdAsync(product.CategoryId);
+
+        return new ProductDTO
         {
-            var repository = _unitOfWork.GenaricRepository<Product>();
-
-            var product = await repository.GetByIdAsync(id);
-
-            if (product == null)
-                return null;
-
-            return new ProductDTO
-            {
-                Id = product.Id,
-                Name = product.Name,
-                Description = product.Description,
-                Price = product.UnitPrice,
-                Quantity = product.StockQuantity,
-                ReorderLevel = product.LowStockThreshold,
-                CategoryId = product.CategoryId
-            };
-        }
-        catch (Exception ex)
-        {
-            throw new Exception("Error while getting product.", ex);
-        }
+            Id = product.Id,
+            Name = product.Name,
+            SKU = product.Sku,
+            Description = product.Description,
+            Price = product.UnitPrice,
+            Quantity = product.StockQuantity,
+            ReorderLevel = product.LowStockThreshold,
+            CategoryId = product.CategoryId,
+            CategoryName = category?.Name
+        };
     }
-
     public async Task<ProductDTO> CreateAsync(ProductDTO dto)
     {
         try
@@ -87,6 +88,7 @@ public class ProductService : IProductService
             var product = new Product
             {
                 Name = dto.Name,
+                Sku = dto.SKU,
                 Description = dto.Description,
                 UnitPrice = dto.Price,
                 StockQuantity = dto.Quantity,
@@ -266,5 +268,68 @@ public class ProductService : IProductService
             throw new Exception(
                 "Error while getting paginated products.", ex);
         }
+    }
+    public async Task<PaginationResult<ProductDTO>> SearchAsync(
+        string search,
+        int page = 1,
+        int pageSize = 10)
+    {
+        if (string.IsNullOrWhiteSpace(search))
+            return await GetPagedAsync(page, pageSize);
+
+        search = search.Trim();
+
+        var result =
+            await _unitOfWork
+                .GenaricRepository<Product>()
+                .GetPagedAsync(
+                    page,
+                    pageSize,
+                    p =>
+                        EF.Functions.Like(
+                            EF.Functions.Collate(
+                                p.Name,
+                                "SQL_Latin1_General_CP1_CI_AS"),
+                            $"%{search}%")
+                        ||
+                        (p.Sku != null &&
+                         EF.Functions.Like(
+                             EF.Functions.Collate(
+                                 p.Sku,
+                                 "SQL_Latin1_General_CP1_CI_AS"),
+                             $"%{search}%"))
+                        ||
+                        (p.Description != null &&
+                         EF.Functions.Like(
+                             EF.Functions.Collate(
+                                 p.Description,
+                                 "SQL_Latin1_General_CP1_CI_AS"),
+                             $"%{search}%"))
+                );
+
+        var data = result.Items
+            .Select(p => new ProductDTO
+            {
+                Id = p.Id,
+                Name = p.Name,
+                SKU = p.Sku,
+                Description = p.Description,
+                Price = p.UnitPrice,
+                Quantity = p.StockQuantity,
+                ReorderLevel = p.LowStockThreshold,
+                CategoryId = p.CategoryId
+            })
+            .ToList();
+
+        var parameters = new PaginationParams
+        {
+            Page = page,
+            PageSize = pageSize
+        };
+
+        return PaginationHelper.Create(
+            data,
+            parameters,
+            result.TotalCount);
     }
 }

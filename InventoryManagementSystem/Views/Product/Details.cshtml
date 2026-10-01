@@ -1,3 +1,4 @@
+```cshtml
 @model InventoryManagementSystem.BLL.DTOs.ProductDTO
 
 @{
@@ -27,15 +28,23 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
 
                 <div>
+
                     <a asp-action="Index"
                        class="text-decoration-none text-muted">
+
                         <i class="bi bi-arrow-left"></i>
                         Back to Products
+
                     </a>
 
                     <h2 class="fw-bold mt-3 mb-1">
                         Product Details
                     </h2>
+
+                    <p class="text-muted mb-0">
+                        View product information and current stock status.
+                    </p>
+
                 </div>
 
                 <span class="badge bg-@statusClass fs-6 px-3 py-2">
@@ -44,45 +53,71 @@
 
             </div>
 
-            <div class="card border-0 shadow-sm">
+
+            <div class="card border-0 shadow-sm rounded-4">
 
                 <div class="card-body p-4">
 
                     <div class="d-flex align-items-center mb-4">
 
                         <div class="bg-primary bg-opacity-10 rounded-3 p-3 me-3">
+
                             <i class="bi bi-box-seam fs-2 text-primary"></i>
+
                         </div>
 
                         <div>
-                            <h3 class="fw-bold mb-1">
+
+                            <h3 class="fw-bold mb-1"
+                                style="color:#1b2559;">
                                 @Model.Name
                             </h3>
 
                             <span class="text-muted">
                                 Product #@Model.Id
                             </span>
+
                         </div>
 
                     </div>
 
+
                     <hr />
 
+
                     <div class="row g-4 mt-2">
+
 
                         <div class="col-md-6">
 
                             <small class="text-muted">
-                                Description
+                                SKU
                             </small>
 
                             <div class="fw-semibold mt-1">
-                                @(string.IsNullOrWhiteSpace(Model.Description)
-                                    ? "No description"
-                                    : Model.Description)
+
+                                @if (string.IsNullOrWhiteSpace(Model.SKU))
+                                {
+                                    <span class="text-muted">
+                                        No SKU
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge rounded-3"
+                                          style="background-color:#e3f2fd;
+                                                 color:#0d47a1;
+                                                 font-size:14px;">
+
+                                        @Model.SKU
+
+                                    </span>
+                                }
+
                             </div>
 
                         </div>
+
 
                         <div class="col-md-6">
 
@@ -90,11 +125,34 @@
                                 Category
                             </small>
 
-                            <div class="fw-semibold mt-1">
-                                Category #@Model.CategoryId
+                            <div class="fw-semibold mt-1"
+                                 style="color:#1b2559;">
+
+                                @(string.IsNullOrWhiteSpace(Model.CategoryName)
+                                    ? "No category"
+                                    : Model.CategoryName)
+
                             </div>
 
                         </div>
+
+
+                        <div class="col-12">
+
+                            <small class="text-muted">
+                                Description
+                            </small>
+
+                            <div class="fw-semibold mt-1">
+
+                                @(string.IsNullOrWhiteSpace(Model.Description)
+                                    ? "No description"
+                                    : Model.Description)
+
+                            </div>
+
+                        </div>
+
 
                         <div class="col-md-4">
 
@@ -102,11 +160,15 @@
                                 Price
                             </small>
 
-                            <div class="fw-bold fs-5 mt-1">
-                                @Model.Price.ToString("N2")
+                            <div class="fw-bold fs-5 mt-1"
+                                 style="color:#1b2559;">
+
+                                EGP @Model.Price.ToString("N2")
+
                             </div>
 
                         </div>
+
 
                         <div class="col-md-4">
 
@@ -114,11 +176,15 @@
                                 Current Stock
                             </small>
 
-                            <div class="fw-bold fs-5 mt-1">
+                            <div class="fw-bold fs-5 mt-1"
+                                 style="color:#1b2559;">
+
                                 @Model.Quantity
+
                             </div>
 
                         </div>
+
 
                         <div class="col-md-4">
 
@@ -126,30 +192,39 @@
                                 Reorder Level
                             </small>
 
-                            <div class="fw-bold fs-5 mt-1">
+                            <div class="fw-bold fs-5 mt-1"
+                                 style="color:#1b2559;">
+
                                 @Model.ReorderLevel
+
                             </div>
 
                         </div>
 
                     </div>
 
+
                     <hr class="my-4" />
+
 
                     <div class="d-flex justify-content-end gap-2">
 
                         <a asp-action="Edit"
                            asp-route-id="@Model.Id"
-                           class="btn btn-primary">
+                           class="btn btn-primary rounded-3">
+
                             <i class="bi bi-pencil"></i>
                             Edit
+
                         </a>
 
                         <a asp-action="Delete"
                            asp-route-id="@Model.Id"
-                           class="btn btn-outline-danger">
+                           class="btn btn-outline-danger rounded-3">
+
                             <i class="bi bi-trash"></i>
                             Delete
+
                         </a>
 
                     </div>
@@ -163,3 +238,4 @@
     </div>
 
 </div>
+```

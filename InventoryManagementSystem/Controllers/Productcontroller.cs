@@ -1,16 +1,21 @@
 ﻿using InventoryManagementSystem.BLL.DTOs;
 using InventoryManagementSystem.BLL.Interfaces;
+using InventoryManagementSystem.BLL.Pagination;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Inventory.Web.Controllers;
+namespace InventoryManagementSystem.Controllers;
 
 public class ProductController : Controller
 {
     private readonly IProductService _productService;
+    private readonly ICategoryService _categoryService;
 
-    public ProductController(IProductService productService)
+    public ProductController(
+        IProductService productService,
+        ICategoryService categoryService)
     {
         _productService = productService;
+        _categoryService = categoryService;
     }
 
     public async Task<IActionResult> Index(
@@ -20,22 +25,32 @@ public class ProductController : Controller
     {
         ViewBag.Search = search;
 
+        // ViewBag.Statistics =
+        //     await _productService.GetStatisticsAsync();
+
+        PaginationResult<ProductDTO> result;
+
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var products = await _productService.SearchAsync(search,page,pageSize);
-
-            return View(products);
+            result = await _productService.SearchAsync(
+                search,
+                page,
+                pageSize);
         }
-
-        var result =
-            await _productService.GetPagedAsync(page, pageSize);
+        else
+        {
+            result = await _productService.GetPagedAsync(
+                page,
+                pageSize);
+        }
 
         return View(result);
     }
 
     public async Task<IActionResult> Details(int id)
     {
-        var product = await _productService.GetByIdAsync(id);
+        var product =
+            await _productService.GetByIdAsync(id);
 
         if (product == null)
             return NotFound();
@@ -44,8 +59,11 @@ public class ProductController : Controller
     }
 
     [HttpGet]
-    public IActionResult Create()
+    public async Task<IActionResult> Create()
     {
+        ViewBag.Categories =
+            await _categoryService.GetAllAsync();
+
         return View();
     }
 
@@ -54,42 +72,64 @@ public class ProductController : Controller
     public async Task<IActionResult> Create(ProductDTO dto)
     {
         if (!ModelState.IsValid)
+        {
+            ViewBag.Categories =
+                await _categoryService.GetAllAsync();
+
             return View(dto);
+        }
 
         try
         {
-            var product = await _productService.CreateAsync(dto);
+            await _productService.CreateAsync(dto);
 
             return RedirectToAction(nameof(Index));
         }
         catch (Exception ex)
         {
             ModelState.AddModelError("", ex.Message);
+
+            ViewBag.Categories =
+                await _categoryService.GetAllAsync();
+
             return View(dto);
         }
     }
-
     [HttpGet]
     public async Task<IActionResult> Edit(int id)
     {
-        var product = await _productService.GetByIdAsync(id);
+        var product =
+            await _productService.GetByIdAsync(id);
 
         if (product == null)
             return NotFound();
+
+        ViewBag.Categories =
+            await _categoryService.GetAllAsync();
 
         return View(product);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, ProductDTO dto)
+    public async Task<IActionResult> Edit(
+        int id,
+        ProductDTO dto)
     {
         if (!ModelState.IsValid)
+        {
+            ViewBag.Categories =
+                await _categoryService.GetAllAsync();
+
             return View(dto);
+        }
 
         try
         {
-            var result = await _productService.UpdateAsync(id, dto);
+            var result =
+                await _productService.UpdateAsync(
+                    id,
+                    dto);
 
             if (!result)
                 return NotFound();
@@ -98,7 +138,13 @@ public class ProductController : Controller
         }
         catch (Exception ex)
         {
-            ModelState.AddModelError("", ex.Message);
+            ModelState.AddModelError(
+                "",
+                ex.Message);
+
+            ViewBag.Categories =
+                await _categoryService.GetAllAsync();
+
             return View(dto);
         }
     }
@@ -106,7 +152,8 @@ public class ProductController : Controller
     [HttpGet]
     public async Task<IActionResult> Delete(int id)
     {
-        var product = await _productService.GetByIdAsync(id);
+        var product =
+            await _productService.GetByIdAsync(id);
 
         if (product == null)
             return NotFound();
@@ -121,7 +168,8 @@ public class ProductController : Controller
     {
         try
         {
-            var result = await _productService.DeleteAsync(id);
+            var result =
+                await _productService.DeleteAsync(id);
 
             if (!result)
                 return NotFound();
@@ -130,15 +178,29 @@ public class ProductController : Controller
         }
         catch (Exception ex)
         {
-            ModelState.AddModelError("", ex.Message);
+            ModelState.AddModelError(
+                "",
+                ex.Message);
+
             return RedirectToAction(nameof(Index));
         }
     }
 
     public async Task<IActionResult> LowStock()
     {
-        var products = await _productService.GetLowStockAsync();
+        var products =
+            await _productService.GetLowStockAsync();
 
         return View(products);
     }
-} 
+
+    // [HttpGet]
+    // public async Task<IActionResult> Suggestions(
+    //     string term)
+    // {
+    //     var result =
+    //         await _productService.GetSuggestionsAsync(term);
+    //
+    //     return Json(result);
+    // }
+}

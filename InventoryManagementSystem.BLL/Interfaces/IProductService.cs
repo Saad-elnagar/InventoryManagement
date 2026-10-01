@@ -12,4 +12,6 @@ public interface IProductService
     Task<bool> DeleteAsync(int id);
     Task<IEnumerable<ProductDTO>> GetLowStockAsync();
     public Task<PaginationResult<ProductDTO>> GetPagedAsync(int page , int pagesize);
+    Task<PaginationResult<ProductDTO>> SearchAsync(string search,int page,int pageSize);
+  
 }
