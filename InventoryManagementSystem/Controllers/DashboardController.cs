@@ -3,11 +3,11 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Inventory.Web.Controllers;
 
-public class HomeController : Controller
+public class DashboardController : Controller
 {
     private readonly IDashboardService _dashboardService;
 
-    public HomeController(IDashboardService dashboardService)
+    public DashboardController(IDashboardService dashboardService)
     {
         _dashboardService = dashboardService;
     }
