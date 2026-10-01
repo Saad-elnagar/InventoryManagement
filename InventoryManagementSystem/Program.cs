@@ -17,7 +17,6 @@ builder.Services.AddScoped(
     typeof(IGenaricRepository<>),
     typeof(GenaricRepository<>));
 
-//builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 

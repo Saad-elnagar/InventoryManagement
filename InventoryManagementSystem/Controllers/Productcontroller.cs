@@ -13,11 +13,24 @@ public class ProductController : Controller
         _productService = productService;
     }
 
-    public async Task<IActionResult> Index(int page = 1, int pageSize = 10)
+    public async Task<IActionResult> Index(
+        string? search,
+        int page = 1,
+        int pageSize = 10)
     {
-        var products = await _productService.GetPagedAsync(page, pageSize);
+        ViewBag.Search = search;
 
-        return View(products);
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var products = await _productService.SearchAsync(search,page,pageSize);
+
+            return View(products);
+        }
+
+        var result =
+            await _productService.GetPagedAsync(page, pageSize);
+
+        return View(result);
     }
 
     public async Task<IActionResult> Details(int id)

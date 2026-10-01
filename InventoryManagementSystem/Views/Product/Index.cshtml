@@ -3,6 +3,8 @@
 @{
     ViewData["Title"] = "Products";
 
+    var search = ViewBag.Search as string;
+
     var totalProducts = Model.TotalCount;
     var lowStock = Model.Data.Count(x => x.Quantity > 0 && x.Quantity <= x.ReorderLevel);
     var outOfStock = Model.Data.Count(x => x.Quantity == 0);
@@ -27,16 +29,86 @@
 
             <a asp-action="LowStock"
                class="btn btn-light shadow-sm rounded-3">
+
                 <i class="bi bi-exclamation-triangle text-warning"></i>
                 Low Stock
+
             </a>
 
             <a asp-action="Create"
                class="btn text-white rounded-3 px-3"
                style="background-color: #0d47a1;">
+
                 <i class="bi bi-plus-lg me-1"></i>
                 Add Product
+
             </a>
+
+        </div>
+
+    </div>
+
+
+    <!-- Search -->
+
+    <div class="card border-0 rounded-4 shadow-sm bg-white mb-4">
+
+        <div class="card-body p-3">
+
+            <form asp-action="Index"
+                  method="get">
+
+                <div class="row g-2 align-items-center">
+
+                    <div class="col-12 col-md">
+
+                        <div class="input-group">
+
+                            <span class="input-group-text bg-white border-end-0">
+                                <i class="bi bi-search text-muted"></i>
+                            </span>
+
+                            <input type="text"
+                                   name="search"
+                                   value="@search"
+                                   class="form-control border-start-0"
+                                   placeholder="Search by product name, SKU or description..." />
+
+                        </div>
+
+                    </div>
+
+                    <div class="col-12 col-md-auto">
+
+                        <button type="submit"
+                                class="btn text-white px-4 rounded-3 w-100"
+                                style="background-color:#0d47a1;">
+
+                            <i class="bi bi-search me-1"></i>
+                            Search
+
+                        </button>
+
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(search))
+                    {
+                        <div class="col-12 col-md-auto">
+
+                            <a asp-action="Index"
+                               class="btn btn-light border rounded-3 w-100">
+
+                                <i class="bi bi-x-lg me-1"></i>
+                                Clear
+
+                            </a>
+
+                        </div>
+                    }
+
+                </div>
+
+            </form>
 
         </div>
 
@@ -46,6 +118,7 @@
     <!-- Statistics -->
 
     <div class="row g-3 mb-4">
+
 
         <!-- Total -->
 
@@ -191,11 +264,27 @@
 
                     <h5 class="fw-bold mb-1"
                         style="color: #1b2559;">
+
                         Product List
+
                     </h5>
 
                     <small class="text-muted">
-                        Showing page @Model.Page of @Model.TotalPages
+
+                        @if (!string.IsNullOrWhiteSpace(search))
+                        {
+                            <span>
+                                Search results for:
+                                <strong>@search</strong>
+                            </span>
+                        }
+                        else
+                        {
+                            <span>
+                                Showing page @Model.Page of @Model.TotalPages
+                            </span>
+                        }
+
                     </small>
 
                 </div>
@@ -203,7 +292,9 @@
                 <span class="badge rounded-pill px-3 py-2"
                       style="background-color: #e3f2fd;
                              color: #0d47a1;">
+
                     @Model.TotalCount Products
+
                 </span>
 
             </div>
@@ -221,6 +312,10 @@
 
                         <th class="ps-4">
                             Product
+                        </th>
+
+                        <th>
+                            SKU
                         </th>
 
                         <th>
@@ -258,18 +353,35 @@
                 {
                     <tr>
 
-                        <td colspan="7"
+                        <td colspan="8"
                             class="text-center py-5">
 
-                            <i class="bi bi-box-seam fs-1 text-muted"></i>
+                            <i class="bi bi-search fs-1 text-muted"></i>
 
                             <h6 class="mt-3 fw-bold">
                                 No Products Found
                             </h6>
 
-                            <p class="text-muted small">
-                                There are no products to display.
-                            </p>
+                            @if (!string.IsNullOrWhiteSpace(search))
+                            {
+                                <p class="text-muted small">
+                                    No products match
+                                    "<strong>@search</strong>".
+                                </p>
+
+                                <a asp-action="Index"
+                                   class="btn btn-light border rounded-3">
+
+                                    Clear Search
+
+                                </a>
+                            }
+                            else
+                            {
+                                <p class="text-muted small">
+                                    There are no products to display.
+                                </p>
+                            }
 
                         </td>
 
@@ -281,14 +393,17 @@
                     {
                         <tr class="border-bottom">
 
+
+                            <!-- Product -->
+
                             <td class="ps-4">
 
                                 <div class="d-flex align-items-center gap-3">
 
                                     <div class="rounded-3 d-flex align-items-center justify-content-center"
-                                         style="width: 42px;
-                                                height: 42px;
-                                                background-color: #e3f2fd;">
+                                         style="width:42px;
+                                                height:42px;
+                                                background-color:#e3f2fd;">
 
                                         <i class="bi bi-box-seam text-primary"></i>
 
@@ -297,12 +412,16 @@
                                     <div>
 
                                         <div class="fw-semibold"
-                                             style="color: #1b2559;">
+                                             style="color:#1b2559;">
+
                                             @product.Name
+
                                         </div>
 
                                         <small class="text-muted">
+
                                             #@product.Id
+
                                         </small>
 
                                     </div>
@@ -311,6 +430,32 @@
 
                             </td>
 
+
+                            <!-- SKU -->
+
+                            <td>
+
+                                @if (string.IsNullOrWhiteSpace(product.SKU))
+                                {
+                                    <span class="text-muted small">
+                                        N/A
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge rounded-3"
+                                          style="background-color:#f3f6fa;
+                                                 color:#1b2559;">
+
+                                        @product.SKU
+
+                                    </span>
+                                }
+
+                            </td>
+
+
+                            <!-- Description -->
 
                             <td>
 
@@ -325,10 +470,12 @@
                             </td>
 
 
+                            <!-- Price -->
+
                             <td>
 
                                 <span class="fw-semibold"
-                                      style="color: #1b2559;">
+                                      style="color:#1b2559;">
 
                                     EGP @product.Price.ToString("N2")
 
@@ -336,6 +483,8 @@
 
                             </td>
 
+
+                            <!-- Quantity -->
 
                             <td>
 
@@ -346,6 +495,8 @@
                             </td>
 
 
+                            <!-- Reorder Level -->
+
                             <td>
 
                                 <span class="text-muted">
@@ -354,6 +505,8 @@
 
                             </td>
 
+
+                            <!-- Status -->
 
                             <td>
 
@@ -378,6 +531,8 @@
 
                             </td>
 
+
+                            <!-- Actions -->
 
                             <td class="text-end pe-4">
 
@@ -434,24 +589,34 @@
                 <div class="d-flex justify-content-between align-items-center">
 
                     <small class="text-muted">
+
                         Page @Model.Page of @Model.TotalPages
+
                     </small>
 
                     <nav>
 
                         <ul class="pagination pagination-sm mb-0">
 
+
+                            <!-- Previous -->
+
                             <li class="page-item @(Model.HasPrevious ? "" : "disabled")">
 
                                 <a class="page-link"
                                    asp-action="Index"
                                    asp-route-page="@(Model.Page - 1)"
-                                   asp-route-pageSize="@Model.PageSize">
+                                   asp-route-pageSize="@Model.PageSize"
+                                   asp-route-search="@search">
+
                                     <i class="bi bi-chevron-left"></i>
+
                                 </a>
 
                             </li>
 
+
+                            <!-- Pages -->
 
                             @for (var i = 1; i <= Model.TotalPages; i++)
                             {
@@ -460,7 +625,8 @@
                                     <a class="page-link"
                                        asp-action="Index"
                                        asp-route-page="@i"
-                                       asp-route-pageSize="@Model.PageSize">
+                                       asp-route-pageSize="@Model.PageSize"
+                                       asp-route-search="@search">
 
                                         @i
 
@@ -470,12 +636,15 @@
                             }
 
 
+                            <!-- Next -->
+
                             <li class="page-item @(Model.HasNext ? "" : "disabled")">
 
                                 <a class="page-link"
                                    asp-action="Index"
                                    asp-route-page="@(Model.Page + 1)"
-                                   asp-route-pageSize="@Model.PageSize">
+                                   asp-route-pageSize="@Model.PageSize"
+                                   asp-route-search="@search">
 
                                     <i class="bi bi-chevron-right"></i>
 
