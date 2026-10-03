@@ -1,4 +1,5 @@
-﻿
+﻿@using System.Security.Claims
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -26,16 +27,30 @@
 </head>
 
 <body>
-    @{
-        var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
-    }
+
+@{
+var currentController =
+ViewContext.RouteData.Values["controller"]?.ToString();
+
+var fullName =
+User.FindFirst("FullName")?.Value
+?? User.Identity?.Name
+?? "User";
+
+var email =
+User.FindFirst(ClaimTypes.Email)?.Value
+?? string.Empty;
+
+var role =
+User.FindFirst(ClaimTypes.Role)?.Value
+?? "Employee";
+}
 
 <div class="app-wrapper">
 
     <div class="sidebar-overlay"
          id="sidebarOverlay">
     </div>
-
 
     <aside class="sidebar"
            id="sidebar">
@@ -60,7 +75,6 @@
 
         </div>
 
-
         <div class="sidebar-section">
 
             <div class="sidebar-section-title">
@@ -73,7 +87,7 @@
 
                     <a asp-controller="Home"
                        asp-action="Index"
-                       class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" ? "active" : "")">
+                       class="sidebar-link @(currentController == "Home" ? "active" : "")">
 
                         <i class="bi bi-grid-1x2-fill"></i>
 
@@ -85,12 +99,11 @@
 
                 </li>
 
-
                 <li>
 
                     <a asp-controller="Product"
                        asp-action="Index"
-                       class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Product" ? "active" : "")">
+                       class="sidebar-link @(currentController == "Product" ? "active" : "")">
 
                         <i class="bi bi-box-seam"></i>
 
@@ -102,34 +115,56 @@
 
                 </li>
 
-
+                @if (User.IsInRole("Admin") ||
+                User.IsInRole("Manager"))
+                {
                 <li>
 
                     <a asp-controller="Purchase"
                        asp-action="Index"
-                       class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Purchase" ? "active" : "")">
+                       class="sidebar-link @(currentController == "Purchase" ? "active" : "")">
 
                         <i class="bi bi-cart-plus"></i>
 
                         <span>
-                            Purchases
-                        </span>
+                                Purchases
+                            </span>
 
                     </a>
 
                 </li>
+                }
 
-
+                @if (User.IsInRole("Admin") ||
+                User.IsInRole("Manager"))
+                {
                 <li>
 
                     <a asp-controller="Category"
                        asp-action="Index"
-                       class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Category" ? "active" : "")">
+                       class="sidebar-link @(currentController == "Category" ? "active" : "")">
 
                         <i class="bi bi-tags"></i>
 
                         <span>
-                            Categories
+                                Categories
+                            </span>
+
+                    </a>
+
+                </li>
+                }
+
+                <li>
+
+                    <a asp-controller="Sale"
+                       asp-action="Index"
+                       class="sidebar-link @(currentController == "Sale" ? "active" : "")">
+
+                        <i class="bi bi-receipt"></i>
+
+                        <span>
+                            Sales
                         </span>
 
                     </a>
@@ -139,7 +174,6 @@
             </ul>
 
         </div>
-
 
         <div class="sidebar-section">
 
@@ -151,13 +185,14 @@
 
                 <li>
 
-                    <a href="#"
-                       class="sidebar-link">
+                    <a asp-controller="StockMovement"
+                       asp-action="Index"
+                       class="sidebar-link @(currentController == "StockMovement" ? "active" : "")">
 
-                        <i class="bi bi-boxes"></i>
+                        <i class="bi bi-arrow-left-right"></i>
 
                         <span>
-                            Stock
+                            Stock Movements
                         </span>
 
                     </a>
@@ -168,6 +203,36 @@
 
         </div>
 
+        @if (User.IsInRole("Admin"))
+        {
+        <div class="sidebar-section">
+
+            <div class="sidebar-section-title">
+                ADMINISTRATION
+            </div>
+
+            <ul class="sidebar-menu">
+
+                <li>
+
+                    <a asp-controller="User"
+                       asp-action="Index"
+                       class="sidebar-link @(currentController == "User" ? "active" : "")">
+
+                        <i class="bi bi-people"></i>
+
+                        <span>
+                                Users
+                            </span>
+
+                    </a>
+
+                </li>
+
+            </ul>
+
+        </div>
+        }
 
         <div class="sidebar-user">
 
@@ -180,19 +245,49 @@
             <div class="sidebar-user-info">
 
                 <span class="sidebar-user-name">
-                    Administrator
+                    @fullName
                 </span>
 
                 <span class="sidebar-user-email">
-                    Inventory Management
+                    @email
                 </span>
+
+                <span class="badge
+                    @(role == "Admin"
+                ? "bg-danger"
+                : role == "Manager"
+                ? "bg-warning text-dark"
+                : "bg-secondary")">
+
+                    @role
+
+                </span>
+
+            </div>
+
+            <div class="ms-auto">
+
+                <form asp-controller="Account"
+                      asp-action="Logout"
+                      method="post">
+
+                    @Html.AntiForgeryToken()
+
+                    <button type="submit"
+                            class="btn btn-sm btn-link text-danger p-0"
+                            title="Logout">
+
+                        <i class="bi bi-box-arrow-right fs-5"></i>
+
+                    </button>
+
+                </form>
 
             </div>
 
         </div>
 
     </aside>
-
 
     <div class="main-wrapper">
 
@@ -214,7 +309,6 @@
 
         </div>
 
-
         <main role="main">
 
             @RenderBody()
@@ -225,10 +319,8 @@
 
 </div>
 
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js">
 </script>
-
 
 <script>
 
@@ -241,14 +333,12 @@
     const sidebarOverlay =
         document.getElementById("sidebarOverlay");
 
-
     function closeSidebar() {
 
         sidebar.classList.remove("show");
         sidebarOverlay.classList.remove("show");
 
     }
-
 
     if (sidebarToggle) {
 
@@ -260,8 +350,8 @@
                 sidebarOverlay.classList.toggle("show");
 
             });
-    }
 
+    }
 
     if (sidebarOverlay) {
 
@@ -273,10 +363,9 @@
 
 </script>
 
-
 @await RenderSectionAsync(
-    "Scripts",
-    required: false)
+"Scripts",
+required: false)
 
 </body>
 
