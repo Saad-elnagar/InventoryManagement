@@ -4,50 +4,48 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace InventoryManagementSystem.Controllers
 {
-    public class CategoryController : Controller
+    public class SaleController : Controller
     {
-        private readonly ICategoryService _categoryService;
+        private readonly ISaleService _saleService;
 
-        public CategoryController(ICategoryService categoryService)
+        public SaleController(ISaleService saleService)
         {
-            _categoryService = categoryService;
+            _saleService = saleService;
         }
 
-        // GET: Category
+        // GET: Sale
         public async Task<IActionResult> Index()
         {
-            var categories = await _categoryService.GetAllAsync();
-            return View(categories);
+            var sales = await _saleService.GetAllAsync();
+            return View(sales);
         }
 
-        // GET: Category/Create
+        // GET: Sale/Create
         [HttpGet]
         public IActionResult Create()
         {
             return View();
         }
 
-        // POST: Category/Create
+        // POST: Sale/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-      
-        public async Task<IActionResult> Create(CategoryDTO categoryDto)
+        public async Task<IActionResult> Create(SaleDTO saleDto)
         {
             if (ModelState.IsValid)
             {
                 try
                 {
-                    await _categoryService.CreateAsync(categoryDto);
+                    await _saleService.CreateAsync(saleDto);
                     return RedirectToAction(nameof(Index));
                 }
                 catch (Exception ex)
                 {
-                    // إظهار رسالة الخطأ للمستخدم فوق الفورم مباشرة دون أن تتوقف الصفحة
                     ModelState.AddModelError("", ex.Message);
                 }
             }
 
-            return View(categoryDto);
+            return View(saleDto);
         }
     }
 }
