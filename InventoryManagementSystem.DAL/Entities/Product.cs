@@ -10,7 +10,7 @@ public partial class Product : BaseEntity
 
     public string Sku { get; set; } = null!;
     
-    [Column("ProductName")]
+   
     public string Name { get; set; } = null!;
 
     public int CategoryId { get; set; }
