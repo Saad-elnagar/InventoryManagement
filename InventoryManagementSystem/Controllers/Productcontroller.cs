@@ -1,10 +1,11 @@
 ﻿using InventoryManagementSystem.BLL.DTOs;
 using InventoryManagementSystem.BLL.Interfaces;
 using InventoryManagementSystem.BLL.Pagination;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace InventoryManagementSystem.Controllers;
-
+[Authorize]
 public class ProductController : Controller
 {
     private readonly IProductService _productService;
@@ -58,6 +59,7 @@ public class ProductController : Controller
         return View(product);
     }
 
+    [Authorize(Roles = "Admin,Manager")]
     [HttpGet]
     public async Task<IActionResult> Create()
     {
@@ -67,6 +69,7 @@ public class ProductController : Controller
         return View();
     }
 
+    [Authorize(Roles = "Admin,Manager")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(ProductDTO dto)
@@ -96,6 +99,7 @@ public class ProductController : Controller
         }
     }
     [HttpGet]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> Edit(int id)
     {
         var product =
@@ -112,6 +116,7 @@ public class ProductController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> Edit(
         int id,
         ProductDTO dto)
@@ -150,6 +155,7 @@ public class ProductController : Controller
     }
 
     [HttpGet]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> Delete(int id)
     {
         var product =

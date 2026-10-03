@@ -1,10 +1,13 @@
 using InventoryManagementSystem.BLL.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Inventory.Web.Controllers
 {
+    [Authorize]
     public class DashboardController : Controller
     {
+        
         private readonly IDashboardService _dashboardService;
         private readonly ICategoryService _categoryService;
         private readonly IProductService _productService;

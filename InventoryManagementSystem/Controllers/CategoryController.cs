@@ -1,9 +1,11 @@
 ﻿using InventoryManagementSystem.BLL.DTOs;
 using InventoryManagementSystem.BLL.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace InventoryManagementSystem.Controllers
 {
+    [Authorize(Roles = "Admin,Manager")]
     public class CategoryController : Controller
     {
         private readonly ICategoryService _categoryService;

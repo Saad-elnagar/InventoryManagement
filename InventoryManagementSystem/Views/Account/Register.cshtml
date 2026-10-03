@@ -1,0 +1,124 @@
+@model InventoryManagementSystem.Models.Auth.RegisterViewModel
+
+@{
+    ViewData["Title"] = "Register";
+    Layout = "~/Views/Shared/_AuthLayout.cshtml";
+}
+
+<div>
+
+    <h1 class="auth-title">
+        Create account
+    </h1>
+
+    <p class="auth-subtitle">
+        Create your account to access the inventory system.
+    </p>
+
+    <form asp-controller="Account"
+          asp-action="Register"
+          method="post"
+          class="auth-form">
+
+        @Html.AntiForgeryToken()
+
+        <div asp-validation-summary="ModelOnly"
+             class="alert alert-danger"
+             role="alert">
+        </div>
+
+        <div class="mb-3">
+
+            <label asp-for="FullName"
+                   class="form-label">
+                Full Name
+            </label>
+
+            <input asp-for="FullName"
+                   class="form-control"
+                   placeholder="Enter your full name"
+                   autocomplete="name" />
+
+            <span asp-validation-for="FullName"
+                  class="text-danger">
+            </span>
+
+        </div>
+
+        <div class="mb-3">
+
+            <label asp-for="Email"
+                   class="form-label">
+                Email
+            </label>
+
+            <input asp-for="Email"
+                   class="form-control"
+                   placeholder="Enter your email"
+                   autocomplete="email" />
+
+            <span asp-validation-for="Email"
+                  class="text-danger">
+            </span>
+
+        </div>
+
+        <div class="mb-3">
+
+            <label asp-for="Password"
+                   class="form-label">
+                Password
+            </label>
+
+            <input asp-for="Password"
+                   class="form-control"
+                   placeholder="Create a password"
+                   autocomplete="new-password" />
+
+            <span asp-validation-for="Password"
+                  class="text-danger">
+            </span>
+
+        </div>
+
+        <div class="mb-4">
+
+            <label asp-for="ConfirmPassword"
+                   class="form-label">
+                Confirm Password
+            </label>
+
+            <input asp-for="ConfirmPassword"
+                   class="form-control"
+                   placeholder="Confirm your password"
+                   autocomplete="new-password" />
+
+            <span asp-validation-for="ConfirmPassword"
+                  class="text-danger">
+            </span>
+
+        </div>
+
+        <button type="submit"
+                class="btn btn-primary w-100">
+            Create Account
+        </button>
+
+    </form>
+
+    <div class="auth-footer">
+
+        <span>Already have an account?</span>
+
+        <a asp-controller="Account"
+           asp-action="Login">
+            Sign in
+        </a>
+
+    </div>
+
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
