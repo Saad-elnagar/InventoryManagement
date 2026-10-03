@@ -1,0 +1,476 @@
+@using InventoryManagementSystem.BLL.DTOs
+
+@model PurchaseDTO
+
+@{
+    ViewData["Title"] = "Create Purchase";
+
+    var suppliers =
+        ViewBag.Suppliers as IEnumerable<SupplierDTO>
+        ?? Enumerable.Empty<SupplierDTO>();
+
+    var products =
+        ViewBag.Products as IEnumerable<ProductDTO>
+        ?? Enumerable.Empty<ProductDTO>();
+}
+
+<div class="container-fluid py-4">
+
+    <div class="mb-4">
+
+        <a asp-action="Index"
+           class="text-decoration-none text-muted">
+
+            <i class="bi bi-arrow-left"></i>
+            Back to Purchases
+
+        </a>
+
+        <h2 class="fw-bold mt-3 mb-1">
+            Create Purchase
+        </h2>
+
+        <p class="text-muted">
+            Add products received from a supplier.
+        </p>
+
+    </div>
+
+
+    <form asp-action="Create"
+          method="post">
+
+        @Html.AntiForgeryToken()
+
+        <div asp-validation-summary="ModelOnly"
+             class="alert alert-danger">
+        </div>
+
+
+        <div class="card border-0 shadow-sm rounded-4 mb-4">
+
+            <div class="card-body p-4">
+
+                <div class="row">
+
+                    <div class="col-md-6">
+
+                        <label asp-for="SupplierId"
+                               class="form-label fw-semibold">
+
+                            Supplier
+
+                        </label>
+
+                        <select asp-for="SupplierId"
+                                class="form-select"
+                                required>
+
+                            <option value="">
+                                Select Supplier
+                            </option>
+
+                            @foreach (var supplier in suppliers)
+                            {
+                                <option value="@supplier.Id">
+
+                                    @supplier.SupplierName
+
+                                </option>
+                            }
+
+                        </select>
+
+                        <span asp-validation-for="SupplierId"
+                              class="text-danger">
+                        </span>
+
+                    </div>
+
+
+                    <div class="col-md-6">
+
+                        <label asp-for="PurchaseDate"
+                               class="form-label fw-semibold">
+
+                            Purchase Date
+
+                        </label>
+
+                        <input asp-for="PurchaseDate"
+                               type="datetime-local"
+                               class="form-control" />
+
+                        <span asp-validation-for="PurchaseDate"
+                              class="text-danger">
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="card border-0 shadow-sm rounded-4">
+
+            <div class="card-header bg-white border-0 pt-4 px-4">
+
+                <div class="d-flex justify-content-between align-items-center">
+
+                    <div>
+
+                        <h5 class="fw-bold mb-1">
+                            Purchase Items
+                        </h5>
+
+                        <p class="text-muted mb-0">
+                            Add products and their quantities.
+                        </p>
+
+                    </div>
+
+                    <button type="button"
+                            id="addItem"
+                            class="btn btn-outline-primary rounded-3">
+
+                        <i class="bi bi-plus-lg"></i>
+                        Add Product
+
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <div class="card-body p-4">
+
+                <div class="table-responsive">
+
+                    <table class="table align-middle">
+
+                        <thead class="table-light">
+
+                        <tr>
+
+                            <th style="width: 35%;">
+                                Product
+                            </th>
+
+                            <th style="width: 20%;">
+                                Quantity
+                            </th>
+
+                            <th style="width: 20%;">
+                                Unit Cost
+                            </th>
+
+                            <th style="width: 15%;">
+                                Total
+                            </th>
+
+                            <th style="width: 10%;"></th>
+
+                        </tr>
+
+                        </thead>
+
+
+                        <tbody id="itemsBody">
+
+                        <tr class="purchase-row">
+
+                            <td>
+
+                                <select name="Items[0].ProductId"
+                                        class="form-select product-input"
+                                        required>
+
+                                    <option value="">
+                                        Select Product
+                                    </option>
+
+                                    @foreach (var product in products)
+                                    {
+                                        <option value="@product.Id">
+
+                                            @product.Name
+                                            (@product.SKU)
+
+                                        </option>
+                                    }
+
+                                </select>
+
+                            </td>
+
+
+                            <td>
+
+                                <input type="number"
+                                       name="Items[0].Quantity"
+                                       class="form-control quantity-input"
+                                       min="1"
+                                       value="1"
+                                       required />
+
+                            </td>
+
+
+                            <td>
+
+                                <input type="number"
+                                       name="Items[0].UnitPrice"
+                                       class="form-control price-input"
+                                       min="0.01"
+                                       step="0.01"
+                                       required />
+
+                            </td>
+
+
+                            <td>
+
+                                <span class="row-total">
+                                    0.00
+                                </span>
+
+                                EGP
+
+                            </td>
+
+
+                            <td class="text-end">
+
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-danger remove-row">
+
+                                    <i class="bi bi-trash"></i>
+
+                                </button>
+
+                            </td>
+
+                        </tr>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+
+                <div class="d-flex justify-content-end mt-4">
+
+                    <div class="text-end">
+
+                        <div class="text-muted">
+                            Grand Total
+                        </div>
+
+                        <h3 class="fw-bold mb-0">
+
+                            <span id="grandTotal">
+                                0.00
+                            </span>
+
+                            EGP
+
+                        </h3>
+
+                    </div>
+
+                </div>
+
+
+                <div class="d-flex justify-content-end gap-2 mt-4">
+
+                    <a asp-action="Index"
+                       class="btn btn-light border rounded-3">
+
+                        Cancel
+
+                    </a>
+
+                    <button type="submit"
+                            class="btn btn-primary rounded-3 px-4">
+
+                        <i class="bi bi-check-lg"></i>
+                        Save Purchase
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </form>
+
+</div>
+
+
+@section Scripts {
+
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+
+        const itemsBody =
+            document.getElementById("itemsBody");
+
+        const addItemButton =
+            document.getElementById("addItem");
+
+        const grandTotal =
+            document.getElementById("grandTotal");
+
+
+        function calculateTotal() {
+
+            let total = 0;
+
+            const rows =
+                itemsBody.querySelectorAll(".purchase-row");
+
+            rows.forEach(row => {
+
+                const quantity =
+                    parseFloat(
+                        row.querySelector(".quantity-input")?.value
+                    ) || 0;
+
+                const price =
+                    parseFloat(
+                        row.querySelector(".price-input")?.value
+                    ) || 0;
+
+                const rowTotal =
+                    quantity * price;
+
+                total += rowTotal;
+
+                const rowTotalElement =
+                    row.querySelector(".row-total");
+
+                rowTotalElement.textContent =
+                    rowTotal.toLocaleString(
+                        "en-US",
+                        {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                        });
+
+            });
+
+            grandTotal.textContent =
+                total.toLocaleString(
+                    "en-US",
+                    {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    });
+        }
+
+
+        function renumberRows() {
+
+            const rows =
+                itemsBody.querySelectorAll(".purchase-row");
+
+            rows.forEach((row, index) => {
+
+                row.querySelector(".product-input")
+                    .name =
+                    `Items[${index}].ProductId`;
+
+                row.querySelector(".quantity-input")
+                    .name =
+                    `Items[${index}].Quantity`;
+
+                row.querySelector(".price-input")
+                    .name =
+                    `Items[${index}].UnitPrice`;
+            });
+        }
+
+
+        addItemButton.addEventListener(
+            "click",
+            function () {
+
+                const firstRow =
+                    itemsBody
+                        .querySelector(".purchase-row");
+
+                const newRow =
+                    firstRow.cloneNode(true);
+
+                newRow
+                    .querySelector(".product-input")
+                    .value = "";
+
+                newRow
+                    .querySelector(".quantity-input")
+                    .value = 1;
+
+                newRow
+                    .querySelector(".price-input")
+                    .value = "";
+
+                newRow
+                    .querySelector(".row-total")
+                    .textContent = "0.00";
+
+                itemsBody.appendChild(newRow);
+
+                renumberRows();
+
+                calculateTotal();
+            });
+
+
+        itemsBody.addEventListener(
+            "click",
+            function (event) {
+
+                const button =
+                    event.target.closest(
+                        ".remove-row");
+
+                if (!button)
+                    return;
+
+                const rows =
+                    itemsBody.querySelectorAll(
+                        ".purchase-row");
+
+                if (rows.length === 1)
+                    return;
+
+                button
+                    .closest(".purchase-row")
+                    .remove();
+
+                renumberRows();
+
+                calculateTotal();
+            });
+
+
+        itemsBody.addEventListener(
+            "input",
+            function () {
+
+                calculateTotal();
+            });
+
+
+        calculateTotal();
+
+    </script>
+}

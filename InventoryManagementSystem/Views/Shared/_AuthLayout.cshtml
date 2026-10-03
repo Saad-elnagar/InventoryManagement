@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>@ViewData["Title"] - Inventory Management</title>
+
+    <link rel="stylesheet"
+          href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+
+    <link rel="stylesheet"
+          href="~/css/site.css"
+          asp-append-version="true" />
+
+    <style>
+        html,
+        body {
+            min-height: 100%;
+        }
+
+        body.auth-page {
+            margin: 0;
+            min-height: 100vh;
+            background: #f4f6f9;
+        }
+
+        .auth-wrapper {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .auth-container {
+            width: 100%;
+            max-width: 430px;
+        }
+
+        .auth-brand {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .auth-brand-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #212529;
+        }
+
+        .auth-brand-subtitle {
+            margin-top: 5px;
+            color: #6c757d;
+            font-size: 14px;
+        }
+
+        .auth-card {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.08);
+        }
+
+        .auth-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #212529;
+            margin-bottom: 8px;
+        }
+
+        .auth-subtitle {
+            color: #6c757d;
+            margin-bottom: 26px;
+        }
+
+        .auth-form .form-label {
+            font-weight: 500;
+        }
+
+        .auth-form .form-control {
+            height: 48px;
+            border-radius: 10px;
+        }
+
+        .auth-form .btn {
+            height: 48px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .auth-footer {
+            text-align: center;
+            margin-top: 22px;
+            color: #6c757d;
+            font-size: 14px;
+        }
+
+        .auth-footer a {
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .validation-summary-valid {
+            display: none;
+        }
+
+        .validation-summary-errors ul {
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+
+<body class="auth-page">
+
+    <div class="auth-wrapper">
+
+        <div class="auth-container">
+
+            <div class="auth-brand">
+                <div class="auth-brand-title">
+                    Inventory Management
+                </div>
+
+                <div class="auth-brand-subtitle">
+                    Manage your inventory efficiently
+                </div>
+            </div>
+
+            <div class="auth-card">
+                @RenderBody()
+            </div>
+
+        </div>
+
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+
+</body>
+</html>

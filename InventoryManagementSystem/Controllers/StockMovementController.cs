@@ -22,24 +22,14 @@ public class StockMovementController : Controller
         int? productId,
         StockMovementType? movementType)
     {
-        IEnumerable<StockMovementDTO> movements;
+        IEnumerable<StockMovementDTO> movements =
+            productId.HasValue
+                ? await _stockMovementService.GetByProductIdAsync(productId.Value)
+                : await _stockMovementService.GetAllAsync();
 
-        if (productId.HasValue)
+        if (movementType.HasValue)
         {
-            movements =
-                await _stockMovementService.GetByProductIdAsync(
-                    productId.Value);
-        }
-        else if (movementType.HasValue)
-        {
-            movements =
-                await _stockMovementService.GetByTypeAsync(
-                    movementType.Value);
-        }
-        else
-        {
-            movements =
-                await _stockMovementService.GetAllAsync();
+            movements = movements.Where(m => m.MovementType == movementType.Value);
         }
 
         ViewBag.Products =

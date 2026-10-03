@@ -1,0 +1,104 @@
+@model InventoryManagementSystem.Models.Auth.LoginViewModel
+
+@{
+    ViewData["Title"] = "Login";
+    Layout = "~/Views/Shared/_AuthLayout.cshtml";
+}
+
+<div>
+
+    <h1 class="auth-title">
+        Welcome back
+    </h1>
+
+    <p class="auth-subtitle">
+        Sign in to continue to your dashboard.
+    </p>
+
+    <form asp-controller="Account"
+          asp-action="Login"
+          method="post"
+          class="auth-form">
+
+        @Html.AntiForgeryToken()
+
+        <input type="hidden"
+               name="returnUrl"
+               value="@ViewBag.ReturnUrl" />
+
+        <div asp-validation-summary="ModelOnly"
+             class="alert alert-danger"
+             role="alert">
+        </div>
+
+        <div class="mb-3">
+
+            <label asp-for="Email"
+                   class="form-label">
+                Email
+            </label>
+
+            <input asp-for="Email"
+                   class="form-control"
+                   placeholder="Enter your email"
+                   autocomplete="email" />
+
+            <span asp-validation-for="Email"
+                  class="text-danger">
+            </span>
+
+        </div>
+
+        <div class="mb-3">
+
+            <label asp-for="Password"
+                   class="form-label">
+                Password
+            </label>
+
+            <input asp-for="Password"
+                   class="form-control"
+                   placeholder="Enter your password"
+                   autocomplete="current-password" />
+
+            <span asp-validation-for="Password"
+                  class="text-danger">
+            </span>
+
+        </div>
+
+        <div class="form-check mb-4">
+
+            <input asp-for="RememberMe"
+                   class="form-check-input" />
+
+            <label asp-for="RememberMe"
+                   class="form-check-label">
+                Remember me
+            </label>
+
+        </div>
+
+        <button type="submit"
+                class="btn btn-primary w-100">
+            Sign In
+        </button>
+
+    </form>
+
+    <div class="auth-footer">
+
+        <span>Don't have an account?</span>
+
+        <a asp-controller="Account"
+           asp-action="Register">
+            Create one
+        </a>
+
+    </div>
+
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

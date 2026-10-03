@@ -1,0 +1,54 @@
+﻿@model InventoryManagementSystem.BLL.DTOs.CategoryDTO
+
+@{
+    ViewData["Title"] = "Add New Category";
+}
+
+<div class="container-fluid px-4 py-4" style="max-width: 900px;">
+    <!-- Back Button Link -->
+    <div class="mb-3">
+        <a asp-action="Index" class="text-decoration-none text-muted small fw-medium">
+            <i class="bi bi-arrow-left me-1"></i> Back to Categories
+        </a>
+    </div>
+
+    <!-- Header Section -->
+    <div class="mb-4">
+        <h2 class="fw-bold text-dark m-0">Add New Category</h2>
+        <p class="text-muted small m-0">Add a new category to organize your inventory products.</p>
+    </div>
+
+    <!-- Form Card -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+        <form asp-action="Create" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+            <!-- Category Name Input -->
+            <div class="mb-4">
+                <label asp-for="Name" class="form-label fw-semibold text-dark">Category Name</label>
+                <input asp-for="Name" class="form-control form-control-lg rounded-3 fs-6" placeholder="Enter category name" />
+                <span asp-validation-for="Name" class="text-danger small"></span>
+            </div>
+
+            <!-- Description Input -->
+            <div class="mb-4">
+                <label asp-for="Description" class="form-label fw-semibold text-dark">Description</label>
+                <textarea asp-for="Description" class="form-control rounded-3 fs-6" rows="4" placeholder="Enter category description"></textarea>
+                <span asp-validation-for="Description" class="text-danger small"></span>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="d-flex justify-content-end align-items-center gap-2 mt-4 pt-2">
+                <a asp-action="Index" class="btn btn-light px-4 py-2 rounded-3 text-secondary fw-medium">Cancel</a>
+                <button type="submit" class="btn btn-primary px-4 py-2 rounded-3 fw-medium d-inline-flex align-items-center gap-2">
+                    <i class="bi bi-check-lg"></i>
+                    <span>Create Category</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

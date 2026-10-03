@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace InventoryManagementSystem.DAL.Entities;
 
@@ -8,7 +9,8 @@ public partial class Product : BaseEntity
  
 
     public string Sku { get; set; } = null!;
-
+    
+   
     public string Name { get; set; } = null!;
 
     public int CategoryId { get; set; }

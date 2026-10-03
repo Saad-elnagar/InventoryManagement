@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
@@ -6,7 +6,8 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
         <RootNamespace>Inventory.Web</RootNamespace>
-    </PropertyGroup>
+      <UserSecretsId>c0cc60ae-6ef6-451f-b79e-04cb91c94fe3</UserSecretsId>
+  </PropertyGroup>
 
     <ItemGroup>
       <Content Include="..\.dockerignore">
@@ -15,11 +16,16 @@
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.12" />
       <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.12">
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         <PrivateAssets>all</PrivateAssets>
       </PackageReference>
       <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.12" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.0">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
     </ItemGroup>
 
     <ItemGroup>
@@ -28,11 +34,11 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Pages\" />
+      <AdditionalFiles Include="Views\Test\Index.cshtml" />
     </ItemGroup>
 
     <ItemGroup>
-      <AdditionalFiles Include="Views\Test\Index.cshtml" />
+      <Folder Include="Pages\" />
     </ItemGroup>
 
 </Project>
