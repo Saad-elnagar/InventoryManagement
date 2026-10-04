@@ -1,839 +1,202 @@
 @model InventoryManagementSystem.BLL.DTOs.DashboardDTO
 @using System.Text.Json
-
 @{
-    ViewData["Title"] = "Inventory Dashboard";
+    ViewData["Title"] = "Dashboard";
 
-    var hasMovementData =
-        Model.StockMovements.Any(x =>
-            x.Inbound > 0 ||
-            x.Outbound > 0);
+    int total = Model.TotalProducts;
+    int low = Model.LowStockProducts;
+    int out_ = Model.OutOfStockProducts;
+    int healthy = Math.Max(total - low - out_, 0);
 
-    var hasCategoryData =
-        Model.CategoryStatistics.Any(x =>
-            x.ProductCount > 0);
-
-    var categoryColors = new[]
-    {
-        "#FF6B6B",
-        "#4D96FF",
-        "#6BCB77",
-        "#FFD93D",
-        "#845EC2",
-        "#FF9671"
-    };
+    double Pct(int n) => total > 0 ? n * 100.0 / total : 0;
+    double healthPct = Pct(healthy);
+    int avgStock = total > 0 ? Model.TotalStock / total : 0;
+    int maxCat = Model.CategoryStatistics.Any() ? Model.CategoryStatistics.Max(c => c.ProductCount) : 1;
 }
 
-<div class="container-fluid p-4">
-
-    <div class="d-flex justify-content-between align-items-center mb-4">
-
-        <div>
-            <h3 class="fw-bold mb-1"
-                style="color:#1b2559;">
-                Inventory Dashboard
-            </h3>
-
-            <p class="text-muted small mb-0">
-                @DateTime.Now.ToString("dddd, MMMM dd, yyyy")
-            </p>
+<!-- ===== KPI row 1 ===== -->
+<div class="row g-3 mb-3">
+    <div class="col-6 col-xl-3">
+        <div class="kpi-card">
+            <i class="bi bi-box-seam kpi-icon"></i>
+            <div class="kpi-label">Total Products</div>
+            <div class="kpi-value">@total</div>
+            <div class="kpi-hint">Unique items in inventory</div>
         </div>
-
     </div>
-
-
-    <div class="row g-4">
-
-        <div class="col-12 col-xl-8">
-
-            <div class="row g-3 mb-4">
-
-                <div class="col-12 col-sm-6">
-
-                    <div class="card border-0 rounded-4 p-3 shadow-sm text-white h-100"
-                         style="background-color:#0d47a1;">
-
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-
-                            <span class="px-3 py-1 rounded-pill fw-bold"
-                                  style="background-color:rgba(255,255,255,.18);font-size:12px;">
-                                Sales
-                            </span>
-
-                            <div class="rounded-3 d-flex align-items-center justify-content-center"
-                                 style="background-color:rgba(255,255,255,.18);width:38px;height:38px;">
-                                <i class="bi bi-graph-up-arrow"></i>
-                            </div>
-
-                        </div>
-
-                        <div class="small mb-1"
-                             style="color:rgba(255,255,255,.7);">
-                            Total Sales
-                        </div>
-
-                        <h3 class="fw-bold mb-0">
-                            EGP @Model.TotalSales.ToString("N0")
-                        </h3>
-
-                    </div>
-
-                </div>
-
-
-                <div class="col-12 col-sm-6">
-
-                    <div class="card border-0 rounded-4 p-3 shadow-sm bg-white h-100">
-
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-
-                            <span class="px-3 py-1 rounded-pill fw-bold"
-                                  style="background-color:#e8f5e9;color:#2e7d32;font-size:12px;">
-                                Purchases
-                            </span>
-
-                            <div class="rounded-3 d-flex align-items-center justify-content-center"
-                                 style="background-color:#e3f2fd;width:38px;height:38px;">
-                                <i class="bi bi-cart-plus text-primary"></i>
-                            </div>
-
-                        </div>
-
-                        <div class="text-muted small mb-1">
-                            Total Purchases
-                        </div>
-
-                        <h3 class="fw-bold mb-0"
-                            style="color:#1b2559;">
-                            EGP @Model.TotalPurchases.ToString("N0")
-                        </h3>
-
-                    </div>
-
-                </div>
-
-
-                <div class="col-12 col-sm-6">
-
-                    <div class="card border-0 rounded-4 p-3 shadow-sm bg-white h-100">
-
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-
-                            <span class="px-3 py-1 rounded-pill fw-bold"
-                                  style="background-color:#e3f2fd;color:#1976d2;font-size:12px;">
-                                Stock
-                            </span>
-
-                            <div class="rounded-3 d-flex align-items-center justify-content-center"
-                                 style="background-color:#e3f2fd;width:38px;height:38px;">
-                                <i class="bi bi-box-seam text-primary"></i>
-                            </div>
-
-                        </div>
-
-                        <div class="text-muted small mb-1">
-                            Total Stock
-                        </div>
-
-                        <h3 class="fw-bold mb-0"
-                            style="color:#1b2559;">
-                            @Model.TotalStock.ToString("N0")
-                        </h3>
-
-                    </div>
-
-                </div>
-
-
-                <div class="col-12 col-sm-6">
-
-                    <div class="card border-0 rounded-4 p-3 shadow-sm bg-white h-100">
-
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-
-                            <span class="px-3 py-1 rounded-pill fw-bold"
-                                  style="background-color:#ffebee;color:#c62828;font-size:12px;">
-                                Alert
-                            </span>
-
-                            <div class="rounded-3 d-flex align-items-center justify-content-center"
-                                 style="background-color:#ffebee;width:38px;height:38px;">
-                                <i class="bi bi-exclamation-triangle text-danger"></i>
-                            </div>
-
-                        </div>
-
-                        <div class="text-muted small mb-1">
-                            Low Stock
-                        </div>
-
-                        <h3 class="fw-bold mb-0 text-danger">
-                            @Model.LowStockProducts
-                        </h3>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <div class="row g-3 mb-4">
-
-                <div class="col-12 col-md-4">
-
-                    <div class="card border-0 rounded-4 p-3 shadow-sm bg-white h-100">
-
-                        <small class="text-muted">
-                            Products
-                        </small>
-
-                        <h5 class="fw-bold mb-0"
-                            style="color:#1b2559;">
-                            @Model.TotalProducts
-                        </h5>
-
-                    </div>
-
-                </div>
-
-
-                <div class="col-12 col-md-4">
-
-                    <div class="card border-0 rounded-4 p-3 shadow-sm bg-white h-100">
-
-                        <small class="text-muted">
-                            Categories
-                        </small>
-
-                        <h5 class="fw-bold mb-0"
-                            style="color:#1b2559;">
-                            @Model.TotalCategories
-                        </h5>
-
-                    </div>
-
-                </div>
-
-
-                <div class="col-12 col-md-4">
-
-                    <div class="card border-0 rounded-4 p-3 shadow-sm bg-white h-100">
-
-                        <small class="text-muted">
-                            Inventory Value
-                        </small>
-
-                        <h6 class="fw-bold mb-0"
-                            style="color:#1b2559;">
-                            EGP @Model.InventoryValue.ToString("N0")
-                        </h6>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <div class="row g-3 mb-4">
-
-                <div class="col-12 col-md-6">
-
-                    <div class="card border-0 rounded-4 p-3 shadow-sm bg-white h-100">
-
-                        <small class="text-muted">
-                            Suppliers
-                        </small>
-
-                        <h5 class="fw-bold mb-0"
-                            style="color:#1b2559;">
-                            @Model.TotalSuppliers
-                        </h5>
-
-                    </div>
-
-                </div>
-
-
-                <div class="col-12 col-md-6">
-
-                    <div class="card border-0 rounded-4 p-3 shadow-sm bg-white h-100">
-
-                        <small class="text-muted">
-                            Customers
-                        </small>
-
-                        <h5 class="fw-bold mb-0"
-                            style="color:#1b2559;">
-                            @Model.TotalCustomers
-                        </h5>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <div class="card border-0 rounded-4 p-4 shadow-sm bg-white">
-
-                <div class="d-flex justify-content-between align-items-center mb-4">
-
-                    <div>
-
-                        <h5 class="fw-bold mb-0"
-                            style="color:#1b2559;">
-                            Inventory Movement
-                        </h5>
-
-                        <small class="text-muted">
-                            Real stock movement during @DateTime.Now.Year
-                        </small>
-
-                    </div>
-
-                    <span class="badge bg-light text-dark px-3 py-2">
-                        @DateTime.Now.Year
-                    </span>
-
-                </div>
-
-
-                @if (hasMovementData)
-                {
-                    <div style="height:300px;">
-                        <canvas id="inventoryBarChart"></canvas>
-                    </div>
-                }
-                else
-                {
-                    <div class="d-flex align-items-center justify-content-center"
-                         style="height:300px;">
-
-                        <div class="text-center">
-
-                            <i class="bi bi-bar-chart-line fs-1 text-muted"></i>
-
-                            <h6 class="mt-3 text-muted">
-                                No stock movement data
-                            </h6>
-
-                            <small class="text-muted">
-                                Purchases and sales will appear here
-                                after stock movements are recorded.
-                            </small>
-
-                        </div>
-
-                    </div>
-                }
-
-            </div>
-
+    <div class="col-6 col-xl-3">
+        <div class="kpi-card kpi-warn">
+            <i class="bi bi-exclamation-triangle kpi-icon"></i>
+            <div class="kpi-label">Low Stock Alerts</div>
+            <div class="kpi-value">@low</div>
+            <div class="kpi-hint">Items below reorder point</div>
         </div>
-
-
-        <div class="col-12 col-xl-4 d-flex flex-column gap-4">
-
-            <div class="card border-0 rounded-4 p-4 shadow-sm"
-                 style="background-color:#eef2f7;">
-
-                <div class="d-flex justify-content-between align-items-center mb-3">
-
-                    <div>
-
-                        <h5 class="fw-bold mb-0"
-                            style="color:#1b2559;">
-                            Category Statistics
-                        </h5>
-
-                        <small class="text-muted">
-                            Products by category
-                        </small>
-
-                    </div>
-
-                </div>
-
-
-                @if (hasCategoryData)
-                {
-                    <div class="position-relative d-flex justify-content-center align-items-center my-3"
-                         style="height:220px;">
-
-                        <canvas id="categoryDoughnutChart"></canvas>
-
-                        <div class="position-absolute text-center">
-
-                            <span class="d-block text-muted small">
-                                Total Products
-                            </span>
-
-                            <span class="fw-bold fs-3"
-                                  style="color:#1b2559;">
-                                @Model.TotalProducts
-                            </span>
-
-                        </div>
-
-                    </div>
-
-
-                    <div class="d-flex flex-column gap-3 mt-3">
-
-                        @for (int i = 0;
-                              i < Math.Min(
-                                  Model.CategoryStatistics.Count,
-                                  categoryColors.Length);
-                              i++)
-                        {
-                            var category =
-                                Model.CategoryStatistics[i];
-
-                            var color =
-                                categoryColors[i];
-
-                            <div class="d-flex justify-content-between align-items-center">
-
-                                <div class="d-flex align-items-center gap-2">
-
-                                    <span style="
-                                        width:14px;
-                                        height:14px;
-                                        min-width:14px;
-                                        display:inline-block;
-                                        border-radius:4px;
-                                        background-color:@color;
-                                        border:2px solid white;
-                                        box-shadow:0 1px 4px rgba(0,0,0,0.2);
-                                    "></span>
-
-                                    <span class="fw-semibold"
-                                          style="color:#1b2559;">
-                                        @category.CategoryName
-                                    </span>
-
-                                </div>
-
-                                <span class="fw-bold"
-                                      style="color:#1b2559;">
-                                    @category.ProductCount
-                                </span>
-
-                            </div>
-                        }
-
-                    </div>
-                }
-                else
-                {
-                    <div class="text-center py-5">
-
-                        <i class="bi bi-pie-chart fs-1 text-muted"></i>
-
-                        <div class="mt-2 fw-semibold text-muted">
-                            No category data available
-                        </div>
-
-                    </div>
-                }
-
-            </div>
-
-
-            <div class="card border-0 rounded-4 p-3 shadow-sm bg-white">
-
-                <div class="mb-3">
-
-                    <h6 class="fw-bold mb-0"
-                        style="color:#1b2559;">
-                        Stock Overview
-                    </h6>
-
-                    <small class="text-muted">
-                        Products requiring attention
-                    </small>
-
-                </div>
-
-
-                <div class="table-responsive">
-
-                    <table class="table table-borderless align-middle mb-0 small">
-
-                        <thead>
-
-                        <tr class="text-muted border-bottom">
-
-                            <th>Product</th>
-                            <th>Qty</th>
-                            <th>Status</th>
-
-                        </tr>
-
-                        </thead>
-
-                        <tbody>
-
-                        @if (Model.Products.Any())
-                        {
-                            @foreach (var product in Model.Products)
-                            {
-                                <tr>
-
-                                    <td>
-                                        @product.Name
-                                    </td>
-
-                                    <td>
-                                        @product.Quantity
-                                    </td>
-
-                                    <td>
-
-                                        @if (product.Status == "Available")
-                                        {
-                                            <span class="badge bg-success bg-opacity-10 text-success">
-                                                Available
-                                            </span>
-                                        }
-                                        else if (product.Status == "Low")
-                                        {
-                                            <span class="badge bg-warning bg-opacity-25 text-warning">
-                                                Low
-                                            </span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-danger bg-opacity-10 text-danger">
-                                                Out
-                                            </span>
-                                        }
-
-                                    </td>
-
-                                </tr>
-                            }
-                        }
-                        else
-                        {
-                            <tr>
-                                <td colspan="3"
-                                    class="text-center text-muted py-4">
-                                    No products available.
-                                </td>
-                            </tr>
-                        }
-
-                        </tbody>
-
-                    </table>
-
-                </div>
-
-            </div>
-
-
-            <div class="card border-0 rounded-4 p-3 shadow-sm bg-white">
-
-                <div class="d-flex justify-content-between align-items-center mb-3">
-
-                    <div>
-
-                        <h6 class="fw-bold mb-0"
-                            style="color:#1b2559;">
-                            Stock Status
-                        </h6>
-
-                        <small class="text-muted">
-                            Current inventory condition
-                        </small>
-
-                    </div>
-
-                </div>
-
-
-                <div class="d-flex justify-content-between align-items-center p-3 rounded-3 mb-2"
-                     style="background:#fff5f5;">
-
-                    <div class="d-flex align-items-center gap-2">
-
-                        <div class="rounded-circle bg-danger"
-                             style="width:10px;height:10px;">
-                        </div>
-
-                        <span class="text-muted">
-                            Out Of Stock
-                        </span>
-
-                    </div>
-
-                    <span class="fw-bold text-danger">
-                        @Model.OutOfStockProducts
-                    </span>
-
-                </div>
-
-
-                <div class="d-flex justify-content-between align-items-center p-3 rounded-3"
-                     style="background:#fff9ed;">
-
-                    <div class="d-flex align-items-center gap-2">
-
-                        <div class="rounded-circle bg-warning"
-                             style="width:10px;height:10px;">
-                        </div>
-
-                        <span class="text-muted">
-                            Low Stock
-                        </span>
-
-                    </div>
-
-                    <span class="fw-bold text-warning">
-                        @Model.LowStockProducts
-                    </span>
-
-                </div>
-
-            </div>
-
-        </div>
-
     </div>
-
+    <div class="col-6 col-xl-3">
+        <div class="kpi-card kpi-danger">
+            <i class="bi bi-x-circle kpi-icon"></i>
+            <div class="kpi-label">Out of Stock</div>
+            <div class="kpi-value">@out_</div>
+            <div class="kpi-hint">Items need immediate reorder</div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="kpi-card">
+            <i class="bi bi-currency-dollar kpi-icon"></i>
+            <div class="kpi-label">Total Value</div>
+            <div class="kpi-value">EGP @Model.InventoryValue.ToString("N2")</div>
+            <div class="kpi-hint">Current inventory value</div>
+        </div>
+    </div>
 </div>
 
+<!-- ===== KPI row 2 ===== -->
+<div class="row g-3 mb-3">
+    <div class="col-6 col-xl-3">
+        <div class="kpi-card">
+            <i class="bi bi-bar-chart kpi-icon"></i>
+            <div class="kpi-label">Avg Stock Level</div>
+            <div class="kpi-value">@avgStock</div>
+            <div class="kpi-hint">Average units per product</div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="kpi-card kpi-ok">
+            <i class="bi bi-graph-up-arrow kpi-icon"></i>
+            <div class="kpi-label">Stock Health</div>
+            <div class="kpi-value">@healthPct.ToString("0")%</div>
+            <div class="kpi-hint">Percentage in stock</div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="kpi-card">
+            <i class="bi bi-cash-stack kpi-icon"></i>
+            <div class="kpi-label">Total Sales</div>
+            <div class="kpi-value">EGP @Model.TotalSales.ToString("N0")</div>
+            <div class="kpi-hint">All time sales</div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="kpi-card">
+            <i class="bi bi-cart-plus kpi-icon"></i>
+            <div class="kpi-label">Total Purchases</div>
+            <div class="kpi-value">EGP @Model.TotalPurchases.ToString("N0")</div>
+            <div class="kpi-hint">All time purchases</div>
+        </div>
+    </div>
+</div>
 
-@section Scripts
-{
+<!-- ===== Category + Status ===== -->
+<div class="row g-3 mb-3">
+    <div class="col-12 col-lg-6">
+        <div class="panel">
+            <h2 class="panel-title">Inventory by Category</h2>
+            @foreach (var c in Model.CategoryStatistics)
+            {
+                var w = maxCat > 0 ? c.ProductCount * 100.0 / maxCat : 0;
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1" style="font-size:.75rem;">
+                        <span>@c.CategoryName <span class="mini-tag ms-1">@c.ProductCount items</span></span>
+                    </div>
+                    <div class="thin-progress"><span style="width:@w.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)%"></span></div>
+                </div>
+            }
+            @if (!Model.CategoryStatistics.Any())
+            {
+                <div class="text-muted small">No categories yet.</div>
+            }
+        </div>
+    </div>
+
+    <div class="col-12 col-lg-6">
+        <div class="panel">
+            <h2 class="panel-title">Stock Status Distribution</h2>
+
+            <div class="stack-bar mb-3">
+                @if (healthy > 0)
+                {
+                    <span class="bg-ok" style="width:@Pct(healthy).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)%">@Pct(healthy).ToString("0")%</span>
+                }
+                @if (low > 0)
+                {
+                    <span class="bg-low" style="width:@Pct(low).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)%"></span>
+                }
+                @if (out_ > 0)
+                {
+                    <span class="bg-out" style="width:@Pct(out_).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)%"></span>
+                }
+            </div>
+
+            <div class="d-flex justify-content-between mb-1" style="font-size:.72rem;"><span><i class="dot bg-ok me-2"></i>In Stock</span><span class="text-muted">@healthy products</span></div>
+            <div class="d-flex justify-content-between mb-1" style="font-size:.72rem;"><span><i class="dot bg-low me-2"></i>Low Stock</span><span class="text-muted">@low products</span></div>
+            <div class="d-flex justify-content-between mb-3" style="font-size:.72rem;"><span><i class="dot bg-out me-2"></i>Out of Stock</span><span class="text-muted">@out_ products</span></div>
+
+            <hr class="my-3" />
+            <div class="row text-center">
+                <div class="col-4"><i class="bi bi-check-circle fs-4" style="color:#10b981"></i><div class="fw-bold">@healthy</div><div class="kpi-hint">Healthy Stock</div></div>
+                <div class="col-4"><i class="bi bi-exclamation-triangle fs-4" style="color:#d4a006"></i><div class="fw-bold">@low</div><div class="kpi-hint">Need Attention</div></div>
+                <div class="col-4"><i class="bi bi-x-circle fs-4" style="color:#ef4444"></i><div class="fw-bold">@out_</div><div class="kpi-hint">Urgent</div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== Movements + Products ===== -->
+<div class="row g-3">
+    <div class="col-12 col-lg-6">
+        <div class="panel">
+            <h2 class="panel-title"><i class="bi bi-graph-up"></i> Stock Movements (@DateTime.Now.Year)</h2>
+            <div style="height:260px"><canvas id="movementsChart"></canvas></div>
+        </div>
+    </div>
+
+    <div class="col-12 col-lg-6">
+        <div class="panel">
+            <h2 class="panel-title"><i class="bi bi-clock"></i> Lowest Stock Products</h2>
+            @foreach (var p in Model.Products)
+            {
+                var cls = p.Status == "Available" ? "bg-ok" : p.Status == "Low" ? "bg-low" : "bg-out";
+                var txt = p.Status == "Available" ? "OK" : p.Status == "Low" ? "LOW" : "OUT";
+                <div class="d-flex justify-content-between align-items-center py-2 border-bottom" style="font-size:.78rem;">
+                    <div>
+                        <a asp-controller="Product" asp-action="Details" asp-route-id="@p.Id" class="text-decoration-none fw-medium" style="color:#1d63c7">@p.Name</a>
+                        <div class="kpi-hint mt-0">Reorder level: @p.ReorderLevel</div>
+                    </div>
+                    <div class="text-end">
+                        <span class="status-pill @cls">@txt</span>
+                        <div class="fw-semibold mt-1" style="font-size:.7rem;">@p.Quantity units</div>
+                    </div>
+                </div>
+            }
+            @if (!Model.Products.Any())
+            {
+                <div class="text-muted small">No products available.</div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
     <script>
+        const labels = @Html.Raw(JsonSerializer.Serialize(Model.StockMovements.Select(x => x.Month)));
+        const inbound = @Html.Raw(JsonSerializer.Serialize(Model.StockMovements.Select(x => x.Inbound)));
+        const outbound = @Html.Raw(JsonSerializer.Serialize(Model.StockMovements.Select(x => x.Outbound)));
 
-        document.addEventListener("DOMContentLoaded", function () {
-
-            const categoryColors = [
-                "#FF6B6B",
-                "#4D96FF",
-                "#6BCB77",
-                "#FFD93D",
-                "#845EC2",
-                "#FF9671"
-            ];
-
-            const inventoryCanvas =
-                document.getElementById("inventoryBarChart");
-
-            if (inventoryCanvas) {
-
-                new Chart(inventoryCanvas, {
-
-                    type: "bar",
-
-                    data: {
-
-                        labels:
-                        @Html.Raw(
-                            JsonSerializer.Serialize(
-                                Model.StockMovements
-                                    .Select(x => x.Month)
-                            )
-                        ),
-
-                        datasets: [
-
-                            {
-                                label: "Inbound",
-
-                                data:
-                                @Html.Raw(
-                                    JsonSerializer.Serialize(
-                                        Model.StockMovements
-                                            .Select(x => x.Inbound)
-                                    )
-                                ),
-
-                                backgroundColor: "#4D96FF",
-                                borderColor: "#1E5BB8",
-                                borderWidth: 1,
-                                borderRadius: 7,
-                                barPercentage: 0.65,
-                                categoryPercentage: 0.65
-                            },
-
-                            {
-                                label: "Outbound",
-
-                                data:
-                                @Html.Raw(
-                                    JsonSerializer.Serialize(
-                                        Model.StockMovements
-                                            .Select(x => x.Outbound)
-                                    )
-                                ),
-
-                                backgroundColor: "#FF6B6B",
-                                borderColor: "#D94A4A",
-                                borderWidth: 1,
-                                borderRadius: 7,
-                                barPercentage: 0.65,
-                                categoryPercentage: 0.65
-                            }
-
-                        ]
-
-                    },
-
-                    options: {
-
-                        responsive: true,
-
-                        maintainAspectRatio: false,
-
-                        plugins: {
-
-                            legend: {
-
-                                display: true,
-                                position: "bottom",
-
-                                labels: {
-
-                                    usePointStyle: true,
-                                    boxWidth: 12,
-                                    padding: 18
-
-                                }
-
-                            }
-
-                        },
-
-                        scales: {
-
-                            x: {
-
-                                grid: {
-                                    display: false
-                                },
-
-                                ticks: {
-                                    color: "#555"
-                                }
-
-                            },
-
-                            y: {
-
-                                beginAtZero: true,
-
-                                grid: {
-                                    color: "#dfe5ef"
-                                },
-
-                                ticks: {
-                                    color: "#555"
-                                }
-
-                            }
-
-                        }
-
-                    }
-
-                });
-
+        new Chart(document.getElementById("movementsChart"), {
+            type: "bar",
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: "Inbound", data: inbound, backgroundColor: "#10b981", borderRadius: 4 },
+                    { label: "Outbound", data: outbound, backgroundColor: "#1d63c7", borderRadius: 4 }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: "bottom", labels: { boxWidth: 10, font: { size: 11 } } } },
+                scales: { x: { grid: { display: false } }, y: { beginAtZero: true, grid: { color: "#f1f3f5" } } }
             }
-
-
-            const categoryCanvas =
-                document.getElementById("categoryDoughnutChart");
-
-            if (categoryCanvas) {
-
-                new Chart(categoryCanvas, {
-
-                    type: "doughnut",
-
-                    data: {
-
-                        labels:
-                        @Html.Raw(
-                            JsonSerializer.Serialize(
-                                Model.CategoryStatistics
-                                    .Select(x => x.CategoryName)
-                            )
-                        ),
-
-                        datasets: [
-
-                            {
-                                data:
-                                @Html.Raw(
-                                    JsonSerializer.Serialize(
-                                        Model.CategoryStatistics
-                                            .Select(x => x.ProductCount)
-                                    )
-                                ),
-
-                                backgroundColor: categoryColors,
-                                borderColor: "#FFFFFF",
-                                borderWidth: 3,
-                                hoverOffset: 10
-                            }
-
-                        ]
-
-                    },
-
-                    options: {
-
-                        responsive: true,
-
-                        maintainAspectRatio: false,
-
-                        cutout: "65%",
-
-                        plugins: {
-
-                            legend: {
-                                display: false
-                            },
-
-                            tooltip: {
-
-                                enabled: true,
-
-                                callbacks: {
-
-                                    label: function (context) {
-
-                                        const label =
-                                            context.label || "";
-
-                                        const value =
-                                            context.raw || 0;
-
-                                        return label + ": " + value;
-
-                                    }
-
-                                }
-
-                            }
-
-                        }
-
-                    }
-
-                });
-
-            }
-
         });
-
     </script>
 }
