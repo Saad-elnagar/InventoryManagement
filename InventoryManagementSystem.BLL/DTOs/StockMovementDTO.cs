@@ -1,5 +1,3 @@
-using InventoryManagementSystem.BLL.Enums;
-
 namespace InventoryManagementSystem.BLL.DTOs;
 
 public class StockMovementDTO
@@ -8,11 +6,11 @@ public class StockMovementDTO
 
     public int ProductId { get; set; }
 
-    public string ProductName { get; set; } = null!;
+    public string? ProductName { get; set; }
 
     public int Quantity { get; set; }
 
-    public StockMovementType MovementType { get; set; }
+    public string MovementType { get; set; } = string.Empty;
 
     public DateTime MovementDate { get; set; }
 

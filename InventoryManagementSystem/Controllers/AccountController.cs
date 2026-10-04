@@ -26,23 +26,24 @@ public class AccountController : Controller
         return View();
     }
 
+    
     [AllowAnonymous]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(
-        LoginViewModel model)
+        LoginViewModel model,
+        string? returnUrl = null)
     {
         if (!ModelState.IsValid)
             return View(model);
 
         var user =
-            await _userManager.FindByEmailAsync(
-                model.Email);
+            await _userManager.FindByEmailAsync(model.Email);
 
         if (user == null)
         {
             ModelState.AddModelError(
-                "",
+                string.Empty,
                 "Invalid email or password.");
 
             return View(model);
@@ -56,15 +57,14 @@ public class AccountController : Controller
         if (!validPassword)
         {
             ModelState.AddModelError(
-                "",
+                string.Empty,
                 "Invalid email or password.");
 
             return View(model);
         }
 
         var token =
-            await _jwtTokenService.CreateTokenAsync(
-                user);
+            await _jwtTokenService.CreateTokenAsync(user);
 
         Response.Cookies.Append(
             "access_token",
@@ -72,18 +72,22 @@ public class AccountController : Controller
             new CookieOptions
             {
                 HttpOnly = true,
-                Secure = true,
+                Secure = Request.IsHttps,
                 SameSite = SameSiteMode.Strict,
-
-                Expires =
-                    model.RememberMe
-                        ? DateTimeOffset.UtcNow.AddDays(7)
-                        : DateTimeOffset.UtcNow.AddHours(1)
+                Expires = model.RememberMe
+                    ? DateTimeOffset.UtcNow.AddDays(7)
+                    : DateTimeOffset.UtcNow.AddHours(1)
             });
+
+        if (!string.IsNullOrWhiteSpace(returnUrl) &&
+            Url.IsLocalUrl(returnUrl))
+        {
+            return Redirect(returnUrl);
+        }
 
         return RedirectToAction(
             "Index",
-            "Home");
+            "Dashboard");
     }
 
     [AllowAnonymous]

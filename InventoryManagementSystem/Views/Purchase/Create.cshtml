@@ -382,19 +382,19 @@
             const rows =
                 itemsBody.querySelectorAll(".purchase-row");
 
-            rows.forEach((row, index) => {
+            rows.forEach((row, Index) => {
 
                 row.querySelector(".product-input")
                     .name =
-                    `Items[${index}].ProductId`;
+                    `Items[${Index}].ProductId`;
 
                 row.querySelector(".quantity-input")
                     .name =
-                    `Items[${index}].Quantity`;
+                    `Items[${Index}].Quantity`;
 
                 row.querySelector(".price-input")
                     .name =
-                    `Items[${index}].UnitPrice`;
+                    `Items[${Index}].UnitPrice`;
             });
         }
 

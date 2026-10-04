@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace InventoryManagementSystem.Controllers;
+
 [Authorize]
 public class ProductController : Controller
 {
@@ -19,15 +20,13 @@ public class ProductController : Controller
         _categoryService = categoryService;
     }
 
+    [HttpGet]
     public async Task<IActionResult> Index(
         string? search,
         int page = 1,
         int pageSize = 10)
     {
         ViewBag.Search = search;
-
-        // ViewBag.Statistics =
-        //     await _productService.GetStatisticsAsync();
 
         PaginationResult<ProductDTO> result;
 
@@ -48,6 +47,7 @@ public class ProductController : Controller
         return View(result);
     }
 
+    [HttpGet]
     public async Task<IActionResult> Details(int id)
     {
         var product =
@@ -90,7 +90,9 @@ public class ProductController : Controller
         }
         catch (Exception ex)
         {
-            ModelState.AddModelError("", ex.Message);
+            ModelState.AddModelError(
+                string.Empty,
+                ex.Message);
 
             ViewBag.Categories =
                 await _categoryService.GetAllAsync();
@@ -98,8 +100,9 @@ public class ProductController : Controller
             return View(dto);
         }
     }
-    [HttpGet]
+
     [Authorize(Roles = "Admin,Manager")]
+    [HttpGet]
     public async Task<IActionResult> Edit(int id)
     {
         var product =
@@ -114,9 +117,9 @@ public class ProductController : Controller
         return View(product);
     }
 
+    [Authorize(Roles = "Admin,Manager")]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> Edit(
         int id,
         ProductDTO dto)
@@ -144,7 +147,7 @@ public class ProductController : Controller
         catch (Exception ex)
         {
             ModelState.AddModelError(
-                "",
+                string.Empty,
                 ex.Message);
 
             ViewBag.Categories =
@@ -154,8 +157,8 @@ public class ProductController : Controller
         }
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpGet]
-    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> Delete(int id)
     {
         var product =
@@ -167,6 +170,7 @@ public class ProductController : Controller
         return View(product);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     [ActionName("Delete")]
     [ValidateAntiForgeryToken]
@@ -185,13 +189,14 @@ public class ProductController : Controller
         catch (Exception ex)
         {
             ModelState.AddModelError(
-                "",
+                string.Empty,
                 ex.Message);
 
             return RedirectToAction(nameof(Index));
         }
     }
 
+    [HttpGet]
     public async Task<IActionResult> LowStock()
     {
         var products =

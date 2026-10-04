@@ -1,21 +1,16 @@
-using InventoryManagementSystem.BLL.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Inventory.Web.Controllers;
+namespace InventoryManagementSystem.Controllers;
 
+[Authorize]
 public class HomeController : Controller
 {
-    private readonly IDashboardService _dashboardService;
-
-    public HomeController(IDashboardService dashboardService)
+    [HttpGet]
+    public IActionResult Index()
     {
-        _dashboardService = dashboardService;
-    }
-
-    public async Task<IActionResult> Index()
-    {
-        var dashboard = await _dashboardService.GetDashboardAsync();
-
-        return View(dashboard);
+        return RedirectToAction(
+            "Index",
+            "Dashboard");
     }
 }

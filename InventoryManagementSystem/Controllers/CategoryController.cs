@@ -3,53 +3,153 @@ using InventoryManagementSystem.BLL.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace InventoryManagementSystem.Controllers
+namespace InventoryManagementSystem.Controllers;
+
+[Authorize(Roles = "Admin,Manager")]
+public class CategoryController : Controller
 {
-    [Authorize(Roles = "Admin,Manager")]
-    public class CategoryController : Controller
+    private readonly ICategoryService _categoryService;
+
+    public CategoryController(
+        ICategoryService categoryService)
     {
-        private readonly ICategoryService _categoryService;
+        _categoryService = categoryService;
+    }
 
-        public CategoryController(ICategoryService categoryService)
+    [HttpGet]
+    public async Task<IActionResult> Index()
+    {
+        var categories =
+            await _categoryService.GetAllAsync();
+
+        return View(categories);
+    }
+
+    [HttpGet]
+    public IActionResult Create()
+    {
+        return View();
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Create(
+        CategoryDTO categoryDto)
+    {
+        if (!ModelState.IsValid)
+            return View(categoryDto);
+
+        try
         {
-            _categoryService = categoryService;
+            await _categoryService.CreateAsync(categoryDto);
+
+            return RedirectToAction(nameof(Index));
         }
-
-        // GET: Category
-        public async Task<IActionResult> Index()
+        catch (Exception ex)
         {
-            var categories = await _categoryService.GetAllAsync();
-            return View(categories);
-        }
-
-        // GET: Category/Create
-        [HttpGet]
-        public IActionResult Create()
-        {
-            return View();
-        }
-
-        // POST: Category/Create
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-      
-        public async Task<IActionResult> Create(CategoryDTO categoryDto)
-        {
-            if (ModelState.IsValid)
-            {
-                try
-                {
-                    await _categoryService.CreateAsync(categoryDto);
-                    return RedirectToAction(nameof(Index));
-                }
-                catch (Exception ex)
-                {
-                    // إظهار رسالة الخطأ للمستخدم فوق الفورم مباشرة دون أن تتوقف الصفحة
-                    ModelState.AddModelError("", ex.Message);
-                }
-            }
+            ModelState.AddModelError(
+                string.Empty,
+                ex.Message);
 
             return View(categoryDto);
+        }
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Details(int id)
+    {
+        var category =
+            await _categoryService.GetByIdAsync(id);
+
+        if (category == null)
+            return NotFound();
+
+        return View(category);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Edit(int id)
+    {
+        var category =
+            await _categoryService.GetByIdAsync(id);
+
+        if (category == null)
+            return NotFound();
+
+        return View(category);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit(
+        int id,
+        CategoryDTO categoryDto)
+    {
+        if (!ModelState.IsValid)
+            return View(categoryDto);
+
+        try
+        {
+            var result =
+                await _categoryService.UpdateAsync(
+                    id,
+                    categoryDto);
+
+            if (!result)
+                return NotFound();
+
+            return RedirectToAction(nameof(Index));
+        }
+        catch (Exception ex)
+        {
+            ModelState.AddModelError(
+                string.Empty,
+                ex.Message);
+
+            return View(categoryDto);
+        }
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var category =
+            await _categoryService.GetByIdAsync(id);
+
+        if (category == null)
+            return NotFound();
+
+        return View(category);
+    }
+
+    [HttpPost]
+    [ActionName("Delete")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteConfirmed(int id)
+    {
+        try
+        {
+            var result =
+                await _categoryService.DeleteAsync(id);
+
+            if (!result)
+                return NotFound();
+
+            return RedirectToAction(nameof(Index));
+        }
+        catch (Exception ex)
+        {
+            ModelState.AddModelError(
+                string.Empty,
+                ex.Message);
+
+            var category =
+                await _categoryService.GetByIdAsync(id);
+
+            if (category == null)
+                return NotFound();
+
+            return View("Delete", category);
         }
     }
 }

@@ -166,6 +166,7 @@ builder.Services.AddScoped<IStockMovementService, StockMovementService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IPurchaseService, PurchaseService>();
 builder.Services.AddScoped<ISaleService, SaleService>();
+builder.Services.AddScoped<IStockMovementService, StockMovementService>();
 
 builder.Services.AddScoped<JwtTokenService>();
 
@@ -194,8 +195,6 @@ app.UseAuthorization();
 app.MapStaticAssets();
 
 app.MapControllerRoute(
-        name: "default",
-        pattern: "{controller=Home}/{action=Index}/{id?}")
-    .WithStaticAssets();
-
+    name: "default",
+    pattern: "{controller=Dashboard}/{action=Index}/{id?}");
 app.Run();

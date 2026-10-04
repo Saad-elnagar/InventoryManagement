@@ -1,9 +1,11 @@
 using InventoryManagementSystem.BLL.DTOs;
 using InventoryManagementSystem.BLL.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace InventoryManagementSystem.Controllers;
 
+[Authorize(Roles = "Admin,Manager")]
 public class PurchaseController : Controller
 {
     private readonly IPurchaseService _purchaseService;
@@ -20,6 +22,7 @@ public class PurchaseController : Controller
         _productService = productService;
     }
 
+    [HttpGet]
     public async Task<IActionResult> Index()
     {
         var purchases =
@@ -28,6 +31,7 @@ public class PurchaseController : Controller
         return View(purchases);
     }
 
+    [HttpGet]
     public async Task<IActionResult> Details(int id)
     {
         var purchase =
@@ -66,8 +70,7 @@ public class PurchaseController : Controller
         try
         {
             var purchase =
-                await _purchaseService
-                    .CreateAsync(dto);
+                await _purchaseService.CreateAsync(dto);
 
             return RedirectToAction(
                 nameof(Details),
@@ -76,7 +79,7 @@ public class PurchaseController : Controller
         catch (Exception ex)
         {
             ModelState.AddModelError(
-                "",
+                string.Empty,
                 ex.Message);
 
             await LoadCreateData();

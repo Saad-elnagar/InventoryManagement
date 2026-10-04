@@ -1,10 +1,11 @@
-using InventoryManagementSystem.BLL.DTOs;
 using InventoryManagementSystem.BLL.Enums;
 using InventoryManagementSystem.BLL.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace InventoryManagementSystem.Controllers;
 
+[Authorize]
 public class StockMovementController : Controller
 {
     private readonly IStockMovementService _stockMovementService;
@@ -18,32 +19,42 @@ public class StockMovementController : Controller
         _productService = productService;
     }
 
+    [HttpGet]
     public async Task<IActionResult> Index(
         int? productId,
-        StockMovementType? movementType)
+        string? movementType,
+        DateTime? fromDate,
+        DateTime? toDate)
     {
-        IEnumerable<StockMovementDTO> movements =
-            productId.HasValue
-                ? await _stockMovementService.GetByProductIdAsync(productId.Value)
-                : await _stockMovementService.GetAllAsync();
+        var movements =
+            await _stockMovementService.GetAllAsync(
+                productId,
+                movementType,
+                fromDate,
+                toDate);
 
-        if (movementType.HasValue)
-        {
-            movements = movements.Where(m => m.MovementType == movementType.Value);
-        }
-
-        ViewBag.Products =
+        var products =
             await _productService.GetAllAsync();
 
-        ViewBag.SelectedProductId = productId;
-        ViewBag.SelectedMovementType = movementType;
+        ViewBag.Products = products;
 
-        return View(
-            movements
-                .OrderByDescending(m => m.MovementDate)
-                .ToList());
+        ViewBag.ProductId = productId;
+
+        ViewBag.MovementType = movementType;
+
+        ViewBag.FromDate =
+            fromDate?.ToString("yyyy-MM-dd");
+
+        ViewBag.ToDate =
+            toDate?.ToString("yyyy-MM-dd");
+
+        ViewBag.MovementTypes =
+            Enum.GetValues<StockMovementType>();
+
+        return View(movements);
     }
 
+    [HttpGet]
     public async Task<IActionResult> Details(int id)
     {
         var movement =

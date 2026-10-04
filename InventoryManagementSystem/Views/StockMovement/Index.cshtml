@@ -1,86 +1,136 @@
-@model List<InventoryManagementSystem.BLL.DTOs.StockMovementDTO>
+@using InventoryManagementSystem.BLL.DTOs
 @using InventoryManagementSystem.BLL.Enums
+
+@model IEnumerable<StockMovementDTO>
 
 @{
     ViewData["Title"] = "Stock Movements";
 
-    var products = ViewBag.Products as IEnumerable<InventoryManagementSystem.BLL.DTOs.ProductDTO>;
-    var selectedProductId = ViewBag.SelectedProductId as int?;
-    var selectedMovementType = ViewBag.SelectedMovementType as StockMovementType?;
+    var products =
+        ViewBag.Products as IEnumerable<ProductDTO>
+        ?? Enumerable.Empty<ProductDTO>();
 
-    var inTypes = new[]
-    {
-        StockMovementType.Purchase,
-        StockMovementType.Found,
-        StockMovementType.OpeningStock,
-        StockMovementType.VendorGift,
-        StockMovementType.SaleReturn
-    };
+    var movementTypes =
+        ViewBag.MovementTypes as StockMovementType[]
+        ?? Array.Empty<StockMovementType>();
 }
 
-<div class="container-fluid p-4">
+<div class="container-fluid px-4 py-4">
 
     <div class="d-flex justify-content-between align-items-center mb-4">
 
         <div>
-            <h3 class="fw-bold mb-1" style="color: #1b2559;">
-                Stock Movements
-            </h3>
 
-            <p class="text-muted small mb-0">
-                Track every change in your inventory quantities
+            <h2 class="fw-bold mb-1">
+                Stock Movements
+            </h2>
+
+            <p class="text-muted mb-0">
+                Track every inventory movement.
             </p>
+
         </div>
 
     </div>
 
 
-    <!-- Filters -->
+    @{
+        var inbound =
+            Model
+                .Where(x => x.Quantity > 0)
+                .Sum(x => x.Quantity);
 
-    <div class="card border-0 rounded-4 shadow-sm bg-white mb-4">
+        var outbound =
+            Model
+                .Where(x => x.Quantity < 0)
+                .Sum(x => Math.Abs(x.Quantity));
+    }
 
-        <div class="card-body p-3">
 
-            <form asp-action="Index" method="get">
+    <div class="row g-3 mb-4">
 
-                <div class="row g-2 align-items-center">
+        <div class="col-md-4">
 
-                    <div class="col-12 col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-4">
+
+                <small class="text-muted">
+                    Total Movements
+                </small>
+
+                <h3 class="fw-bold mb-0 mt-2">
+                    @Model.Count()
+                </h3>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-md-4">
+
+            <div class="card border-0 shadow-sm rounded-4 p-4">
+
+                <small class="text-muted">
+                    Total Inbound
+                </small>
+
+                <h3 class="fw-bold mb-0 mt-2 text-success">
+                    +@inbound
+                </h3>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-md-4">
+
+            <div class="card border-0 shadow-sm rounded-4 p-4">
+
+                <small class="text-muted">
+                    Total Outbound
+                </small>
+
+                <h3 class="fw-bold mb-0 mt-2 text-danger">
+                    -@outbound
+                </h3>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+
+        <div class="card-body p-4">
+
+            <form asp-action="Index"
+                  method="get">
+
+                <div class="row g-3 align-items-end">
+
+                    <div class="col-md-3">
+
+                        <label class="form-label fw-semibold">
+                            Product
+                        </label>
 
                         <select name="productId"
-                                class="form-select"
-                                onchange="this.form.submit()">
+                                class="form-select">
 
-                            <option value="">All Products</option>
+                            <option value="">
+                                All Products
+                            </option>
 
-                            @if (products != null)
+                            @foreach (var product in products)
                             {
-                                foreach (var p in products)
-                                {
-                                    <option value="@p.Id"
-                                            selected="@(selectedProductId == p.Id)">
-                                        @p.Name
-                                    </option>
-                                }
-                            }
+                                <option value="@product.Id"
+                                        selected="@(ViewBag.ProductId == product.Id)">
 
-                        </select>
+                                    @product.Name
 
-                    </div>
-
-                    <div class="col-12 col-md-4">
-
-                        <select name="movementType"
-                                class="form-select"
-                                onchange="this.form.submit()">
-
-                            <option value="">All Types</option>
-
-                            @foreach (var type in Enum.GetValues<StockMovementType>())
-                            {
-                                <option value="@type"
-                                        selected="@(selectedMovementType == type)">
-                                    @type
                                 </option>
                             }
 
@@ -88,13 +138,77 @@
 
                     </div>
 
-                    <div class="col-12 col-md-auto">
+
+                    <div class="col-md-3">
+
+                        <label class="form-label fw-semibold">
+                            Movement Type
+                        </label>
+
+                        <select name="movementType"
+                                class="form-select">
+
+                            <option value="">
+                                All Types
+                            </option>
+
+                            @foreach (var type in movementTypes)
+                            {
+                                <option value="@type"
+                                        selected="@(ViewBag.MovementType == type.ToString())">
+
+                                    @type
+
+                                </option>
+                            }
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="col-md-2">
+
+                        <label class="form-label fw-semibold">
+                            From
+                        </label>
+
+                        <input type="date"
+                               name="fromDate"
+                               value="@ViewBag.FromDate"
+                               class="form-control" />
+
+                    </div>
+
+
+                    <div class="col-md-2">
+
+                        <label class="form-label fw-semibold">
+                            To
+                        </label>
+
+                        <input type="date"
+                               name="toDate"
+                               value="@ViewBag.ToDate"
+                               class="form-control" />
+
+                    </div>
+
+
+                    <div class="col-md-2 d-flex gap-2">
+
+                        <button type="submit"
+                                class="btn btn-primary flex-grow-1">
+
+                            <i class="bi bi-search me-1"></i>
+                            Filter
+
+                        </button>
 
                         <a asp-action="Index"
-                           class="btn btn-light border rounded-3 w-100">
+                           class="btn btn-light border">
 
-                            <i class="bi bi-x-lg me-1"></i>
-                            Clear Filters
+                            <i class="bi bi-x-lg"></i>
 
                         </a>
 
@@ -109,151 +223,245 @@
     </div>
 
 
-    <!-- Movements Table -->
-
-    <div class="card border-0 rounded-4 shadow-sm bg-white">
+    <div class="card border-0 shadow-sm rounded-4">
 
         <div class="card-header bg-white border-0 p-4">
 
-            <div class="d-flex justify-content-between align-items-center">
-
-                <h5 class="fw-bold mb-0" style="color: #1b2559;">
-                    Movement History
-                </h5>
-
-                <span class="badge rounded-pill px-3 py-2"
-                      style="background-color: #e3f2fd; color: #0d47a1;">
-
-                    @Model.Count Movements
-
-                </span>
-
-            </div>
+            <h5 class="fw-bold mb-0">
+                Movement History
+            </h5>
 
         </div>
 
 
         <div class="table-responsive">
 
-            <table class="table table-borderless align-middle mb-0">
+            <table class="table table-hover align-middle mb-0">
 
-                <thead>
+                <thead class="table-light">
 
-                    <tr class="border-bottom text-muted small">
+                <tr>
 
-                        <th class="ps-4">Product</th>
-                        <th>Type</th>
-                        <th>Quantity</th>
-                        <th>Date</th>
-                        <th>Reference</th>
-                        <th>Reason</th>
-                        <th class="text-end pe-4">Actions</th>
+                    <th class="ps-4">
+                        ID
+                    </th>
 
-                    </tr>
+                    <th>
+                        Product
+                    </th>
+
+                    <th>
+                        Type
+                    </th>
+
+                    <th>
+                        Quantity
+                    </th>
+
+                    <th>
+                        Date
+                    </th>
+
+                    <th>
+                        Reference
+                    </th>
+
+                    <th>
+                        Reason
+                    </th>
+
+                    <th class="text-end pe-4">
+                        Action
+                    </th>
+
+                </tr>
 
                 </thead>
 
+
                 <tbody>
 
-                @if (!Model.Any())
+                @foreach (var movement in Model)
                 {
                     <tr>
 
-                        <td colspan="7" class="text-center py-5">
+                        <td class="ps-4">
+                            <span class="fw-bold">
+                                #@movement.Id
+                            </span>
+                        </td>
 
-                            <i class="bi bi-arrow-left-right fs-1 text-muted"></i>
 
-                            <h6 class="mt-3 fw-bold">No Movements Found</h6>
+                        <td>
 
-                            <p class="text-muted small">
-                                There are no stock movements to display.
-                            </p>
+                            <div class="fw-semibold">
+
+                                @(movement.ProductName
+                                    ?? $"Product #{movement.ProductId}")
+
+                            </div>
+
+                            <small class="text-muted">
+                                ID: @movement.ProductId
+                            </small>
+
+                        </td>
+
+
+                        <td>
+
+                            @{
+                                var typeClass =
+                                    movement.MovementType switch
+                                    {
+                                        nameof(StockMovementType.Purchase)
+                                            => "bg-success",
+
+                                        nameof(StockMovementType.Sale)
+                                            => "bg-danger",
+
+                                        nameof(StockMovementType.Damage)
+                                            => "bg-danger",
+
+                                        nameof(StockMovementType.Lost)
+                                            => "bg-danger",
+
+                                        nameof(StockMovementType.Found)
+                                            => "bg-success",
+
+                                        nameof(StockMovementType.Adjustment)
+                                            => "bg-warning text-dark",
+
+                                        nameof(StockMovementType.PurchaseReturn)
+                                            => "bg-danger",
+
+                                        nameof(StockMovementType.SaleReturn)
+                                            => "bg-success",
+
+                                        nameof(StockMovementType.OpeningStock)
+                                            => "bg-primary",
+
+                                        nameof(StockMovementType.VendorGift)
+                                            => "bg-info text-dark",
+
+                                        _ => "bg-secondary"
+                                    };
+                            }
+
+                            <span class="badge @typeClass">
+                                @movement.MovementType
+                            </span>
+
+                        </td>
+
+
+                        <td>
+
+                            @if (movement.Quantity > 0)
+                            {
+                                <span class="fw-bold text-success">
+                                    +@movement.Quantity
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="fw-bold text-danger">
+                                    @movement.Quantity
+                                </span>
+                            }
+
+                        </td>
+
+
+                        <td>
+
+                            <span class="small">
+
+                                @movement.MovementDate.ToString(
+                                    "yyyy-MM-dd HH:mm")
+
+                            </span>
+
+                        </td>
+
+
+                        <td>
+
+                            @if (!string.IsNullOrWhiteSpace(
+                                movement.ReferenceType))
+                            {
+                                <span class="small">
+
+                                    @movement.ReferenceType
+
+                                    @if (movement.ReferenceId.HasValue)
+                                    {
+                                        <text>
+                                            #@movement.ReferenceId
+                                        </text>
+                                    }
+
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">
+                                    -
+                                </span>
+                            }
+
+                        </td>
+
+
+                        <td>
+
+                            <span class="small">
+
+                                @(string.IsNullOrWhiteSpace(
+                                    movement.Reason)
+                                    ? "-"
+                                    : movement.Reason)
+
+                            </span>
+
+                        </td>
+
+
+                        <td class="text-end pe-4">
+
+                            <a asp-action="Details"
+                               asp-route-id="@movement.Id"
+                               class="btn btn-sm btn-outline-primary">
+
+                                <i class="bi bi-eye"></i>
+
+                            </a>
 
                         </td>
 
                     </tr>
                 }
-                else
+
+                @if (!Model.Any())
                 {
-                    foreach (var m in Model)
-                    {
-                        var isIn = inTypes.Contains(m.MovementType);
+                    <tr>
 
-                        <tr class="border-bottom">
+                        <td colspan="8"
+                            class="text-center py-5">
 
-                            <td class="ps-4">
+                            <i class="bi bi-clock-history fs-1 text-muted"></i>
 
-                                <div class="fw-semibold" style="color:#1b2559;">
-                                    @m.ProductName
-                                </div>
+                            <h6 class="mt-3 text-muted">
+                                No stock movements found
+                            </h6>
 
-                            </td>
+                            <p class="text-muted small mb-0">
+                                Try changing the filters.
+                            </p>
 
-                            <td>
+                        </td>
 
-                                <span class="badge rounded-pill px-3 py-2 @(isIn ? "bg-success bg-opacity-10 text-success" : "bg-danger bg-opacity-10 text-danger")">
-                                    @m.MovementType
-                                </span>
-
-                            </td>
-
-                            <td>
-
-                                <span class="fw-semibold @(isIn ? "text-success" : "text-danger")">
-                                    @(isIn ? "+" : "-")@m.Quantity
-                                </span>
-
-                            </td>
-
-                            <td>
-
-                                <span class="text-muted small">
-                                    @m.MovementDate.ToString("dd MMM yyyy HH:mm")
-                                </span>
-
-                            </td>
-
-                            <td>
-
-                                @if (!string.IsNullOrWhiteSpace(m.ReferenceType))
-                                {
-                                    <span class="badge rounded-3"
-                                          style="background-color:#f3f6fa; color:#1b2559;">
-
-                                        @m.ReferenceType #@m.ReferenceId
-
-                                    </span>
-                                }
-                                else
-                                {
-                                    <span class="text-muted small">N/A</span>
-                                }
-
-                            </td>
-
-                            <td>
-
-                                <span class="text-muted small">
-                                    @(string.IsNullOrWhiteSpace(m.Reason) ? "-" : m.Reason)
-                                </span>
-
-                            </td>
-
-                            <td class="text-end pe-4">
-
-                                <a asp-action="Details"
-                                   asp-route-id="@m.Id"
-                                   class="btn btn-sm btn-light rounded-3"
-                                   title="Details">
-
-                                    <i class="bi bi-eye text-primary"></i>
-
-                                </a>
-
-                            </td>
-
-                        </tr>
-                    }
+                    </tr>
                 }
 
                 </tbody>
