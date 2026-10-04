@@ -15,21 +15,21 @@
             </h2>
 
             <p class="text-muted small m-0">
-                Manage your inventory categories.
+                Manage and monitor your category hierarchy
             </p>
 
         </div>
 
         <a asp-action="Create"
-           class="btn btn-primary px-4 py-2 rounded-3">
+           class="btn btn-primary px-4 py-2 rounded-3 shadow-sm">
 
-            <i class="bi bi-plus-lg me-1"></i>
+            <i class="bi bi-plus-lg me-2"></i>
+
             Add Category
 
         </a>
 
     </div>
-
 
     <div class="row g-3 mb-4">
 
@@ -37,29 +37,27 @@
 
             <div class="card border-0 shadow-sm rounded-4 p-3">
 
-                <small class="text-muted">
-                    Total Categories
-                </small>
+                <div class="d-flex justify-content-between align-items-center">
 
-                <h3 class="fw-bold mb-0 mt-2">
-                    @Model.Count()
-                </h3>
+                    <div>
 
-            </div>
+                        <span class="d-block text-muted small mb-1">
+                            Total Categories
+                        </span>
 
-        </div>
+                        <h3 class="fw-bold mb-0">
+                            @Model.Count()
+                        </h3>
 
-        <div class="col-md-4">
+                    </div>
 
-            <div class="card border-0 shadow-sm rounded-4 p-3">
+                    <div class="bg-primary bg-opacity-10 text-primary rounded-3 p-3">
 
-                <small class="text-muted">
-                    Active Categories
-                </small>
+                        <i class="bi bi-tag fs-3"></i>
 
-                <h3 class="fw-bold mb-0 mt-2 text-success">
-                    @Model.Count()
-                </h3>
+                    </div>
+
+                </div>
 
             </div>
 
@@ -69,13 +67,57 @@
 
             <div class="card border-0 shadow-sm rounded-4 p-3">
 
-                <small class="text-muted">
-                    Status
-                </small>
+                <div class="d-flex justify-content-between align-items-center">
 
-                <h3 class="fw-bold mb-0 mt-2 text-success">
-                    Updated
-                </h3>
+                    <div>
+
+                        <span class="d-block text-muted small mb-1">
+                            Active Categories
+                        </span>
+
+                        <h3 class="fw-bold mb-0 text-success">
+                            @Model.Count()
+                        </h3>
+
+                    </div>
+
+                    <div class="bg-success bg-opacity-10 text-success rounded-3 p-3">
+
+                        <i class="bi bi-check-circle fs-3"></i>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-4">
+
+            <div class="card border-0 shadow-sm rounded-4 p-3">
+
+                <div class="d-flex justify-content-between align-items-center">
+
+                    <div>
+
+                        <span class="d-block text-muted small mb-1">
+                            System Status
+                        </span>
+
+                        <h3 class="fw-bold mb-0">
+                            Updated
+                        </h3>
+
+                    </div>
+
+                    <div class="bg-info bg-opacity-10 text-info rounded-3 p-3">
+
+                        <i class="bi bi-arrow-repeat fs-3"></i>
+
+                    </div>
+
+                </div>
 
             </div>
 
@@ -83,24 +125,28 @@
 
     </div>
 
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
 
-    <div class="card border-0 shadow-sm rounded-4 mb-4 p-2">
+        <div class="card-body p-2">
 
-        <div class="input-group">
+            <div class="input-group">
 
-            <span class="input-group-text border-0 bg-transparent">
-                <i class="bi bi-search text-muted"></i>
-            </span>
+                <span class="input-group-text border-0 bg-transparent ps-3">
 
-            <input type="text"
-                   id="categorySearch"
-                   class="form-control border-0 shadow-none"
-                   placeholder="Search by name or description..." />
+                    <i class="bi bi-search text-muted"></i>
+
+                </span>
+
+                <input type="text"
+                       id="categorySearch"
+                       class="form-control border-0 shadow-none"
+                       placeholder="Search by category name or description..." />
+
+            </div>
 
         </div>
 
     </div>
-
 
     <div class="card border-0 shadow-sm rounded-4">
 
@@ -108,11 +154,11 @@
 
             <div class="d-flex justify-content-between align-items-center">
 
-                <h5 class="fw-bold mb-0">
+                <h5 class="fw-bold mb-0 text-dark">
                     Category List
                 </h5>
 
-                <span class="badge bg-light text-primary">
+                <span class="badge bg-light text-primary fs-6 px-3 py-2 rounded-pill">
                     @Model.Count() Categories
                 </span>
 
@@ -120,12 +166,11 @@
 
         </div>
 
-
         <div class="table-responsive">
 
             <table class="table table-hover align-middle mb-0">
 
-                <thead class="table-light">
+                <thead class="bg-light text-muted small text-uppercase">
 
                 <tr>
 
@@ -137,6 +182,10 @@
                         Description
                     </th>
 
+                    <th class="text-center">
+                        Status
+                    </th>
+
                     <th class="text-end pe-4">
                         Actions
                     </th>
@@ -144,7 +193,6 @@
                 </tr>
 
                 </thead>
-
 
                 <tbody id="categoryTableBody">
 
@@ -156,10 +204,10 @@
 
                             <div class="d-flex align-items-center gap-3">
 
-                                <div class="bg-primary bg-opacity-10
-                                            text-primary rounded-3 p-2">
+                                <div class="bg-primary bg-opacity-10 text-primary rounded-3 p-2 d-flex align-items-center justify-content-center"
+                                     style="width: 40px; height: 40px;">
 
-                                    <i class="bi bi-tag-fill"></i>
+                                    <i class="bi bi-tag-fill fs-5"></i>
 
                                 </div>
 
@@ -181,12 +229,20 @@
 
                         <td>
 
-                            <span class="text-secondary category-description">
+                            <span class="text-secondary small category-description">
 
                                 @(string.IsNullOrWhiteSpace(item.Description)
                                     ? "N/A"
                                     : item.Description)
 
+                            </span>
+
+                        </td>
+
+                        <td class="text-center">
+
+                            <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-2">
+                                Active
                             </span>
 
                         </td>
@@ -197,7 +253,7 @@
 
                                 <a asp-action="Details"
                                    asp-route-id="@item.Id"
-                                   class="btn btn-sm btn-light text-primary"
+                                   class="btn btn-sm btn-light text-primary rounded-circle"
                                    title="Details">
 
                                     <i class="bi bi-eye"></i>
@@ -206,7 +262,7 @@
 
                                 <a asp-action="Edit"
                                    asp-route-id="@item.Id"
-                                   class="btn btn-sm btn-light text-warning"
+                                   class="btn btn-sm btn-light text-warning rounded-circle"
                                    title="Edit">
 
                                     <i class="bi bi-pencil"></i>
@@ -215,7 +271,7 @@
 
                                 <a asp-action="Delete"
                                    asp-route-id="@item.Id"
-                                   class="btn btn-sm btn-light text-danger"
+                                   class="btn btn-sm btn-light text-danger rounded-circle"
                                    title="Delete">
 
                                     <i class="bi bi-trash"></i>
@@ -235,56 +291,90 @@
 
         </div>
 
+        <div id="noResults"
+             class="text-center py-5 d-none">
+
+            <i class="bi bi-search fs-1 text-muted"></i>
+
+            <h5 class="fw-bold mt-3">
+                No categories found
+            </h5>
+
+            <p class="text-muted mb-0">
+                Try another search term.
+            </p>
+
+        </div>
+
     </div>
 
 </div>
-
 
 @section Scripts {
 
     <script>
 
-        const searchInput =
-            document.getElementById("categorySearch");
-
-        const rows =
-            document.querySelectorAll(".category-row");
-
-        searchInput.addEventListener(
-            "input",
+        document.addEventListener(
+            "DOMContentLoaded",
             function () {
 
-                const search =
-                    this.value
-                        .trim()
-                        .toLowerCase();
+                const searchInput =
+                    document.getElementById("categorySearch");
 
-                rows.forEach(row => {
+                const rows =
+                    document.querySelectorAll(".category-row");
 
-                    const name =
-                        row.querySelector(
-                            ".category-name"
-                        )?.textContent
-                            .toLowerCase() ?? "";
+                const noResults =
+                    document.getElementById("noResults");
 
-                    const description =
-                        row.querySelector(
-                            ".category-description"
-                        )?.textContent
-                            .toLowerCase() ?? "";
+                searchInput.addEventListener(
+                    "input",
+                    function () {
 
-                    const match =
-                        name.includes(search) ||
-                        description.includes(search);
+                        const search =
+                            this.value
+                                .trim()
+                                .toLowerCase();
 
-                    row.style.display =
-                        match ? "" : "none";
+                        let visibleRows = 0;
 
-                });
+                        rows.forEach(function (row) {
 
-            }
-        );
+                            const name =
+                                row.querySelector(
+                                    ".category-name"
+                                )?.textContent
+                                .trim()
+                                .toLowerCase() ?? "";
+
+                            const description =
+                                row.querySelector(
+                                    ".category-description"
+                                )?.textContent
+                                .trim()
+                                .toLowerCase() ?? "";
+
+                            const matches =
+                                name.includes(search) ||
+                                description.includes(search);
+
+                            row.style.display =
+                                matches ? "" : "none";
+
+                            if (matches) {
+                                visibleRows++;
+                            }
+
+                        });
+
+                        noResults.classList.toggle(
+                            "d-none",
+                            visibleRows !== 0
+                        );
+
+                    });
+
+            });
 
     </script>
-
 }
