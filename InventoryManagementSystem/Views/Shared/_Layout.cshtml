@@ -29,21 +29,21 @@
 <body>
 
 @{
-var currentController =
-ViewContext.RouteData.Values["controller"]?.ToString();
+    var currentController =
+        ViewContext.RouteData.Values["controller"]?.ToString();
 
-var fullName =
-User.FindFirst("FullName")?.Value
-?? User.Identity?.Name
-?? "User";
+    var fullName =
+        User.FindFirst("FullName")?.Value
+        ?? User.Identity?.Name
+        ?? "User";
 
-var email =
-User.FindFirst(ClaimTypes.Email)?.Value
-?? string.Empty;
+    var email =
+        User.FindFirst(ClaimTypes.Email)?.Value
+        ?? string.Empty;
 
-var role =
-User.FindFirst(ClaimTypes.Role)?.Value
-?? "Employee";
+    var role =
+        User.FindFirst(ClaimTypes.Role)?.Value
+        ?? "Employee";
 }
 
 <div class="app-wrapper">
@@ -83,11 +83,13 @@ User.FindFirst(ClaimTypes.Role)?.Value
 
             <ul class="sidebar-menu">
 
+                <!-- Dashboard -->
+
                 <li>
 
                     <a asp-controller="Home"
                        asp-action="Index"
-                       class="sidebar-link @(currentController == "Home" ? "active" : "")">
+                       class="sidebar-link @(currentController == "Home" || currentController == "Dashboard" ? "active" : "")">
 
                         <i class="bi bi-grid-1x2-fill"></i>
 
@@ -98,6 +100,9 @@ User.FindFirst(ClaimTypes.Role)?.Value
                     </a>
 
                 </li>
+
+
+                <!-- Products -->
 
                 <li>
 
@@ -115,45 +120,96 @@ User.FindFirst(ClaimTypes.Role)?.Value
 
                 </li>
 
-                @if (User.IsInRole("Admin") ||
-                User.IsInRole("Manager"))
-                {
-                <li>
 
-                    <a asp-controller="Purchase"
-                       asp-action="Index"
-                       class="sidebar-link @(currentController == "Purchase" ? "active" : "")">
-
-                        <i class="bi bi-cart-plus"></i>
-
-                        <span>
-                                Purchases
-                            </span>
-
-                    </a>
-
-                </li>
-                }
+                <!-- Categories -->
 
                 @if (User.IsInRole("Admin") ||
-                User.IsInRole("Manager"))
+                     User.IsInRole("Manager"))
                 {
-                <li>
+                    <li>
 
-                    <a asp-controller="Category"
-                       asp-action="Index"
-                       class="sidebar-link @(currentController == "Category" ? "active" : "")">
+                        <a asp-controller="Category"
+                           asp-action="Index"
+                           class="sidebar-link @(currentController == "Category" ? "active" : "")">
 
-                        <i class="bi bi-tags"></i>
+                            <i class="bi bi-tags"></i>
 
-                        <span>
+                            <span>
                                 Categories
                             </span>
 
+                        </a>
+
+                    </li>
+                }
+
+
+                <!-- Suppliers -->
+
+                @if (User.IsInRole("Admin") ||
+                     User.IsInRole("Manager"))
+                {
+                    <li>
+
+                        <a asp-controller="Supplier"
+                           asp-action="Index"
+                           class="sidebar-link @(currentController == "Supplier" ? "active" : "")">
+
+                            <i class="bi bi-truck"></i>
+
+                            <span>
+                                Suppliers
+                            </span>
+
+                        </a>
+
+                    </li>
+                }
+
+
+                <!-- Customers -->
+
+                <li>
+
+                    <a asp-controller="Customer"
+                       asp-action="Index"
+                       class="sidebar-link @(currentController == "Customer" ? "active" : "")">
+
+                        <i class="bi bi-people"></i>
+
+                        <span>
+                            Customers
+                        </span>
+
                     </a>
 
                 </li>
+
+
+                <!-- Purchases -->
+
+                @if (User.IsInRole("Admin") ||
+                     User.IsInRole("Manager"))
+                {
+                    <li>
+
+                        <a asp-controller="Purchase"
+                           asp-action="Index"
+                           class="sidebar-link @(currentController == "Purchase" ? "active" : "")">
+
+                            <i class="bi bi-cart-plus"></i>
+
+                            <span>
+                                Purchases
+                            </span>
+
+                        </a>
+
+                    </li>
                 }
+
+
+                <!-- Sales -->
 
                 <li>
 
@@ -174,6 +230,9 @@ User.FindFirst(ClaimTypes.Role)?.Value
             </ul>
 
         </div>
+
+
+        <!-- INVENTORY -->
 
         <div class="sidebar-section">
 
@@ -203,36 +262,42 @@ User.FindFirst(ClaimTypes.Role)?.Value
 
         </div>
 
+
+        <!-- ADMINISTRATION -->
+
         @if (User.IsInRole("Admin"))
         {
-        <div class="sidebar-section">
+            <div class="sidebar-section">
 
-            <div class="sidebar-section-title">
-                ADMINISTRATION
-            </div>
+                <div class="sidebar-section-title">
+                    ADMINISTRATION
+                </div>
 
-            <ul class="sidebar-menu">
+                <ul class="sidebar-menu">
 
-                <li>
+                    <li>
 
-                    <a asp-controller="User"
-                       asp-action="Index"
-                       class="sidebar-link @(currentController == "User" ? "active" : "")">
+                        <a asp-controller="User"
+                           asp-action="Index"
+                           class="sidebar-link @(currentController == "User" ? "active" : "")">
 
-                        <i class="bi bi-people"></i>
+                            <i class="bi bi-people"></i>
 
-                        <span>
+                            <span>
                                 Users
                             </span>
 
-                    </a>
+                        </a>
 
-                </li>
+                    </li>
 
-            </ul>
+                </ul>
 
-        </div>
+            </div>
         }
+
+
+        <!-- USER -->
 
         <div class="sidebar-user">
 
@@ -254,10 +319,10 @@ User.FindFirst(ClaimTypes.Role)?.Value
 
                 <span class="badge
                     @(role == "Admin"
-                ? "bg-danger"
-                : role == "Manager"
-                ? "bg-warning text-dark"
-                : "bg-secondary")">
+                        ? "bg-danger"
+                        : role == "Manager"
+                            ? "bg-warning text-dark"
+                            : "bg-secondary")">
 
                     @role
 
@@ -289,6 +354,7 @@ User.FindFirst(ClaimTypes.Role)?.Value
 
     </aside>
 
+
     <div class="main-wrapper">
 
         <div class="mobile-topbar">
@@ -319,6 +385,7 @@ User.FindFirst(ClaimTypes.Role)?.Value
 
 </div>
 
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js">
 </script>
 
@@ -333,12 +400,15 @@ User.FindFirst(ClaimTypes.Role)?.Value
     const sidebarOverlay =
         document.getElementById("sidebarOverlay");
 
+
     function closeSidebar() {
 
         sidebar.classList.remove("show");
+
         sidebarOverlay.classList.remove("show");
 
     }
+
 
     if (sidebarToggle) {
 
@@ -347,11 +417,13 @@ User.FindFirst(ClaimTypes.Role)?.Value
             function () {
 
                 sidebar.classList.toggle("show");
+
                 sidebarOverlay.classList.toggle("show");
 
             });
 
     }
+
 
     if (sidebarOverlay) {
 
@@ -363,9 +435,10 @@ User.FindFirst(ClaimTypes.Role)?.Value
 
 </script>
 
+
 @await RenderSectionAsync(
-"Scripts",
-required: false)
+    "Scripts",
+    required: false)
 
 </body>
 

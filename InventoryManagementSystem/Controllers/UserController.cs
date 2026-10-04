@@ -85,12 +85,11 @@ public class UserController : Controller
 
             if (!removeResult.Succeeded)
             {
-                foreach (var error in removeResult.Errors)
-                {
-                    ModelState.AddModelError(
-                        string.Empty,
-                        error.Description);
-                }
+                TempData["Error"] =
+                    string.Join(
+                        " ",
+                        removeResult.Errors.Select(
+                            e => e.Description));
 
                 return RedirectToAction(nameof(Index));
             }
@@ -103,18 +102,66 @@ public class UserController : Controller
 
         if (!addResult.Succeeded)
         {
-            foreach (var error in addResult.Errors)
-            {
-                ModelState.AddModelError(
-                    string.Empty,
-                    error.Description);
-            }
+            TempData["Error"] =
+                string.Join(
+                    " ",
+                    addResult.Errors.Select(
+                        e => e.Description));
 
             return RedirectToAction(nameof(Index));
         }
 
         TempData["Success"] =
             $"{user.FullName} is now {role}.";
+
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteEmployee(string userId)
+    {
+        var user =
+            await _userManager.FindByIdAsync(userId);
+
+        if (user == null)
+            return NotFound();
+
+        if (user.Id == _userManager.GetUserId(User))
+        {
+            TempData["Error"] =
+                "You cannot delete your own account.";
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        var roles =
+            await _userManager.GetRolesAsync(user);
+
+        if (!roles.Contains("Employee"))
+        {
+            TempData["Error"] =
+                "Only Employee users can be deleted.";
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        var result =
+            await _userManager.DeleteAsync(user);
+
+        if (!result.Succeeded)
+        {
+            TempData["Error"] =
+                string.Join(
+                    " ",
+                    result.Errors.Select(
+                        e => e.Description));
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        TempData["Success"] =
+            $"{user.FullName} was deleted successfully.";
 
         return RedirectToAction(nameof(Index));
     }

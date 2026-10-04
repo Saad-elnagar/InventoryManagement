@@ -1,7 +1,8 @@
-@model IEnumerable<InventoryManagementSystem.BLL.DTOs.CustomerDTO>
+
+@model IEnumerable<InventoryManagementSystem.BLL.DTOs.SupplierDTO>
 
 @{
-    ViewData["Title"] = "Customers";
+    ViewData["Title"] = "Suppliers";
 }
 
 <div class="container-fluid px-4 py-4">
@@ -9,61 +10,86 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
 
         <div>
-            <h2 class="fw-bold mb-1">Customers</h2>
+            <h2 class="fw-bold mb-1">
+                Suppliers
+            </h2>
+
             <p class="text-muted mb-0">
-                Manage your customers and their contact information.
+                Manage your suppliers and contact information.
             </p>
         </div>
 
         <a asp-action="Create"
            class="btn btn-primary rounded-3 px-4">
 
-            <i class="bi bi-person-plus me-1"></i>
-            Add Customer
+            <i class="bi bi-truck me-1"></i>
+            Add Supplier
 
         </a>
 
     </div>
 
+
+    <!-- Statistics -->
+
     <div class="row g-3 mb-4">
 
         <div class="col-md-4">
+
             <div class="card border-0 shadow-sm rounded-4 p-4">
+
                 <small class="text-muted">
-                    Total Customers
+                    Total Suppliers
                 </small>
 
                 <h3 class="fw-bold mt-2 mb-0">
                     @Model.Count()
                 </h3>
+
             </div>
+
         </div>
 
+
         <div class="col-md-4">
+
             <div class="card border-0 shadow-sm rounded-4 p-4">
+
                 <small class="text-muted">
-                    Customers With Phone
+                    With Phone
                 </small>
 
                 <h3 class="fw-bold mt-2 mb-0 text-success">
-                    @Model.Count(x => !string.IsNullOrWhiteSpace(x.Phone))
+                    @Model.Count(x =>
+                        !string.IsNullOrWhiteSpace(x.Phone))
                 </h3>
+
             </div>
+
         </div>
 
+
         <div class="col-md-4">
+
             <div class="card border-0 shadow-sm rounded-4 p-4">
+
                 <small class="text-muted">
-                    Customers With Email
+                    With Email
                 </small>
 
                 <h3 class="fw-bold mt-2 mb-0 text-primary">
-                    @Model.Count(x => !string.IsNullOrWhiteSpace(x.Email))
+                    @Model.Count(x =>
+                        !string.IsNullOrWhiteSpace(x.Email))
                 </h3>
+
             </div>
+
         </div>
 
     </div>
+
+
+    <!-- Search -->
 
     <div class="card border-0 shadow-sm rounded-4 mb-4">
 
@@ -76,15 +102,18 @@
                 </span>
 
                 <input type="text"
-                       id="customerSearch"
+                       id="supplierSearch"
                        class="form-control border-0 shadow-none"
-                       placeholder="Search customers..." />
+                       placeholder="Search suppliers..." />
 
             </div>
 
         </div>
 
     </div>
+
+
+    <!-- Suppliers Table -->
 
     <div class="card border-0 shadow-sm rounded-4">
 
@@ -95,38 +124,70 @@
                 <thead class="table-light">
 
                 <tr>
-                    <th class="ps-4">Customer</th>
-                    <th>Contact</th>
-                    <th>Phone</th>
-                    <th>Email</th>
-                    <th>Address</th>
-                    <th class="text-end pe-4">Actions</th>
+
+                    <th class="ps-4">
+                        Supplier
+                    </th>
+
+                    <th>
+                        Contact
+                    </th>
+
+                    <th>
+                        Phone
+                    </th>
+
+                    <th>
+                        Email
+                    </th>
+
+                    <th>
+                        Address
+                    </th>
+
+                    <th class="text-end pe-4">
+                        Actions
+                    </th>
+
                 </tr>
 
                 </thead>
+
 
                 <tbody>
 
                 @foreach (var item in Model)
                 {
-                    <tr class="customer-row">
+
+                    <tr class="supplier-row">
+
+                        <!-- Supplier -->
 
                         <td class="ps-4">
 
                             <div class="d-flex align-items-center gap-3">
 
-                                <div class="bg-primary bg-opacity-10 text-primary rounded-3 p-2">
-                                    <i class="bi bi-person-fill fs-5"></i>
+                                <div class="bg-primary bg-opacity-10
+                                            text-primary rounded-3 p-2">
+
+                                    <i class="bi bi-truck fs-5"></i>
+
                                 </div>
+
 
                                 <div>
 
                                     <h6 class="fw-bold mb-0">
-                                        @item.Name
+
+                                        @item.SupplierName
+
                                     </h6>
 
+
                                     <span class="text-muted small">
+
                                         #@item.Id
+
                                     </span>
 
                                 </div>
@@ -135,63 +196,88 @@
 
                         </td>
 
+
+                        <!-- Contact -->
+
                         <td>
+
                             @(string.IsNullOrWhiteSpace(item.ContactName)
                                 ? "N/A"
                                 : item.ContactName)
+
                         </td>
 
+
+                        <!-- Phone -->
+
                         <td>
+
                             @(string.IsNullOrWhiteSpace(item.Phone)
                                 ? "N/A"
                                 : item.Phone)
+
                         </td>
 
+
+                        <!-- Email -->
+
                         <td>
+
                             @(string.IsNullOrWhiteSpace(item.Email)
                                 ? "N/A"
                                 : item.Email)
+
                         </td>
 
+
+                        <!-- Address -->
+
                         <td>
+
                             @(string.IsNullOrWhiteSpace(item.Address)
                                 ? "N/A"
                                 : item.Address)
+
                         </td>
+
+
+                        <!-- Actions -->
 
                         <td class="text-end pe-4">
 
                             <a asp-action="Details"
                                asp-route-id="@item.Id"
-                               class="btn btn-sm btn-light text-primary">
+                               class="btn btn-sm btn-light text-primary"
+                               title="Details">
 
                                 <i class="bi bi-eye"></i>
 
                             </a>
 
+
                             <a asp-action="Edit"
                                asp-route-id="@item.Id"
-                               class="btn btn-sm btn-light text-warning">
+                               class="btn btn-sm btn-light text-warning"
+                               title="Edit">
 
                                 <i class="bi bi-pencil"></i>
 
                             </a>
 
-                            @if (User.IsInRole("Admin") ||
-                                 User.IsInRole("Manager"))
-                            {
-                                <a asp-action="Delete"
-                                   asp-route-id="@item.Id"
-                                   class="btn btn-sm btn-light text-danger">
 
-                                    <i class="bi bi-trash"></i>
+                            <a asp-action="Delete"
+                               asp-route-id="@item.Id"
+                               class="btn btn-sm btn-light text-danger"
+                               title="Delete">
 
-                                </a>
-                            }
+                                <i class="bi bi-trash"></i>
+
+                            </a>
 
                         </td>
 
                     </tr>
+
                 }
 
                 </tbody>
@@ -204,27 +290,35 @@
 
 </div>
 
+
 @section Scripts {
 
     <script>
 
         const searchInput =
-            document.getElementById("customerSearch");
+            document.getElementById("supplierSearch");
 
         const rows =
-            document.querySelectorAll(".customer-row");
+            document.querySelectorAll(".supplier-row");
+
 
         searchInput.addEventListener("input", function () {
 
             const search =
-                this.value.trim().toLowerCase();
+                this.value
+                    .trim()
+                    .toLowerCase();
+
 
             rows.forEach(row => {
 
-                row.style.display =
+                const text =
                     row.textContent
-                        .toLowerCase()
-                        .includes(search)
+                        .toLowerCase();
+
+
+                row.style.display =
+                    text.includes(search)
                         ? ""
                         : "none";
 
@@ -233,4 +327,6 @@
         });
 
     </script>
+
 }
+

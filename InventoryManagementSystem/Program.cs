@@ -189,6 +189,7 @@ builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IPurchaseService, PurchaseService>();
 builder.Services.AddScoped<ISaleService, SaleService>();
 builder.Services.AddScoped<IStockMovementService, StockMovementService>();
+builder.Services.AddScoped<ICustomerService, CustomerService>();
 
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();

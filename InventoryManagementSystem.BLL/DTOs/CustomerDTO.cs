@@ -10,6 +10,9 @@ public class CustomerDTO
     [MaxLength(150)]
     public string Name { get; set; } = string.Empty;
 
+    [MaxLength(150)]
+    public string? ContactName { get; set; }
+
     [Phone]
     [MaxLength(20)]
     public string? Phone { get; set; }
