@@ -1,12 +1,14 @@
 using InventoryManagementSystem.BLL.DTOs;
-using InventoryManagementSystem.BLL.Enums;
 
 namespace InventoryManagementSystem.BLL.Interfaces;
 
 public interface IStockMovementService
 {
-    Task<IEnumerable<StockMovementDTO>> GetAllAsync();
+    Task<IEnumerable<StockMovementDTO>> GetAllAsync(
+        int? productId = null,
+        string? movementType = null,
+        DateTime? fromDate = null,
+        DateTime? toDate = null);
+
     Task<StockMovementDTO?> GetByIdAsync(int id);
-    Task<IEnumerable<StockMovementDTO>> GetByProductIdAsync(int productId);
-    Task<IEnumerable<StockMovementDTO>> GetByTypeAsync(StockMovementType movementType);
 }

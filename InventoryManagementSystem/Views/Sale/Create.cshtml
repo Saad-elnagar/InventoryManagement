@@ -1,66 +1,558 @@
-﻿@model InventoryManagementSystem.BLL.DTOs.SaleDTO
+﻿@using InventoryManagementSystem.BLL.DTOs
+
+@model SaleDTO
 
 @{
-    ViewData["Title"] = "Add New Sale";
+    ViewData["Title"] = "Create Sale";
+
+    var productList =
+        ViewBag.Products as IEnumerable<ProductDTO>
+        ?? Enumerable.Empty<ProductDTO>();
 }
 
-<div class="container-fluid px-4 py-4" style="max-width: 900px;">
-    <!-- Back Button Link -->
-    <div class="mb-3">
-        <a asp-action="Index" class="text-decoration-none text-muted small fw-medium">
-            <i class="bi bi-arrow-left me-1"></i> Back to Sales
-        </a>
-    </div>
+<div class="container-fluid py-4">
 
-    <!-- Header Section -->
     <div class="mb-4">
-        <h2 class="fw-bold text-dark m-0">Add New Sale</h2>
-        <p class="text-muted small m-0">Create a new sales record in your inventory system.</p>
+
+        <a asp-action="Index"
+           class="text-decoration-none text-muted">
+
+            <i class="bi bi-arrow-left"></i>
+            Back to Sales
+
+        </a>
+
+        <h2 class="fw-bold mt-3 mb-1">
+            Create Sale
+        </h2>
+
+        <p class="text-muted">
+            Create a new sale and reduce inventory stock.
+        </p>
+
     </div>
 
-    <!-- Form Card -->
-    <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
-        <form asp-action="Create" method="post">
-            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+    <form asp-action="Create"
+          method="post">
 
-            <!-- Customer ID Input -->
-            <div class="mb-4">
-                <label asp-for="CustomerId" class="form-label fw-semibold text-dark">Customer ID</label>
-                <input asp-for="CustomerId" type="number" class="form-control form-control-lg rounded-3 fs-6" placeholder="Enter Customer ID" />
-                <span asp-validation-for="CustomerId" class="text-danger small"></span>
-            </div>
+        @Html.AntiForgeryToken()
 
-            <!-- Total Amount Input -->
-            <div class="mb-4">
-                <label asp-for="TotalAmount" class="form-label fw-semibold text-dark">Total Amount</label>
-                <div class="input-group">
-                    <span class="input-group-text bg-light text-muted border-end-0">$</span>
-                    <input asp-for="TotalAmount" type="number" step="0.01" class="form-control rounded-3 fs-6 border-start-0" placeholder="0.00" />
+        <div asp-validation-summary="ModelOnly"
+             class="alert alert-danger">
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4 mb-4">
+
+            <div class="card-body p-4">
+
+                <div class="row g-3">
+
+                    <div class="col-md-6">
+
+                        <label asp-for="CustomerId"
+                               class="form-label fw-semibold">
+                            Customer ID
+                        </label>
+
+                        <input asp-for="CustomerId"
+                               type="number"
+                               min="1"
+                               class="form-control"
+                               placeholder="Enter customer ID"
+                               required />
+
+                        <span asp-validation-for="CustomerId"
+                              class="text-danger">
+                        </span>
+
+                    </div>
+
+                    <div class="col-md-6">
+
+                        <label asp-for="SaleDate"
+                               class="form-label fw-semibold">
+                            Sale Date
+                        </label>
+
+                        <input asp-for="SaleDate"
+                               type="datetime-local"
+                               class="form-control" />
+
+                        <span asp-validation-for="SaleDate"
+                              class="text-danger">
+                        </span>
+
+                    </div>
+
                 </div>
-                <span asp-validation-for="TotalAmount" class="text-danger small"></span>
+
             </div>
 
-            <!-- Sale Date Input -->
-            <div class="mb-4">
-                <label asp-for="SaleDate" class="form-label fw-semibold text-dark">Sale Date</label>
-                <input asp-for="SaleDate" type="datetime-local" class="form-control rounded-3 fs-6" value="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")" />
-                <span asp-validation-for="SaleDate" class="text-danger small"></span>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4">
+
+            <div class="card-header bg-white border-0 pt-4 px-4">
+
+                <div class="d-flex justify-content-between align-items-center">
+
+                    <div>
+
+                        <h5 class="fw-bold mb-1">
+                            Sale Items
+                        </h5>
+
+                        <p class="text-muted mb-0">
+                            Select products and enter quantities.
+                        </p>
+
+                    </div>
+
+                    <button type="button"
+                            id="addItem"
+                            class="btn btn-outline-primary rounded-3">
+
+                        <i class="bi bi-plus-lg"></i>
+                        Add Product
+
+                    </button>
+
+                </div>
+
             </div>
 
-            <!-- Form Actions -->
-            <div class="d-flex justify-content-end align-items-center gap-2 mt-4 pt-2">
-                <a asp-action="Index" class="btn btn-light px-4 py-2 rounded-3 text-secondary fw-medium">Cancel</a>
-                <button type="submit" class="btn btn-primary px-4 py-2 rounded-3 fw-medium d-inline-flex align-items-center gap-2">
-                    <i class="bi bi-check-lg"></i>
-                    <span>Create Sale</span>
-                </button>
+            <div class="card-body p-4">
+
+                <div class="table-responsive">
+
+                    <table class="table align-middle">
+
+                        <thead class="table-light">
+
+                        <tr>
+
+                            <th style="width:35%;">
+                                Product
+                            </th>
+
+                            <th style="width:15%;">
+                                Stock
+                            </th>
+
+                            <th style="width:15%;">
+                                Quantity
+                            </th>
+
+                            <th style="width:15%;">
+                                Unit Price
+                            </th>
+
+                            <th style="width:10%;">
+                                Total
+                            </th>
+
+                            <th style="width:10%;"></th>
+
+                        </tr>
+
+                        </thead>
+
+                        <tbody id="itemsBody">
+
+                        <tr class="sale-row">
+
+                            <td>
+
+                                <select name="Items[0].ProductId"
+                                        class="form-select product-input"
+                                        required>
+
+                                    <option value="">
+                                        Select Product
+                                    </option>
+
+                                    @foreach (var product in productList)
+                                    {
+                                        <option value="@product.Id"
+                                                data-stock="@product.Quantity"
+                                                data-price="@product.Price">
+
+                                            @product.Name (@product.SKU)
+
+                                        </option>
+                                    }
+
+                                </select>
+
+                            </td>
+
+                            <td>
+
+                                <span class="stock-label text-muted">
+                                    -
+                                </span>
+
+                            </td>
+
+                            <td>
+
+                                <input type="number"
+                                       name="Items[0].Quantity"
+                                       class="form-control quantity-input"
+                                       min="1"
+                                       value="1"
+                                       required />
+
+                            </td>
+
+                            <td>
+
+                                <input type="number"
+                                       name="Items[0].UnitPrice"
+                                       class="form-control price-input"
+                                       min="0.01"
+                                       step="0.01"
+                                       required />
+
+                            </td>
+
+                            <td>
+
+                                <span class="row-total">
+                                    0.00
+                                </span>
+
+                                EGP
+
+                            </td>
+
+                            <td class="text-end">
+
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-danger remove-row">
+
+                                    <i class="bi bi-trash"></i>
+
+                                </button>
+
+                            </td>
+
+                        </tr>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+                <div class="d-flex justify-content-end mt-4">
+
+                    <div class="text-end">
+
+                        <div class="text-muted">
+                            Grand Total
+                        </div>
+
+                        <h3 class="fw-bold mb-0">
+
+                            <span id="grandTotal">
+                                0.00
+                            </span>
+
+                            EGP
+
+                        </h3>
+
+                    </div>
+
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mt-4">
+
+                    <a asp-action="Index"
+                       class="btn btn-light border rounded-3">
+                        Cancel
+                    </a>
+
+                    <button type="submit"
+                            class="btn btn-primary rounded-3 px-4">
+
+                        <i class="bi bi-check-lg"></i>
+                        Save Sale
+
+                    </button>
+
+                </div>
+
             </div>
-        </form>
-    </div>
+
+        </div>
+
+    </form>
+
 </div>
 
 @section Scripts {
-    @{
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
-    }
+
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+
+        const itemsBody =
+            document.getElementById("itemsBody");
+
+        const addItemButton =
+            document.getElementById("addItem");
+
+        const grandTotal =
+            document.getElementById("grandTotal");
+
+
+        function updateRow(row) {
+
+            const productInput =
+                row.querySelector(".product-input");
+
+            const quantityInput =
+                row.querySelector(".quantity-input");
+
+            const priceInput =
+                row.querySelector(".price-input");
+
+            const stockLabel =
+                row.querySelector(".stock-label");
+
+            const selectedOption =
+                productInput.options[
+                    productInput.selectedIndex
+                ];
+
+            if (!selectedOption ||
+                !selectedOption.value) {
+
+                stockLabel.textContent = "-";
+
+                quantityInput.removeAttribute("max");
+
+                return;
+            }
+
+            const stock =
+                Number(
+                    selectedOption.dataset.stock
+                ) || 0;
+
+            const price =
+                Number(
+                    selectedOption.dataset.price
+                ) || 0;
+
+            stockLabel.textContent = stock;
+
+            quantityInput.max = stock;
+
+            if (!priceInput.value)
+                priceInput.value = price.toFixed(2);
+
+            if (stock === 0) {
+
+                quantityInput.value = 0;
+
+            } else if (
+                Number(quantityInput.value) > stock
+            ) {
+
+                quantityInput.value = stock;
+            }
+        }
+
+
+        function calculateTotal() {
+
+            let total = 0;
+
+            const rows =
+                itemsBody.querySelectorAll(".sale-row");
+
+            rows.forEach(row => {
+
+                const quantity =
+                    Number(
+                        row.querySelector(
+                            ".quantity-input"
+                        )?.value
+                    ) || 0;
+
+                const price =
+                    Number(
+                        row.querySelector(
+                            ".price-input"
+                        )?.value
+                    ) || 0;
+
+                const rowTotal =
+                    quantity * price;
+
+                total += rowTotal;
+
+                const rowTotalElement =
+                    row.querySelector(".row-total");
+
+                rowTotalElement.textContent =
+                    rowTotal.toLocaleString(
+                        "en-US",
+                        {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                        }
+                    );
+            });
+
+            grandTotal.textContent =
+                total.toLocaleString(
+                    "en-US",
+                    {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    }
+                );
+        }
+
+
+        function renumberRows() {
+
+            const rows =
+                itemsBody.querySelectorAll(".sale-row");
+
+            rows.forEach((row, index) => {
+
+                row.querySelector(".product-input")
+                    .name =
+                    `Items[${index}].ProductId`;
+
+                row.querySelector(".quantity-input")
+                    .name =
+                    `Items[${index}].Quantity`;
+
+                row.querySelector(".price-input")
+                    .name =
+                    `Items[${index}].UnitPrice`;
+            });
+        }
+
+
+        addItemButton.addEventListener(
+            "click",
+            function () {
+
+                const firstRow =
+                    itemsBody.querySelector(".sale-row");
+
+                const newRow =
+                    firstRow.cloneNode(true);
+
+                newRow.querySelector(".product-input")
+                    .value = "";
+
+                newRow.querySelector(".quantity-input")
+                    .value = 1;
+
+                newRow.querySelector(".price-input")
+                    .value = "";
+
+                newRow.querySelector(".stock-label")
+                    .textContent = "-";
+
+                newRow.querySelector(".quantity-input")
+                    .removeAttribute("max");
+
+                newRow.querySelector(".row-total")
+                    .textContent = "0.00";
+
+                itemsBody.appendChild(newRow);
+
+                renumberRows();
+
+                calculateTotal();
+            }
+        );
+
+
+        itemsBody.addEventListener(
+            "change",
+            function (event) {
+
+                if (
+                    event.target.classList.contains(
+                        "product-input"
+                    )
+                ) {
+
+                    const row =
+                        event.target.closest(".sale-row");
+
+                    updateRow(row);
+
+                    calculateTotal();
+                }
+            }
+        );
+
+
+        itemsBody.addEventListener(
+            "input",
+            function (event) {
+
+                const row =
+                    event.target.closest(".sale-row");
+
+                if (!row)
+                    return;
+
+                updateRow(row);
+
+                calculateTotal();
+            }
+        );
+
+
+        itemsBody.addEventListener(
+            "click",
+            function (event) {
+
+                const button =
+                    event.target.closest(".remove-row");
+
+                if (!button)
+                    return;
+
+                const rows =
+                    itemsBody.querySelectorAll(".sale-row");
+
+                if (rows.length === 1)
+                    return;
+
+                button
+                    .closest(".sale-row")
+                    .remove();
+
+                renumberRows();
+
+                calculateTotal();
+            }
+        );
+
+
+        document
+            .querySelectorAll(".sale-row")
+            .forEach(row => {
+
+                updateRow(row);
+
+            });
+
+
+        calculateTotal();
+
+    </script>
 }

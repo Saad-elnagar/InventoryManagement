@@ -2,15 +2,13 @@
 using InventoryManagementSystem.BLL.Interfaces;
 using InventoryManagementSystem.DAL.Entities;
 
-
 namespace InventoryManagementSystem.BLL.Service;
 
 public class CategoryService : ICategoryService
 {
     private readonly IUnitOfWork _unitOfWork;
 
-    public CategoryService(IUnitOfWork unitOfWork
-        )
+    public CategoryService(IUnitOfWork unitOfWork)
     {
         _unitOfWork = unitOfWork;
     }
@@ -19,18 +17,25 @@ public class CategoryService : ICategoryService
     {
         try
         {
-            var categories = await _unitOfWork.GenaricRepository<Category>().GetAllAsync();
+            var categories =
+                await _unitOfWork
+                    .GenaricRepository<Category>()
+                    .GetAllAsync();
 
-            return categories.Select(c => new CategoryDTO
-            {
-                Id = c.Id,
-                Name = c.Name,
-                Description = c.Description
-            });
+            return categories
+                .OrderBy(c => c.Name)
+                .Select(c => new CategoryDTO
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    Description = c.Description
+                });
         }
         catch (Exception ex)
         {
-            throw new Exception("Error while getting categories.", ex);
+            throw new Exception(
+                "Error while getting categories.",
+                ex);
         }
     }
 
@@ -38,7 +43,10 @@ public class CategoryService : ICategoryService
     {
         try
         {
-            var category = await _unitOfWork.GenaricRepository<Category>().GetByIdAsync(id);
+            var category =
+                await _unitOfWork
+                    .GenaricRepository<Category>()
+                    .GetByIdAsync(id);
 
             if (category == null)
                 return null;
@@ -52,66 +60,97 @@ public class CategoryService : ICategoryService
         }
         catch (Exception ex)
         {
-            throw new Exception("Error while getting category.", ex);
+            throw new Exception(
+                "Error while getting category.",
+                ex);
         }
     }
 
-    public async Task<CategoryDTO> CreateAsync(CategoryDTO dto)
+    public async Task<CategoryDTO> CreateAsync(
+        CategoryDTO dto)
     {
         try
         {
-            var exists = await _unitOfWork.GenaricRepository<Category>().AnyAsync(
-                c => c.Name == dto.Name);
+            dto.Name = dto.Name.Trim();
+
+            var exists =
+                await _unitOfWork
+                    .GenaricRepository<Category>()
+                    .AnyAsync(
+                        c => c.Name == dto.Name);
 
             if (exists)
-                throw new Exception("Category already exists.");
+                throw new Exception(
+                    "Category already exists.");
 
             var category = new Category
             {
                 Name = dto.Name,
-                Description = dto.Description
+                Description = dto.Description?.Trim()
             };
 
-            await _unitOfWork.GenaricRepository<Category>().AddAsync(category);
+            await _unitOfWork
+                .GenaricRepository<Category>()
+                .AddAsync(category);
+
+            await _unitOfWork.SaveChangesAsync();
 
             dto.Id = category.Id;
-           await _unitOfWork.SaveChangesAsync();
 
             return dto;
         }
         catch (Exception ex)
         {
-            throw new Exception("Error while creating category.", ex);
+            throw new Exception(
+                "Error while creating category.",
+                ex);
         }
     }
 
-    public async Task<bool> UpdateAsync(int id, CategoryDTO dto)
+    public async Task<bool> UpdateAsync(
+        int id,
+        CategoryDTO dto)
     {
         try
         {
-            var category = await _unitOfWork.GenaricRepository<Category>().GetByIdAsync(id);
+            dto.Name = dto.Name.Trim();
+
+            var category =
+                await _unitOfWork
+                    .GenaricRepository<Category>()
+                    .GetByIdAsync(id);
 
             if (category == null)
                 return false;
 
-            var exists = await _unitOfWork.GenaricRepository<Category>().AnyAsync(
-                c => c.Id != id &&
-                     c.Name == dto.Name);
+            var exists =
+                await _unitOfWork
+                    .GenaricRepository<Category>()
+                    .AnyAsync(
+                        c => c.Id != id &&
+                             c.Name == dto.Name);
 
             if (exists)
-                throw new Exception("Category already exists.");
+                throw new Exception(
+                    "Category already exists.");
 
             category.Name = dto.Name;
-            category.Description = dto.Description;
+            category.Description =
+                dto.Description?.Trim();
 
-            _unitOfWork.GenaricRepository<Category>().Update(category);
+            _unitOfWork
+                .GenaricRepository<Category>()
+                .Update(category);
+
             await _unitOfWork.SaveChangesAsync();
 
             return true;
         }
         catch (Exception ex)
         {
-            throw new Exception("Error while updating category.", ex);
+            throw new Exception(
+                "Error while updating category.",
+                ex);
         }
     }
 
@@ -119,19 +158,39 @@ public class CategoryService : ICategoryService
     {
         try
         {
-            var category = await _unitOfWork.GenaricRepository<Category>().GetByIdAsync(id);
+            var category =
+                await _unitOfWork
+                    .GenaricRepository<Category>()
+                    .GetByIdAsync(id);
 
             if (category == null)
                 return false;
 
-            _unitOfWork.GenaricRepository<Category>().Delete(category);
-           await _unitOfWork.SaveChangesAsync();
+            var hasProducts =
+                await _unitOfWork
+                    .GenaricRepository<Product>()
+                    .AnyAsync(
+                        p => p.CategoryId == id);
+
+            if (hasProducts)
+            {
+                throw new Exception(
+                    "Cannot delete category because it contains products.");
+            }
+
+            _unitOfWork
+                .GenaricRepository<Category>()
+                .Delete(category);
+
+            await _unitOfWork.SaveChangesAsync();
 
             return true;
         }
         catch (Exception ex)
         {
-            throw new Exception("Error while deleting category.", ex);
+            throw new Exception(
+                "Error while deleting category.",
+                ex);
         }
     }
 }

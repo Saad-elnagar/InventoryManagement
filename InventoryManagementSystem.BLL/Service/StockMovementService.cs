@@ -1,5 +1,4 @@
 using InventoryManagementSystem.BLL.DTOs;
-using InventoryManagementSystem.BLL.Enums;
 using InventoryManagementSystem.BLL.Interfaces;
 using InventoryManagementSystem.DAL.Entities;
 
@@ -14,43 +13,96 @@ public class StockMovementService : IStockMovementService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<IEnumerable<StockMovementDTO>> GetAllAsync()
+    public async Task<IEnumerable<StockMovementDTO>> GetAllAsync(
+        int? productId = null,
+        string? movementType = null,
+        DateTime? fromDate = null,
+        DateTime? toDate = null)
     {
         try
         {
             var movements =
-                await _unitOfWork.GenaricRepository<StockMovement>()
+                await _unitOfWork
+                    .GenaricRepository<StockMovement>()
                     .GetAllAsync();
 
-            var productIds = movements
-                .Select(m => m.ProductId)
-                .Distinct()
-                .ToList();
+            if (productId.HasValue)
+            {
+                movements = movements
+                    .Where(x => x.ProductId == productId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(movementType))
+            {
+                movements = movements
+                    .Where(x =>
+                        x.MovementType.Equals(
+                            movementType,
+                            StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (fromDate.HasValue)
+            {
+                var from =
+                    fromDate.Value.Date;
+
+                movements = movements
+                    .Where(x =>
+                        x.MovementDate.Date >= from);
+            }
+
+            if (toDate.HasValue)
+            {
+                var to =
+                    toDate.Value.Date;
+
+                movements = movements
+                    .Where(x =>
+                        x.MovementDate.Date <= to);
+            }
+
+            movements = movements
+                .OrderByDescending(x => x.MovementDate)
+                .ThenByDescending(x => x.Id);
+
+            var productIds =
+                movements
+                    .Select(x => x.ProductId)
+                    .Distinct()
+                    .ToList();
 
             var products =
-                await _unitOfWork.GenaricRepository<Product>()
-                    .GetWhereAsync(p => productIds.Contains(p.Id));
+                productIds.Count == 0
+                    ? Enumerable.Empty<Product>()
+                    : await _unitOfWork
+                        .GenaricRepository<Product>()
+                        .GetWhereAsync(
+                            x => productIds.Contains(x.Id));
 
-            var productDictionary = products
-                .ToDictionary(p => p.Id, p => p.Name);
+            var productDictionary =
+                products.ToDictionary(
+                    x => x.Id,
+                    x => x.Name);
 
-            return movements.Select(m => new StockMovementDTO
+            return movements.Select(x => new StockMovementDTO
             {
-                Id = m.Id,
-                ProductId = m.ProductId,
-                ProductName = productDictionary.TryGetValue(
-                    m.ProductId,
-                    out var productName)
-                    ? productName
-                    : null,
-                Quantity = m.Quantity,
-                MovementType = Enum.Parse<StockMovementType>(
-                    m.MovementType),
-                MovementDate = m.MovementDate,
-                ReferenceType = m.ReferenceType,
-                ReferenceId = m.ReferenceId,
-                Reason = m.Reason,
-                Notes = m.Notes
+                Id = x.Id,
+                ProductId = x.ProductId,
+
+                ProductName =
+                    productDictionary.TryGetValue(
+                        x.ProductId,
+                        out var productName)
+                        ? productName
+                        : null,
+
+                Quantity = x.Quantity,
+                MovementType = x.MovementType,
+                MovementDate = x.MovementDate,
+                ReferenceType = x.ReferenceType,
+                ReferenceId = x.ReferenceId,
+                Reason = x.Reason,
+                Notes = x.Notes
             });
         }
         catch (Exception ex)
@@ -66,24 +118,26 @@ public class StockMovementService : IStockMovementService
         try
         {
             var movement =
-                await _unitOfWork.GenaricRepository<StockMovement>()
+                await _unitOfWork
+                    .GenaricRepository<StockMovement>()
                     .GetByIdAsync(id);
 
             if (movement == null)
                 return null;
 
             var product =
-                await _unitOfWork.GenaricRepository<Product>()
-                    .GetByIdAsync(movement.ProductId);
+                await _unitOfWork
+                    .GenaricRepository<Product>()
+                    .GetByIdAsync(
+                        movement.ProductId);
 
             return new StockMovementDTO
             {
                 Id = movement.Id,
                 ProductId = movement.ProductId,
-                ProductName = product?.Name!,
+                ProductName = product?.Name,
                 Quantity = movement.Quantity,
-                MovementType = Enum.Parse<StockMovementType>(
-                    movement.MovementType),
+                MovementType = movement.MovementType,
                 MovementDate = movement.MovementDate,
                 ReferenceType = movement.ReferenceType,
                 ReferenceId = movement.ReferenceId,
@@ -95,98 +149,6 @@ public class StockMovementService : IStockMovementService
         {
             throw new Exception(
                 "Error while getting stock movement.",
-                ex);
-        }
-    }
-
-    public async Task<IEnumerable<StockMovementDTO>> GetByProductIdAsync(
-        int productId)
-    {
-        try
-        {
-            var productExists =
-                await _unitOfWork.GenaricRepository<Product>()
-                    .AnyAsync(p => p.Id == productId);
-
-            if (!productExists)
-                throw new Exception("Product not found.");
-
-            var movements =
-                await _unitOfWork.GenaricRepository<StockMovement>()
-                    .GetWhereAsync(m => m.ProductId == productId);
-
-            var product =
-                await _unitOfWork.GenaricRepository<Product>()
-                    .GetByIdAsync(productId);
-
-            return movements.Select(m => new StockMovementDTO
-            {
-                Id = m.Id,
-                ProductId = m.ProductId,
-                ProductName = product?.Name!,
-                Quantity = m.Quantity,
-                MovementType = Enum.Parse<StockMovementType>(
-                    m.MovementType),
-                MovementDate = m.MovementDate,
-                ReferenceType = m.ReferenceType,
-                ReferenceId = m.ReferenceId,
-                Reason = m.Reason,
-                Notes = m.Notes
-            });
-        }
-        catch (Exception ex)
-        {
-            throw new Exception(
-                "Error while getting product stock movements.",
-                ex);
-        }
-    }
-
-    public async Task<IEnumerable<StockMovementDTO>> GetByTypeAsync(
-        StockMovementType movementType)
-    {
-        try
-        {
-            var movements =
-                await _unitOfWork.GenaricRepository<StockMovement>()
-                    .GetWhereAsync(m =>
-                        m.MovementType == movementType.ToString());
-
-            var productIds = movements
-                .Select(m => m.ProductId)
-                .Distinct()
-                .ToList();
-
-            var products =
-                await _unitOfWork.GenaricRepository<Product>()
-                    .GetWhereAsync(p => productIds.Contains(p.Id));
-
-            var productDictionary = products
-                .ToDictionary(p => p.Id, p => p.Name);
-
-            return movements.Select(m => new StockMovementDTO
-            {
-                Id = m.Id,
-                ProductId = m.ProductId,
-                ProductName = productDictionary.TryGetValue(
-                    m.ProductId,
-                    out var productName)
-                    ? productName
-                    : null,
-                Quantity = m.Quantity,
-                MovementType = Enum.Parse<StockMovementType>(
-                    m.MovementType),
-                MovementDate = m.MovementDate,
-                ReferenceType = m.ReferenceType,
-                ReferenceId = m.ReferenceId,
-                Reason = m.Reason,
-                Notes = m.Notes
-            });
-        }
-        catch (Exception ex)
-        {
-            throw new Exception(
-                "Error while getting stock movements by type.",
                 ex);
         }
     }

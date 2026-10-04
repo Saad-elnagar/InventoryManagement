@@ -1,0 +1,229 @@
+@model InventoryManagementSystem.BLL.DTOs.StockMovementDTO
+
+@{
+    ViewData["Title"] = "Stock Movement Details";
+}
+
+<div class="container-fluid px-4 py-4">
+
+    <div class="mb-4">
+
+        <a asp-action="Index"
+           class="text-decoration-none text-muted">
+
+            <i class="bi bi-arrow-left me-1"></i>
+            Back to Stock Movements
+
+        </a>
+
+        <h2 class="fw-bold mt-3 mb-1">
+            Movement #@Model.Id
+        </h2>
+
+        <p class="text-muted mb-0">
+            Stock movement details.
+        </p>
+
+    </div>
+
+
+    <div class="row g-4">
+
+        <div class="col-lg-6">
+
+            <div class="card border-0 shadow-sm rounded-4">
+
+                <div class="card-body p-4">
+
+                    <h5 class="fw-bold mb-4">
+                        Movement Information
+                    </h5>
+
+
+                    <div class="row g-4">
+
+                        <div class="col-md-6">
+
+                            <small class="text-muted d-block">
+                                Movement ID
+                            </small>
+
+                            <span class="fw-bold">
+                                #@Model.Id
+                            </span>
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <small class="text-muted d-block">
+                                Product
+                            </small>
+
+                            <span class="fw-bold">
+
+                                @(Model.ProductName
+                                    ?? $"Product #{Model.ProductId}")
+
+                            </span>
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <small class="text-muted d-block">
+                                Product ID
+                            </small>
+
+                            <span class="fw-semibold">
+                                @Model.ProductId
+                            </span>
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <small class="text-muted d-block">
+                                Movement Type
+                            </small>
+
+                            <span class="badge bg-primary">
+                                @Model.MovementType
+                            </span>
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <small class="text-muted d-block">
+                                Quantity
+                            </small>
+
+                            @if (Model.Quantity > 0)
+                            {
+                                <span class="fw-bold text-success fs-5">
+                                    +@Model.Quantity
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="fw-bold text-danger fs-5">
+                                    @Model.Quantity
+                                </span>
+                            }
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <small class="text-muted d-block">
+                                Movement Date
+                            </small>
+
+                            <span class="fw-semibold">
+
+                                @Model.MovementDate.ToString(
+                                    "yyyy-MM-dd HH:mm")
+
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-lg-6">
+
+            <div class="card border-0 shadow-sm rounded-4">
+
+                <div class="card-body p-4">
+
+                    <h5 class="fw-bold mb-4">
+                        Reference & Reason
+                    </h5>
+
+
+                    <div class="mb-4">
+
+                        <small class="text-muted d-block">
+                            Reference Type
+                        </small>
+
+                        <span class="fw-semibold">
+
+                            @(Model.ReferenceType ?? "-")
+
+                        </span>
+
+                    </div>
+
+
+                    <div class="mb-4">
+
+                        <small class="text-muted d-block">
+                            Reference ID
+                        </small>
+
+                        <span class="fw-semibold">
+
+                            @(Model.ReferenceId?.ToString()
+                              ?? "-")
+
+                        </span>
+
+                    </div>
+
+
+                    <div class="mb-4">
+
+                        <small class="text-muted d-block">
+                            Reason
+                        </small>
+
+                        <span>
+
+                            @(string.IsNullOrWhiteSpace(Model.Reason)
+                                ? "-"
+                                : Model.Reason)
+
+                        </span>
+
+                    </div>
+
+
+                    <div>
+
+                        <small class="text-muted d-block">
+                            Notes
+                        </small>
+
+                        <span>
+
+                            @(string.IsNullOrWhiteSpace(Model.Notes)
+                                ? "-"
+                                : Model.Notes)
+
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>

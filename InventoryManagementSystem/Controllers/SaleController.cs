@@ -9,38 +9,67 @@ namespace InventoryManagementSystem.Controllers;
 public class SaleController : Controller
 {
     private readonly ISaleService _saleService;
+    private readonly IProductService _productService;
 
-    public SaleController(ISaleService saleService)
+    public SaleController(
+        ISaleService saleService,
+        IProductService productService)
     {
         _saleService = saleService;
+        _productService = productService;
     }
 
     [HttpGet]
     public async Task<IActionResult> Index()
     {
-        var sales = await _saleService.GetAllAsync();
+        var sales =
+            await _saleService.GetAllAsync();
 
         return View(sales);
     }
 
     [HttpGet]
-    public IActionResult Create()
+    public async Task<IActionResult> Details(int id)
     {
-        return View();
+        var sale =
+            await _saleService.GetByIdAsync(id);
+
+        if (sale == null)
+            return NotFound();
+
+        return View(sale);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Create()
+    {
+        await LoadCreateData();
+
+        return View(
+            new SaleDTO
+            {
+                SaleDate = DateTime.Now
+            });
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(SaleDTO saleDto)
+    public async Task<IActionResult> Create(
+        SaleDTO saleDto)
     {
         if (!ModelState.IsValid)
+        {
+            await LoadCreateData();
             return View(saleDto);
+        }
 
         try
         {
             await _saleService.CreateAsync(saleDto);
 
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(
+                nameof(Details),
+                new { id = saleDto.Id });
         }
         catch (Exception ex)
         {
@@ -48,7 +77,15 @@ public class SaleController : Controller
                 string.Empty,
                 ex.Message);
 
+            await LoadCreateData();
+
             return View(saleDto);
         }
+    }
+
+    private async Task LoadCreateData()
+    {
+        ViewBag.Products =
+            await _productService.GetAllAsync();
     }
 }
