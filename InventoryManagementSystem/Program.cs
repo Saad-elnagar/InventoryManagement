@@ -165,7 +165,12 @@ builder.Services.AddScoped<ISupplierService, SupplierService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IPurchaseService, PurchaseService>();
 builder.Services.AddScoped<ISaleService, SaleService>();
+builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IStockMovementService, StockMovementService>();
+
+builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+builder.Services.AddHttpClient<IAiReportSummarizer, AnthropicReportSummarizer>();
+builder.Services.AddHostedService<DailyReportBackgroundService>();
 
 builder.Services.AddScoped<JwtTokenService>();
 
