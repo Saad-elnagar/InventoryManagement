@@ -21,12 +21,13 @@ public class AccountController : Controller
 
     [AllowAnonymous]
     [HttpGet]
-    public IActionResult Login()
+    public IActionResult Login(string? returnUrl = null)
     {
+        ViewBag.ReturnUrl = returnUrl;
+
         return View();
     }
 
-    
     [AllowAnonymous]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -34,11 +35,14 @@ public class AccountController : Controller
         LoginViewModel model,
         string? returnUrl = null)
     {
+        ViewBag.ReturnUrl = returnUrl;
+
         if (!ModelState.IsValid)
             return View(model);
 
         var user =
-            await _userManager.FindByEmailAsync(model.Email);
+            await _userManager.FindByEmailAsync(
+                model.Email);
 
         if (user == null)
         {
@@ -64,7 +68,8 @@ public class AccountController : Controller
         }
 
         var token =
-            await _jwtTokenService.CreateTokenAsync(user);
+            await _jwtTokenService.CreateTokenAsync(
+                user);
 
         Response.Cookies.Append(
             "access_token",
@@ -74,9 +79,10 @@ public class AccountController : Controller
                 HttpOnly = true,
                 Secure = Request.IsHttps,
                 SameSite = SameSiteMode.Strict,
-                Expires = model.RememberMe
-                    ? DateTimeOffset.UtcNow.AddDays(7)
-                    : DateTimeOffset.UtcNow.AddHours(1)
+                Expires =
+                    model.RememberMe
+                        ? DateTimeOffset.UtcNow.AddDays(7)
+                        : DateTimeOffset.UtcNow.AddHours(1)
             });
 
         if (!string.IsNullOrWhiteSpace(returnUrl) &&
@@ -113,7 +119,7 @@ public class AccountController : Controller
         if (exists != null)
         {
             ModelState.AddModelError(
-                "Email",
+                nameof(model.Email),
                 "Email is already registered.");
 
             return View(model);
@@ -136,23 +142,30 @@ public class AccountController : Controller
             foreach (var error in result.Errors)
             {
                 ModelState.AddModelError(
-                    "",
+                    string.Empty,
                     error.Description);
             }
 
             return View(model);
         }
 
-        var employeeRoleExists =
-            await _userManager.IsInRoleAsync(
-                user,
-                "Employee");
-
-        if (!employeeRoleExists)
-        {
+        var roleResult =
             await _userManager.AddToRoleAsync(
                 user,
                 "Employee");
+
+        if (!roleResult.Succeeded)
+        {
+            await _userManager.DeleteAsync(user);
+
+            foreach (var error in roleResult.Errors)
+            {
+                ModelState.AddModelError(
+                    string.Empty,
+                    error.Description);
+            }
+
+            return View(model);
         }
 
         var token =
@@ -165,18 +178,18 @@ public class AccountController : Controller
             new CookieOptions
             {
                 HttpOnly = true,
-                Secure = true,
+                Secure = Request.IsHttps,
                 SameSite = SameSiteMode.Strict,
-
                 Expires =
                     DateTimeOffset.UtcNow.AddHours(1)
             });
 
         return RedirectToAction(
             "Index",
-            "Home");
+            "Dashboard");
     }
 
+    [Authorize]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Logout()
@@ -189,6 +202,7 @@ public class AccountController : Controller
     }
 
     [AllowAnonymous]
+    [HttpGet]
     public IActionResult AccessDenied()
     {
         return View();

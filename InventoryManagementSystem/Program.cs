@@ -1,3 +1,6 @@
+using System.Security.Claims;
+using System.Text;
+using InventoryManagementSystem;
 using InventoryManagementSystem.BLL.Interfaces;
 using InventoryManagementSystem.BLL.Service;
 using InventoryManagementSystem.DAL;
@@ -11,9 +14,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using System.Security.Claims;
-using System.Text;
-using InventoryManagementSystem;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -112,7 +112,7 @@ builder.Services
                 return Task.CompletedTask;
             },
 
-            OnChallenge = async context =>
+            OnChallenge = context =>
             {
                 var request = context.Request;
 
@@ -142,7 +142,30 @@ builder.Services
                     context.Response.Redirect(loginUrl);
                 }
 
-                await Task.CompletedTask;
+                return Task.CompletedTask;
+            },
+
+            OnForbidden = context =>
+            {
+                var request = context.Request;
+
+                var isHtmlRequest =
+                    HttpMethods.IsGet(request.Method) &&
+                    request.Headers.Accept.Any(
+                        x => x.Contains(
+                            "text/html",
+                            StringComparison.OrdinalIgnoreCase));
+
+                var isApiRequest =
+                    request.Path.StartsWithSegments("/api");
+
+                if (isHtmlRequest && !isApiRequest)
+                {
+                    context.Response.Redirect(
+                        "/Account/AccessDenied");
+                }
+
+                return Task.CompletedTask;
             }
         };
     });
@@ -165,12 +188,17 @@ builder.Services.AddScoped<ISupplierService, SupplierService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IPurchaseService, PurchaseService>();
 builder.Services.AddScoped<ISaleService, SaleService>();
-builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IStockMovementService, StockMovementService>();
 
+builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
-builder.Services.AddHttpClient<IAiReportSummarizer, AnthropicReportSummarizer>();
-builder.Services.AddHostedService<DailyReportBackgroundService>();
+
+builder.Services.AddHttpClient<
+    IAiReportSummarizer,
+    AnthropicReportSummarizer>();
+
+builder.Services.AddHostedService<
+    DailyReportBackgroundService>();
 
 builder.Services.AddScoped<JwtTokenService>();
 
@@ -201,4 +229,5 @@ app.MapStaticAssets();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Dashboard}/{action=Index}/{id?}");
+
 app.Run();

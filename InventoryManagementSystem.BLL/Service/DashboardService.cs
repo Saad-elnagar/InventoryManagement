@@ -103,8 +103,8 @@ public class DashboardService : IDashboardService
                             ? categoryName
                             : $"Category {group.Key}",
 
-                    ProductCount = 
-                        group.Sum(x => x.StockQuantity)
+                    ProductCount =
+                        group.Count()
                 })
                 .OrderByDescending(x => x.ProductCount)
                 .ToList();
