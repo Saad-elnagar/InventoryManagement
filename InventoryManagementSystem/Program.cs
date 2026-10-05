@@ -13,13 +13,12 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.AI;
 using Microsoft.IdentityModel.Tokens;
-using OllamaSharp;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
+builder.Services.AddHttpClient();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(
@@ -192,21 +191,6 @@ builder.Services.AddScoped<IPurchaseService, PurchaseService>();
 builder.Services.AddScoped<ISaleService, SaleService>();
 builder.Services.AddScoped<IStockMovementService, StockMovementService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
-
-builder.Services.AddSingleton<IChatClient>(_ =>
-{
-    var endpoint =
-        builder.Configuration["Ollama:Endpoint"]
-        ?? "http://localhost:11434";
-
-    var model =
-        builder.Configuration["Ollama:Model"]
-        ?? "qwen3:4b";
-
-    return new OllamaApiClient(
-        new Uri(endpoint),
-        model);
-});
 
 builder.Services.AddScoped<IInventoryAiAssistant, InventoryAiAssistant>();
 
