@@ -128,7 +128,7 @@ builder.Services
                 var isHtmlRequest =
                     HttpMethods.IsGet(request.Method) &&
                     request.Headers.Accept.Any(
-                        x => x?.Contains(
+                        x => x.Contains(
                             "text/html",
                             StringComparison.OrdinalIgnoreCase));
 
