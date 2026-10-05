@@ -53,7 +53,8 @@ public class InventoryAiAssistant : IInventoryAiAssistant
 
             var inventoryContext =
                 await BuildInventoryContextAsync(
-                    latestUserMessage);
+                    latestUserMessage,
+                    messages);
 
             var inventorySystemPrompt =
                 $"""
@@ -64,6 +65,10 @@ public class InventoryAiAssistant : IInventoryAiAssistant
                 Never invent inventory values.
                 Keep the answer concise unless the user asks for details.
                 You may calculate totals, differences, rankings, and trends from the supplied data.
+                When LOW STOCK DATA is supplied and the user asks for product names, list the product names
+                with their current stock and reorder level. Do not say that names are unavailable when they
+                are present in LOW STOCK DATA.
+                Use recent conversation context for follow-up questions.
                 Answer in the same language as the user's latest message.
                 You are read-only.
 
@@ -199,9 +204,45 @@ public class InventoryAiAssistant : IInventoryAiAssistant
             : content.Trim();
     }
 
-    private async Task<string> BuildInventoryContextAsync(string question)
+    private async Task<string> BuildInventoryContextAsync(
+        string question,
+        IReadOnlyCollection<InventoryAiMessageDTO> messages)
     {
         var q = question.Trim().ToLowerInvariant();
+
+        var recentConversation =
+            string.Join(
+                " ",
+                messages
+                    .TakeLast(MaxHistoryMessages)
+                    .Where(x => !string.IsNullOrWhiteSpace(x.Content))
+                    .Select(x => x.Content.Trim()))
+                .ToLowerInvariant();
+
+        var conversationMentionsLowStock =
+            recentConversation.Contains("low stock") ||
+            recentConversation.Contains("out of stock") ||
+            recentConversation.Contains("reorder") ||
+            recentConversation.Contains("ناقص") ||
+            recentConversation.Contains("نفد") ||
+            recentConversation.Contains("إعادة تخزين");
+
+        var isLowStockFollowUp =
+            q.Contains("this product") ||
+            q.Contains("these products") ||
+            q.Contains("which product") ||
+            q.Contains("what product") ||
+            q.Contains("product name") ||
+            q.Contains("product names") ||
+            q.Contains("name of this") ||
+            q.Contains("name of these") ||
+            q.Contains("اسم المنتج") ||
+            q.Contains("اسم المنتجات") ||
+            q.Contains("المنتج ده") ||
+            q.Contains("المنتج دا") ||
+            q.Contains("المنتجات دي") ||
+            q.Contains("انهي منتج") ||
+            q.Contains("أي منتج");
         var contextParts = new List<string>();
 
         var days = ExtractPeriodDays(q);
