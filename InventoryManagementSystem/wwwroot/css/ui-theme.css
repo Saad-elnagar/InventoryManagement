@@ -7,14 +7,14 @@
     --ui-success: #059669;
     --ui-success-soft: #ecfdf5;
     --ui-warning: #d97706;
-    --ui-warning-soft: #ffffffbeb;
+    --ui-warning-soft: #fffbeb;
     --ui-danger: #dc2626;
     --ui-danger-soft: #fef2f2;
     --ui-ink: #111111;
     --ui-text: #303030;
     --ui-muted: #737373;
     --ui-border: #e5e5e5;
-    --ui-surface: #fffffffff;
+    --ui-surface: #ffffff;
     --ui-canvas: #f7f7f7;
     --ui-radius: 16px;
     --ui-radius-sm: 11px;
@@ -66,7 +66,7 @@ main[role="main"] {
     z-index: 1030;
     background: rgba(255, 255, 255, .92);
     backdrop-filter: blur(16px);
-    border-bottom: 1px solid rgba(226, 232, 240, .9);
+    border-bottom: 1px solid rgba(229, 229, 229, .92);
     box-shadow: 0 4px 20px rgba(0, 0, 0, .035);
 }
 
@@ -324,14 +324,14 @@ main[role="main"] {
 }
 
 .btn-light {
-    color: #475569 !important;
+    color: #4a4a4a !important;
     background: #ffffff !important;
     border-color: var(--ui-border) !important;
 }
 
 .btn-light:hover {
     color: var(--ui-ink) !important;
-    background: #f8fafc !important;
+    background: #f6f6f6 !important;
     border-color: #cfcfcf !important;
 }
 
@@ -613,8 +613,8 @@ textarea.form-control {
     border: 1px solid #e6e6e6;
     border-radius: 18px;
     background:
-        radial-gradient(circle at 100% 0, rgba(79, 70, 229, .10), transparent 30%),
-        linear-gradient(135deg, #ffffff, #f8fbff);
+        radial-gradient(circle at 100% 0, rgba(124, 58, 237, .07), transparent 30%),
+        linear-gradient(135deg, #ffffff, #f7f7f7);
     box-shadow: var(--ui-shadow);
 }
 
