@@ -1,3 +1,4 @@
+using InventoryManagementSystem.BLL.DTOs;
 using InventoryManagementSystem.BLL.Enums;
 using InventoryManagementSystem.BLL.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -15,8 +16,11 @@ public class StockMovementController : Controller
         IStockMovementService stockMovementService,
         IProductService productService)
     {
-        _stockMovementService = stockMovementService;
-        _productService = productService;
+        _stockMovementService =
+            stockMovementService;
+
+        _productService =
+            productService;
     }
 
     [HttpGet]
@@ -36,17 +40,22 @@ public class StockMovementController : Controller
         var products =
             await _productService.GetAllAsync();
 
-        ViewBag.Products = products;
+        ViewBag.Products =
+            products;
 
-        ViewBag.ProductId = productId;
+        ViewBag.ProductId =
+            productId;
 
-        ViewBag.MovementType = movementType;
+        ViewBag.MovementType =
+            movementType;
 
         ViewBag.FromDate =
-            fromDate?.ToString("yyyy-MM-dd");
+            fromDate?.ToString(
+                "yyyy-MM-dd");
 
         ViewBag.ToDate =
-            toDate?.ToString("yyyy-MM-dd");
+            toDate?.ToString(
+                "yyyy-MM-dd");
 
         ViewBag.MovementTypes =
             Enum.GetValues<StockMovementType>();
@@ -54,15 +63,118 @@ public class StockMovementController : Controller
         return View(movements);
     }
 
+    [Authorize(Roles = "Admin,Manager")]
     [HttpGet]
-    public async Task<IActionResult> Details(int id)
+    public async Task<IActionResult> Create()
+    {
+        var products =
+            await _productService.GetAllAsync();
+
+        ViewBag.Products =
+            products;
+
+        ViewBag.MovementTypes =
+            new[]
+            {
+                StockMovementType.Damage,
+                StockMovementType.Lost,
+                StockMovementType.Found,
+                StockMovementType.Adjustment,
+                StockMovementType.PurchaseReturn,
+                StockMovementType.SaleReturn,
+                StockMovementType.OpeningStock,
+                StockMovementType.VendorGift
+            };
+
+        return View(
+            new CreateStockMovementDTO());
+    }
+
+    [Authorize(Roles = "Admin,Manager")]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Create(
+        CreateStockMovementDTO dto)
+    {
+        var manualTypes =
+            new[]
+            {
+                StockMovementType.Damage,
+                StockMovementType.Lost,
+                StockMovementType.Found,
+                StockMovementType.Adjustment,
+                StockMovementType.PurchaseReturn,
+                StockMovementType.SaleReturn,
+                StockMovementType.OpeningStock,
+                StockMovementType.VendorGift
+            };
+
+        if (!manualTypes.Contains(
+                dto.MovementType))
+        {
+            ModelState.AddModelError(
+                nameof(dto.MovementType),
+                "Invalid manual movement type.");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            await LoadCreateData();
+
+            return View(dto);
+        }
+
+        try
+        {
+            await _stockMovementService
+                .CreateAsync(dto);
+
+            return RedirectToAction(
+                nameof(Index));
+        }
+        catch (Exception ex)
+        {
+            ModelState.AddModelError(
+                string.Empty,
+                ex.Message);
+
+            await LoadCreateData();
+
+            return View(dto);
+        }
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Details(
+        int id)
     {
         var movement =
-            await _stockMovementService.GetByIdAsync(id);
+            await _stockMovementService
+                .GetByIdAsync(id);
 
         if (movement == null)
             return NotFound();
 
         return View(movement);
+    }
+
+    private async Task LoadCreateData()
+    {
+        ViewBag.Products =
+            await _productService
+                .GetAllAsync();
+
+        ViewBag.MovementTypes =
+            new[]
+            {
+                StockMovementType.Damage,
+                StockMovementType.Lost,
+                StockMovementType.Found,
+                StockMovementType.Adjustment,
+                StockMovementType.PurchaseReturn,
+                StockMovementType.SaleReturn,
+                StockMovementType.OpeningStock,
+                StockMovementType.VendorGift
+            };
     }
 }

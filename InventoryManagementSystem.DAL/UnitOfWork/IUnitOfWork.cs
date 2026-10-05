@@ -3,7 +3,14 @@ using InventoryManagementSystem.DAL.Repository;
 
 public interface IUnitOfWork
 {
-    public IGenaricRepository<T> GenaricRepository<T>() where T : BaseEntity;
-    public Task<int> SaveChangesAsync();
+    IGenaricRepository<T> GenaricRepository<T>()
+        where T : BaseEntity;
 
+    Task<int> SaveChangesAsync();
+
+    Task BeginTransactionAsync();
+
+    Task CommitTransactionAsync();
+
+    Task RollbackTransactionAsync();
 }

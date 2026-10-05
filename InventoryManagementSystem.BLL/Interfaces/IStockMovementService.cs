@@ -11,4 +11,7 @@ public interface IStockMovementService
         DateTime? toDate = null);
 
     Task<StockMovementDTO?> GetByIdAsync(int id);
+
+    Task<StockMovementDTO> CreateAsync(
+        CreateStockMovementDTO dto);
 }
