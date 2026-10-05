@@ -203,15 +203,9 @@ builder.Services.AddSingleton<IChatClient>(_ =>
         builder.Configuration["Ollama:Model"]
         ?? "qwen3:4b";
 
-    IChatClient client =
-        new OllamaApiClient(
-            new Uri(endpoint),
-            model);
-
-    return client
-        .AsBuilder()
-        .UseFunctionInvocation()
-        .Build();
+    return new OllamaApiClient(
+        new Uri(endpoint),
+        model);
 });
 
 builder.Services.AddScoped<IInventoryAiAssistant, InventoryAiAssistant>();
