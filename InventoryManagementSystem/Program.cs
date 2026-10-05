@@ -18,7 +18,7 @@ using Microsoft.IdentityModel.Tokens;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
-builder.Services.AddHttpClient();
+builder.Services.AddHttpClient<IInventoryAiAssistant, InventoryAiAssistant>();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(
@@ -192,7 +192,6 @@ builder.Services.AddScoped<ISaleService, SaleService>();
 builder.Services.AddScoped<IStockMovementService, StockMovementService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 
-builder.Services.AddScoped<IInventoryAiAssistant, InventoryAiAssistant>();
 
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
