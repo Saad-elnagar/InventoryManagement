@@ -1,136 +1,193 @@
 using System.Text;
-using System.Text.Json;
 using InventoryManagementSystem.BLL.DTOs;
 using InventoryManagementSystem.BLL.Interfaces;
-using Microsoft.Extensions.Configuration;
+using InventoryManagementSystem.DAL.Entities;
 using Microsoft.Extensions.Logging;
+using Microsoft.ML;
+using Microsoft.ML.Data;
 
 namespace InventoryManagementSystem.BLL.Service;
 
-public class AnthropicReportSummarizer : IAiReportSummarizer
+public class MlNetReportSummarizer : IAiReportSummarizer
 {
-    private const string ApiUrl = "https://api.anthropic.com/v1/messages";
-    private const string AnthropicVersion = "2023-06-01";
-    private const string Model = "claude-sonnet-4-5";
+    private const int HistoryDays = 90;
+    private const int ForecastHorizonDays = 7;
+    private const int WindowSize = 7;
+    private const int SeriesLength = 30;
 
-    private readonly HttpClient _httpClient;
-    private readonly IConfiguration _configuration;
-    private readonly ILogger<AnthropicReportSummarizer> _logger;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<MlNetReportSummarizer> _logger;
+    private readonly MLContext _mlContext = new(seed: 1);
 
-    public AnthropicReportSummarizer(
-        HttpClient httpClient,
-        IConfiguration configuration,
-        ILogger<AnthropicReportSummarizer> logger)
+    public MlNetReportSummarizer(IUnitOfWork unitOfWork, ILogger<MlNetReportSummarizer> logger)
     {
-        _httpClient = httpClient;
-        _configuration = configuration;
+        _unitOfWork = unitOfWork;
         _logger = logger;
     }
 
     public async Task<string> SummarizeAsync(DailyReportDTO report)
     {
-        var apiKey = _configuration["Anthropic:ApiKey"];
+        var builder = new StringBuilder();
+        builder.AppendLine("تقرير المخزون الذكي");
+        builder.AppendLine($"الفترة: {report.From:yyyy-MM-dd HH:mm} إلى {report.To:yyyy-MM-dd HH:mm}");
+        builder.AppendLine($"عدد المنتجات: {report.TotalProducts}");
+        builder.AppendLine($"عدد حركات المخزون: {report.MovementsCount}");
+        builder.AppendLine();
 
-        if (string.IsNullOrWhiteSpace(apiKey))
+        if (report.MovementsByType.Any())
         {
-            _logger.LogWarning(
-                "Anthropic:ApiKey is not configured. Sending a plain-text report instead.");
-
-            return BuildFallbackSummary(report);
+            builder.AppendLine("حركات المخزون:");
+            foreach (var movement in report.MovementsByType.Take(5))
+                builder.AppendLine($"- {movement.MovementType}: {movement.Count} حركة، {Math.Abs(movement.TotalQuantity)} وحدة");
+            builder.AppendLine();
         }
-
-        var prompt = BuildPrompt(report);
-
-        var requestBody = new
-        {
-            model = Model,
-            max_tokens = 600,
-            messages = new[] { new { role = "user", content = prompt } }
-        };
-
-        using var request = new HttpRequestMessage(HttpMethod.Post, ApiUrl);
-        request.Headers.Add("x-api-key", apiKey);
-        request.Headers.Add("anthropic-version", AnthropicVersion);
-        request.Content = new StringContent(
-            JsonSerializer.Serialize(requestBody),
-            Encoding.UTF8,
-            "application/json");
-
-        try
-        {
-            var response = await _httpClient.SendAsync(request);
-            var responseBody = await response.Content.ReadAsStringAsync();
-
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogError("Anthropic API returned {StatusCode}: {Body}", response.StatusCode, responseBody);
-                return BuildFallbackSummary(report);
-            }
-
-            using var doc = JsonDocument.Parse(responseBody);
-            var text = doc.RootElement.GetProperty("content")[0].GetProperty("text").GetString();
-
-            return string.IsNullOrWhiteSpace(text) ? BuildFallbackSummary(report) : text;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to generate AI summary, falling back to plain text.");
-            return BuildFallbackSummary(report);
-        }
-    }
-
-    private static string BuildPrompt(DailyReportDTO report)
-    {
-        var sb = new StringBuilder();
-        sb.AppendLine("You are an inventory management assistant. Write a short, clear daily report email in Arabic for a warehouse manager, based on this data:");
-        sb.AppendLine();
-        sb.AppendLine($"Period: {report.From:yyyy-MM-dd HH:mm} to {report.To:yyyy-MM-dd HH:mm}");
-        sb.AppendLine($"Total products: {report.TotalProducts}");
-        sb.AppendLine($"Total stock movements: {report.MovementsCount}");
-        sb.AppendLine();
-        sb.AppendLine("Movements by type:");
-
-        if (!report.MovementsByType.Any())
-            sb.AppendLine("- None");
-        else
-            foreach (var m in report.MovementsByType)
-                sb.AppendLine($"- {m.MovementType}: {m.Count} movements, {m.TotalQuantity} units");
-
-        sb.AppendLine();
-        sb.AppendLine("Low stock products (quantity <= reorder level):");
 
         if (!report.LowStockProducts.Any())
-            sb.AppendLine("- None");
-        else
-            foreach (var p in report.LowStockProducts)
-                sb.AppendLine($"- {p.Name}: quantity {p.Quantity}, reorder level {p.ReorderLevel}");
+        {
+            builder.AppendLine("لا توجد منتجات تحت حد إعادة الطلب حاليًا.");
+            return builder.ToString().Trim();
+        }
 
-        sb.AppendLine();
-        sb.AppendLine("Keep it concise (under 200 words), friendly but professional, and clearly highlight anything urgent such as low stock items. Write the whole email in Arabic.");
+        builder.AppendLine("توقع الطلب للأصناف منخفضة المخزون خلال الـ7 أيام القادمة:");
 
-        return sb.ToString();
+        foreach (var product in report.LowStockProducts)
+        {
+            try
+            {
+                var forecast = await ForecastProductAsync(product);
+
+                builder.AppendLine(
+                    $"- {product.Name}: الحالي {product.Quantity}، المتوقع {forecast.TotalForecastedDemand} وحدة.");
+
+                if (forecast.WillRunOut)
+                    builder.AppendLine(
+                        $"  تحذير: قد ينفد المخزون خلال {forecast.DaysUntilStockout} يوم. " +
+                        $"الطلب المقترح: {forecast.RecommendedOrderQuantity} وحدة.");
+                else if (forecast.ProjectedEndingStock <= product.ReorderLevel)
+                    builder.AppendLine(
+                        $"  تنبيه: المتوقع بنهاية 7 أيام {forecast.ProjectedEndingStock} وحدة، عند/تحت حد إعادة الطلب.");
+                else
+                    builder.AppendLine("  الحالة: المخزون المتوقع يكفي لفترة التوقع.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "ML.NET forecast failed for product {ProductId}.", product.ProductId);
+                builder.AppendLine($"- {product.Name}: تعذر حساب التوقع.");
+            }
+        }
+
+        builder.AppendLine();
+        builder.AppendLine("التوقع مبني على تاريخ المبيعات المسجل في النظام.");
+        return builder.ToString().Trim();
     }
 
-    private static string BuildFallbackSummary(DailyReportDTO report)
+    private async Task<ForecastResult> ForecastProductAsync(LowStockItemDTO product)
     {
-        var sb = new StringBuilder();
-        sb.AppendLine($"تقرير المخزون اليومي ({report.From:yyyy-MM-dd} - {report.To:yyyy-MM-dd})");
-        sb.AppendLine();
-        sb.AppendLine($"عدد المنتجات: {report.TotalProducts}");
-        sb.AppendLine($"عدد حركات المخزون: {report.MovementsCount}");
-        sb.AppendLine();
+        var today = DateTime.UtcNow.Date;
+        var fromDate = today.AddDays(-(HistoryDays - 1));
 
-        if (report.LowStockProducts.Any())
+        var movements = await _unitOfWork.GenaricRepository<StockMovement>()
+            .GetWhereAsync(x =>
+                x.ProductId == product.ProductId &&
+                x.MovementDate >= fromDate &&
+                x.MovementDate < today.AddDays(1));
+
+        var dailyDemand = Enumerable.Range(0, HistoryDays)
+            .Select(i =>
+            {
+                var day = fromDate.AddDays(i);
+                var demand = movements
+                    .Where(x =>
+                        x.MovementDate.Date == day &&
+                        string.Equals(x.MovementType, "Sale", StringComparison.OrdinalIgnoreCase) &&
+                        x.Quantity < 0)
+                    .Sum(x => Math.Abs(x.Quantity));
+
+                return new DemandData { Date = day, Demand = demand };
+            })
+            .ToList();
+
+        var average = dailyDemand.Average(x => x.Demand);
+
+        float[] predicted;
+
+        if (average <= 0)
         {
-            sb.AppendLine("منتجات وصلت لحد إعادة الطلب:");
-            foreach (var p in report.LowStockProducts)
-                sb.AppendLine($"- {p.Name}: الكمية {p.Quantity} (حد الطلب {p.ReorderLevel})");
+            predicted = new float[ForecastHorizonDays];
         }
         else
         {
-            sb.AppendLine("لا يوجد منتجات وصلت لحد إعادة الطلب.");
+            predicted = ForecastWithMlNet(dailyDemand);
         }
 
-        return sb.ToString();
+        var total = predicted.Sum();
+        var projectedEndingStock = Math.Max(0, product.Quantity - total);
+
+        int? daysUntilStockout = null;
+        var cumulative = 0f;
+
+        for (var i = 0; i < predicted.Length; i++)
+        {
+            cumulative += predicted[i];
+            if (cumulative >= product.Quantity)
+            {
+                daysUntilStockout = i + 1;
+                break;
+            }
+        }
+
+        var recommendedOrderQuantity = Math.Max(
+            0,
+            (int)Math.Ceiling(total + product.ReorderLevel - product.Quantity));
+
+        return new ForecastResult(
+            (int)Math.Ceiling(total),
+            (int)Math.Floor(projectedEndingStock),
+            daysUntilStockout,
+            daysUntilStockout.HasValue,
+            recommendedOrderQuantity);
     }
+
+    private float[] ForecastWithMlNet(List<DemandData> history)
+    {
+        var dataView = _mlContext.Data.LoadFromEnumerable(history);
+
+        var pipeline = _mlContext.Forecasting.ForecastBySsa(
+            outputColumnName: nameof(ForecastOutput.ForecastedDemand),
+            inputColumnName: nameof(DemandData.Demand),
+            windowSize: WindowSize,
+            seriesLength: SeriesLength,
+            trainSize: history.Count,
+            horizon: ForecastHorizonDays,
+            confidenceLevel: 0.95f,
+            confidenceLowerBoundColumn: nameof(ForecastOutput.LowerBound),
+            confidenceUpperBoundColumn: nameof(ForecastOutput.UpperBound));
+
+        var model = pipeline.Fit(dataView);
+        var engine = model.CreateTimeSeriesEngine<DemandData, ForecastOutput>(_mlContext);
+        var prediction = engine.Predict();
+
+        return prediction.ForecastedDemand.Select(x => Math.Max(0, x)).ToArray();
+    }
+
+    private sealed class DemandData
+    {
+        public DateTime Date { get; set; }
+        public float Demand { get; set; }
+    }
+
+    private sealed class ForecastOutput
+    {
+        [ColumnName("ForecastedDemand")]
+        public float[] ForecastedDemand { get; set; } = [];
+        public float[] LowerBound { get; set; } = [];
+        public float[] UpperBound { get; set; } = [];
+    }
+
+    private sealed record ForecastResult(
+        int TotalForecastedDemand,
+        int ProjectedEndingStock,
+        int? DaysUntilStockout,
+        bool WillRunOut,
+        int RecommendedOrderQuantity);
 }
