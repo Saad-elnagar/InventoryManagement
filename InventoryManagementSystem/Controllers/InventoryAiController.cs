@@ -49,13 +49,13 @@ public class InventoryAiController : Controller
         {
             return StatusCode(
                 StatusCodes.Status503ServiceUnavailable,
-                new { message = ex.Message });
+                new { message = ex.GetBaseException().Message });
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             return StatusCode(
                 StatusCodes.Status500InternalServerError,
-                new { message = "Inventory AI could not process this request." });
+                new { message = ex.GetBaseException().Message });
         }
     }
 }
