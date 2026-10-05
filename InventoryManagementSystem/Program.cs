@@ -204,9 +204,17 @@ builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 
-builder.Services.AddScoped<
-    IAiReportSummarizer,
-    MlNetReportSummarizer>();
+builder.Services.AddScoped<MlNetReportSummarizer>();
+
+builder.Services.AddHttpClient<IAiReportSummarizer, OllamaReportSummarizer>(client =>
+{
+    var endpoint =
+        builder.Configuration["Ollama:Endpoint"]
+        ?? "http://localhost:11434";
+
+    client.BaseAddress = new Uri(endpoint);
+    client.Timeout = TimeSpan.FromMinutes(3);
+});
 
 builder.Services.AddHostedService<
     DailyReportBackgroundService>();
