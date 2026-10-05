@@ -210,7 +210,8 @@ public class StockMovementService : IStockMovementService
                 StockMovementType.VendorGift
             };
 
-        if (!manualTypes.Contains(dto.MovementType))
+        if (!dto.MovementType.HasValue ||
+            !manualTypes.Contains(dto.MovementType.Value))
         {
             throw new Exception(
                 "Purchase and Sale movements are created automatically.");
@@ -240,6 +241,8 @@ public class StockMovementService : IStockMovementService
                 "Product not found.");
         }
 
+        var movementType = dto.MovementType.Value;
+
         var decreaseTypes =
             new HashSet<StockMovementType>
             {
@@ -260,18 +263,18 @@ public class StockMovementService : IStockMovementService
         var delta = 0;
 
         if (decreaseTypes.Contains(
-                dto.MovementType))
+                movementType))
         {
             delta =
                 -dto.Quantity;
         }
         else if (increaseTypes.Contains(
-                     dto.MovementType))
+                     movementType))
         {
             delta =
                 dto.Quantity;
         }
-        else if (dto.MovementType ==
+        else if (movementType ==
                  StockMovementType.Adjustment)
         {
             delta =
@@ -308,7 +311,7 @@ public class StockMovementService : IStockMovementService
                         delta,
 
                     MovementType =
-                        dto.MovementType.ToString(),
+                        movementType.ToString(),
 
                     MovementDate =
                         DateTime.UtcNow,
