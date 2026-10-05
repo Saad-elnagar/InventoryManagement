@@ -86,7 +86,8 @@ public class DailyReportBackgroundService
         }
     }
 
-    public async Task SendDailyReportAsync()
+    public async Task<bool> SendDailyReportAsync(
+        bool failIfNotConfigured = false)
     {
         using var scope =
             _serviceProvider.CreateScope();
@@ -112,7 +113,13 @@ public class DailyReportBackgroundService
             _logger.LogWarning(
                 "Report:RecipientEmail is not configured.");
 
-            return;
+            if (failIfNotConfigured)
+            {
+                throw new InvalidOperationException(
+                    "Report recipient email is not configured.");
+            }
+
+            return false;
         }
 
         var report =
@@ -131,5 +138,7 @@ public class DailyReportBackgroundService
         _logger.LogInformation(
             "Daily report sent to {Recipient}.",
             recipient);
+
+        return true;
     }
 }
