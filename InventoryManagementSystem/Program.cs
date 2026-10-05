@@ -25,7 +25,7 @@ builder.Services.AddHttpClient<IInventoryAiAssistant, InventoryAiAssistant>(clie
         ?? "http://localhost:11434";
 
     client.BaseAddress = new Uri(endpoint);
-    client.Timeout = TimeSpan.FromMinutes(3);
+    client.Timeout = TimeSpan.FromSeconds(60);
 });
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
