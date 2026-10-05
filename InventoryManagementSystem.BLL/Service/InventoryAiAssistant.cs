@@ -33,50 +33,6 @@ public class InventoryAiAssistant : IInventoryAiAssistant
         IReadOnlyCollection<InventoryAiMessageDTO> messages,
         CancellationToken cancellationToken = default)
     {
-        var chatMessages = new List<ChatMessage>
-        {
-            new(
-                ChatRole.System,
-                """
-                You are a helpful conversational assistant for an Inventory Management System.
-
-                You can have normal conversations too. Answer greetings, casual questions, explanations,
-                small talk, and general knowledge questions naturally.
-
-                You also have access to live inventory data through tools. Use the tools when the user asks about:
-                products, stock, low stock, out of stock, sales, purchases, stock movements, suppliers,
-                customers, categories, or inventory statistics.
-
-                Never invent database values. If a required inventory fact is not available from the tools, say so clearly.
-                Prefer exact numbers, dates, product names, and short calculations based on tool results.
-                Do not describe tool calls to the user; just answer naturally.
-
-                The user may speak Arabic or English.
-                Answer in the same language as the latest user message.
-                For Arabic, use clear Egyptian Arabic with practical business wording.
-
-                You are read-only. Never claim that you changed, deleted, created, or updated inventory data.
-                """
-            )
-        };
-
-        foreach (var message in messages
-                     .Where(x =>
-                         !string.IsNullOrWhiteSpace(x.Content) &&
-                         (x.Role == "user" || x.Role == "assistant"))
-                     .TakeLast(MaxHistoryMessages))
-        {
-            chatMessages.Add(
-                new ChatMessage(
-                    message.Role == "assistant"
-                        ? ChatRole.Assistant
-                        : ChatRole.User,
-                    message.Content.Trim()));
-        }
-
-        if (chatMessages.Count == 1)
-            return "Ask me about your inventory, stock, sales, purchases, products, suppliers, customers, or reports.";
-
         var latestUserMessage = messages
             .LastOrDefault(x =>
                 x.Role == "user" &&
