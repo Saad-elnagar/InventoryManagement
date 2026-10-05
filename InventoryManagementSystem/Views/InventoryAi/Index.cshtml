@@ -1,0 +1,185 @@
+@{
+    ViewData["Title"] = "Inventory AI";
+}
+
+<div class="page-container inventory-ai-page">
+    <div class="inventory-ai-hero">
+        <div class="inventory-ai-hero-copy">
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <span class="inventory-ai-logo">
+                    <i class="bi bi-stars"></i>
+                </span>
+                <span class="status-badge status-primary">
+                    Local AI
+                </span>
+            </div>
+
+            <h1 class="page-title mb-2">Inventory AI Assistant</h1>
+
+            <p class="page-subtitle mb-0">
+                Ask questions about stock, products, sales, purchases, suppliers, customers, and inventory activity.
+            </p>
+        </div>
+
+        <div class="inventory-ai-hero-meta">
+            <span><i class="bi bi-database-check"></i> Live database</span>
+            <span><i class="bi bi-shield-check"></i> Read only</span>
+            <span><i class="bi bi-cpu"></i> Ollama</span>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-12 col-xl-8">
+            <div class="card inventory-ai-chat-card">
+                <div class="inventory-ai-chat-header">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="inventory-ai-avatar">
+                            <i class="bi bi-robot"></i>
+                        </div>
+
+                        <div>
+                            <h5 class="mb-1 fw-bold">Inventory Copilot</h5>
+                            <div class="small text-muted">
+                                Uses live inventory tools to answer your questions.
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="button"
+                            class="btn btn-light btn-sm"
+                            id="clear-chat">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i>
+                        New chat
+                    </button>
+                </div>
+
+                <div class="inventory-ai-messages" id="chat-messages">
+                    <div class="inventory-ai-message assistant">
+                        <div class="inventory-ai-bubble">
+                            <div class="inventory-ai-bubble-label">Inventory AI</div>
+                            Hi! Ask me anything about your inventory. For example:
+                            “Which products are low in stock?” or “How much did we sell in the last 30 days?”
+                        </div>
+                    </div>
+                </div>
+
+                <div class="inventory-ai-suggestions" id="suggestions">
+                    <button type="button" class="ai-suggestion">Which products are low in stock?</button>
+                    <button type="button" class="ai-suggestion">What were our top selling products this month?</button>
+                    <button type="button" class="ai-suggestion">How much did we buy in the last 30 days?</button>
+                    <button type="button" class="ai-suggestion">Show recent stock movements.</button>
+                </div>
+
+                <div class="inventory-ai-composer">
+                    @Html.AntiForgeryToken()
+
+                    <textarea id="chat-input"
+                              rows="2"
+                              class="form-control"
+                              placeholder="Ask about stock, sales, products..."></textarea>
+
+                    <button type="button"
+                            id="send-message"
+                            class="btn btn-primary inventory-ai-send">
+                        <i class="bi bi-send-fill me-2"></i>
+                        Ask AI
+                    </button>
+                </div>
+
+                <div class="inventory-ai-footnote">
+                    <i class="bi bi-info-circle me-1"></i>
+                    The assistant is read-only. It cannot create, edit, or delete inventory records.
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-xl-4">
+            <div class="card inventory-ai-capabilities-card">
+                <div class="inventory-ai-card-header">
+                    <div>
+                        <h5 class="mb-1 fw-bold">What can I ask?</h5>
+                        <p class="small text-muted mb-0">The assistant can query these live areas.</p>
+                    </div>
+                </div>
+
+                <div class="inventory-ai-capabilities">
+                    <div class="inventory-ai-capability">
+                        <i class="bi bi-box-seam"></i>
+                        <div>
+                            <strong>Stock</strong>
+                            <span>Current quantities, low stock, out of stock</span>
+                        </div>
+                    </div>
+
+                    <div class="inventory-ai-capability">
+                        <i class="bi bi-graph-up-arrow"></i>
+                        <div>
+                            <strong>Sales</strong>
+                            <span>Revenue, orders, best-selling products</span>
+                        </div>
+                    </div>
+
+                    <div class="inventory-ai-capability">
+                        <i class="bi bi-cart-check"></i>
+                        <div>
+                            <strong>Purchases</strong>
+                            <span>Purchasing spend and received quantities</span>
+                        </div>
+                    </div>
+
+                    <div class="inventory-ai-capability">
+                        <i class="bi bi-arrow-left-right"></i>
+                        <div>
+                            <strong>Stock Movements</strong>
+                            <span>Sales, purchases, damage, lost, returns and adjustments</span>
+                        </div>
+                    </div>
+
+                    <div class="inventory-ai-capability">
+                        <i class="bi bi-truck"></i>
+                        <div>
+                            <strong>Suppliers</strong>
+                            <span>Supplier purchasing activity and received products</span>
+                        </div>
+                    </div>
+
+                    <div class="inventory-ai-capability">
+                        <i class="bi bi-people"></i>
+                        <div>
+                            <strong>Customers</strong>
+                            <span>Orders and spending by customer</span>
+                        </div>
+                    </div>
+
+                    <div class="inventory-ai-capability">
+                        <i class="bi bi-tags"></i>
+                        <div>
+                            <strong>Categories</strong>
+                            <span>Category stock, value, products and alerts</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card inventory-ai-example-card mt-4">
+                <div class="inventory-ai-card-header">
+                    <div>
+                        <h5 class="mb-1 fw-bold">Try these</h5>
+                        <p class="small text-muted mb-0">Natural language works in Arabic or English.</p>
+                    </div>
+                </div>
+
+                <div class="inventory-ai-example-list">
+                    <div>“إيه المنتجات اللي قربت تخلص؟”</div>
+                    <div>“How much stock do we have for Coca Cola?”</div>
+                    <div>“مين أكتر منتج اتباع الشهر ده؟”</div>
+                    <div>“What happened to stock in the last 7 days?”</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/inventory-ai.js" asp-append-version="true"></script>
+}
