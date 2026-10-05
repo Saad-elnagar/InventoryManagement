@@ -29,7 +29,7 @@ public class InventoryAiAssistant : IInventoryAiAssistant
         _unitOfWork = unitOfWork;
         _logger = logger;
         _model =
-            configuration["OpenAI:Model"]
+            configuration["OpenRouter:Model"]
             ?? "gpt-5.2";
     }
 
@@ -51,7 +51,7 @@ public class InventoryAiAssistant : IInventoryAiAssistant
         {
             if (!LooksLikeInventoryQuestion(latestUserMessage))
             {
-                return await SendToOpenAiAsync(
+                return await SendToOpenRouterAsync(
                     messages,
                     cancellationToken,
                     BuildNormalSystemPrompt());
@@ -81,7 +81,7 @@ public class InventoryAiAssistant : IInventoryAiAssistant
                 {inventoryContext}
                 """;
 
-            return await SendToOpenAiAsync(
+            return await SendToOpenRouterAsync(
                 messages,
                 cancellationToken,
                 inventorySystemPrompt);
@@ -95,7 +95,7 @@ public class InventoryAiAssistant : IInventoryAiAssistant
             _logger.LogError(ex, "Inventory AI request failed.");
 
             throw new InvalidOperationException(
-                "Inventory AI is unavailable. Make sure the OpenAI API key is configured and the selected model is available.",
+                "Inventory AI is unavailable. Make sure the OpenRouter API key is configured and the selected model is available.",
                 ex);
         }
     }
@@ -115,7 +115,7 @@ public class InventoryAiAssistant : IInventoryAiAssistant
         """;
     }
 
-    private async Task<string> SendToOpenAiAsync(
+    private async Task<string> SendToOpenRouterAsync(
         IReadOnlyCollection<InventoryAiMessageDTO> messages,
         CancellationToken cancellationToken,
         string systemPrompt)
@@ -156,7 +156,7 @@ public class InventoryAiAssistant : IInventoryAiAssistant
         {
             _logger.LogWarning(
                 ex,
-                "Inventory AI request timed out while waiting for OpenAI.");
+                "Inventory AI request timed out while waiting for OpenRouter.");
 
             return "The AI assistant is taking too long to respond. Please try again.";
         }
@@ -167,12 +167,12 @@ public class InventoryAiAssistant : IInventoryAiAssistant
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogError(
-                "OpenAI request failed. Status: {StatusCode}. Body: {Body}",
+                "OpenRouter request failed. Status: {StatusCode}. Body: {Body}",
                 response.StatusCode,
                 responseBody);
 
             throw new InvalidOperationException(
-                $"OpenAI returned {(int)response.StatusCode}: {responseBody}");
+                $"OpenRouter returned {(int)response.StatusCode}: {responseBody}");
         }
 
         using var document =
@@ -225,7 +225,7 @@ public class InventoryAiAssistant : IInventoryAiAssistant
         }
 
         _logger.LogError(
-            "OpenAI returned an unexpected response: {Body}",
+            "OpenRouter returned an unexpected response: {Body}",
             responseBody);
 
         return "I couldn't generate a response.";
