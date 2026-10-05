@@ -35,15 +35,17 @@ public class InventoryAiAssistant : IInventoryAiAssistant
             new(
                 ChatRole.System,
                 """
-                You are Inventory AI, the read-only assistant for an Inventory Management System.
+                You are a helpful conversational assistant for an Inventory Management System.
 
-                You have access to live inventory data through tools. Use the tools whenever the user asks about:
+                You can have normal conversations too. Answer greetings, casual questions, explanations,
+                small talk, and general knowledge questions naturally.
+
+                You also have access to live inventory data through tools. Use the tools when the user asks about:
                 products, stock, low stock, out of stock, sales, purchases, stock movements, suppliers,
                 customers, categories, or inventory statistics.
 
-                Never invent database values. If a required fact is not available from the tools, say so clearly.
+                Never invent database values. If a required inventory fact is not available from the tools, say so clearly.
                 Prefer exact numbers, dates, product names, and short calculations based on tool results.
-                When the user asks a question that requires multiple datasets, call multiple tools.
                 Do not describe tool calls to the user; just answer naturally.
 
                 The user may speak Arabic or English.
@@ -72,9 +74,6 @@ public class InventoryAiAssistant : IInventoryAiAssistant
         if (chatMessages.Count == 1)
             return "Ask me about your inventory, stock, sales, purchases, products, suppliers, customers, or reports.";
 
-        // Qwen3 can sometimes choose not to invoke a function for simple list queries.
-        // Handle the most important inventory lookups deterministically so answers always
-        // come from the database instead of depending on the model's tool-selection behavior.
         var latestUserMessage = messages
             .LastOrDefault(x =>
                 x.Role == "user" &&
@@ -82,16 +81,46 @@ public class InventoryAiAssistant : IInventoryAiAssistant
             ?.Content
             ?.Trim();
 
-        if (!string.IsNullOrWhiteSpace(latestUserMessage))
-        {
-            var deterministicAnswer =
-                await TryHandleDeterministicQueryAsync(
-                    latestUserMessage,
-                    cancellationToken);
+        if (string.IsNullOrWhiteSpace(latestUserMessage))
+            return "Ask me anything.";
 
-            if (deterministicAnswer != null)
-                return deterministicAnswer;
+        if (!LooksLikeInventoryQuestion(latestUserMessage))
+        {
+            try
+            {
+                var normalResponse =
+                    await _chatClient.GetResponseAsync(
+                        chatMessages,
+                        new ChatOptions
+                        {
+                            Temperature = 0.7f,
+                            MaxOutputTokens = 700
+                        },
+                        cancellationToken);
+
+                var normalText = normalResponse.Text?.Trim();
+
+                return string.IsNullOrWhiteSpace(normalText)
+                    ? "I'm here. What would you like to talk about?"
+                    : normalText;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Inventory AI normal chat request failed.");
+
+                throw new InvalidOperationException(
+                    "Inventory AI is unavailable. Make sure Ollama is running and the configured model is installed.",
+                    ex);
+            }
         }
+
+        var deterministicAnswer =
+            await TryHandleDeterministicQueryAsync(
+                latestUserMessage,
+                cancellationToken);
+
+        if (deterministicAnswer != null)
+            return deterministicAnswer;
 
         var options = new ChatOptions
         {
@@ -136,6 +165,25 @@ public class InventoryAiAssistant : IInventoryAiAssistant
                 "Inventory AI is unavailable. Make sure Ollama is running and the configured model is installed.",
                 ex);
         }
+    }
+
+    private static bool LooksLikeInventoryQuestion(string question)
+    {
+        var normalized = question.Trim().ToLowerInvariant();
+
+        string[] inventoryTerms =
+        [
+            "inventory", "stock", "product", "products", "sku",
+            "sale", "sales", "sell", "selling", "purchase", "purchases",
+            "supplier", "suppliers", "customer", "customers", "category",
+            "categories", "reorder", "low stock", "out of stock",
+            "movement", "movements", "warehouse", "revenue", "profit",
+            "units sold", "units purchased", "inventory value",
+            "مخزون", "منتج", "منتجات", "مبيعات", "بيع", "مشتريات",
+            "مورد", "عميل", "عملاء", "فئة", "رصيد المخزون"
+        ];
+
+        return inventoryTerms.Any(normalized.Contains);
     }
 
     private async Task<string?> TryHandleDeterministicQueryAsync(
