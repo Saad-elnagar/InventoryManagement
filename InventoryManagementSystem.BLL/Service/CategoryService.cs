@@ -4,7 +4,7 @@ using InventoryManagementSystem.DAL.Entities;
 
 namespace InventoryManagementSystem.BLL.Service;
 
-public class CategoryService
+public class CategoryService : ICategoryService
 {
     private readonly IUnitOfWork _unitOfWork;
 
