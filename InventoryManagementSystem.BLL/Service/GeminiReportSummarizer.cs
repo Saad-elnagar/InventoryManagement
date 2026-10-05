@@ -26,7 +26,7 @@ public class GeminiReportSummarizer : IAiReportSummarizer
         _logger = logger;
         _model =
             configuration["Gemini:Model"]
-            ?? "gpt-5.2";
+            ?? "gemini-2.5-flash";
     }
 
     public async Task<string> SummarizeAsync(
