@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using InventoryManagementSystem.BLL.DTOs;
 using InventoryManagementSystem.BLL.Interfaces;
 using InventoryManagementSystem.DAL.Entities;
@@ -10,7 +11,7 @@ namespace InventoryManagementSystem.BLL.Service;
 
 public class InventoryAiAssistant : IInventoryAiAssistant
 {
-    private const int MaxHistoryMessages = 20;
+    private const int MaxHistoryMessages = 4;
 
     private readonly HttpClient _httpClient;
     private readonly IUnitOfWork _unitOfWork;
@@ -40,27 +41,16 @@ public class InventoryAiAssistant : IInventoryAiAssistant
         if (string.IsNullOrWhiteSpace(latestUserMessage))
             return "Ask me anything.";
 
-        if (!LooksLikeInventoryQuestion(latestUserMessage))
+        try
         {
-            try
+            if (!LooksLikeInventoryQuestion(latestUserMessage))
             {
                 return await SendToOllamaAsync(
                     messages,
                     cancellationToken,
-                    systemPrompt: BuildNormalSystemPrompt());
+                    BuildNormalSystemPrompt());
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Inventory AI normal chat request failed.");
 
-                throw new InvalidOperationException(
-                    "Inventory AI is unavailable. Make sure Ollama is running and the configured model is installed.",
-                    ex);
-            }
-        }
-
-        try
-        {
             var inventoryContext =
                 await BuildInventoryContextAsync(
                     latestUserMessage);
@@ -70,8 +60,9 @@ public class InventoryAiAssistant : IInventoryAiAssistant
                 You are a helpful conversational assistant for an Inventory Management System.
 
                 Answer naturally and directly.
-                The database context below is the source of truth for inventory questions.
+                Use the supplied live database context as the source of truth.
                 Never invent inventory values.
+                Keep the answer concise unless the user asks for details.
                 You may calculate totals, differences, rankings, and trends from the supplied data.
                 Answer in the same language as the user's latest message.
                 You are read-only.
@@ -83,6 +74,10 @@ public class InventoryAiAssistant : IInventoryAiAssistant
                 messages,
                 cancellationToken,
                 inventorySystemPrompt);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return "The AI assistant took too long to respond. Please try again.";
         }
         catch (Exception ex)
         {
@@ -144,18 +139,36 @@ public class InventoryAiAssistant : IInventoryAiAssistant
             messages = ollamaMessages,
             stream = false,
             think = false,
+            keep_alive = "30m",
             options = new
             {
-                temperature = 0.4,
-                num_predict = 900
+                temperature = 0.2,
+                top_p = 0.85,
+                repeat_penalty = 1.1,
+                num_ctx = 4096,
+                num_predict = 240
             }
         };
 
-        using var response =
-            await _httpClient.PostAsJsonAsync(
-                "/api/chat",
-                payload,
-                cancellationToken);
+        HttpResponseMessage response;
+
+        try
+        {
+            response =
+                await _httpClient.PostAsJsonAsync(
+                    "/api/chat",
+                    payload,
+                    cancellationToken);
+        }
+        catch (TaskCanceledException ex)
+            when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning(
+                ex,
+                "Inventory AI request timed out while waiting for Ollama.");
+
+            return "The AI assistant is taking too long to respond. Please try again.";
+        }
 
         var responseBody =
             await response.Content.ReadAsStringAsync(cancellationToken);
@@ -164,21 +177,22 @@ public class InventoryAiAssistant : IInventoryAiAssistant
         {
             _logger.LogError(
                 "Ollama request failed. Status: {StatusCode}. Body: {Body}",
-                response.StatusCode,
-                responseBody);
+                response.StatusCode, responseBody);
 
             throw new InvalidOperationException(
                 $"Ollama returned {(int)response.StatusCode}: {responseBody}");
         }
 
-        using var document =
-            JsonDocument.Parse(responseBody);
+        using var document = JsonDocument.Parse(responseBody);
 
-        var content =
-            document.RootElement
-                .GetProperty("message")
-                .GetProperty("content")
-                .GetString();
+        if (!document.RootElement.TryGetProperty("message", out var messageElement) ||
+            !messageElement.TryGetProperty("content", out var contentElement))
+        {
+            _logger.LogError("Ollama returned an unexpected response: {Body}", responseBody);
+            return "I couldn't generate a response.";
+        }
+
+        var content = contentElement.GetString();
 
         return string.IsNullOrWhiteSpace(content)
             ? "I couldn't generate a response."
@@ -187,148 +201,301 @@ public class InventoryAiAssistant : IInventoryAiAssistant
 
     private async Task<string> BuildInventoryContextAsync(string question)
     {
-        var products =
-            (await _unitOfWork
-                .GenaricRepository<Product>()
-                .GetAllAsync())
-            .Select(x => new
-            {
-                x.Id,
-                x.Sku,
-                x.Name,
-                x.CategoryId,
-                x.UnitPrice,
-                x.StockQuantity,
-                x.LowStockThreshold,
-                x.Description
-            })
-            .OrderBy(x => x.Name)
-            .ToList();
+        var q = question.Trim().ToLowerInvariant();
+        var contextParts = new List<string>();
 
-        var from = DateTime.Now.AddDays(-90);
+        var days = ExtractPeriodDays(q);
 
-        var movements =
-            (await _unitOfWork
-                .GenaricRepository<StockMovement>()
-                .GetWhereAsync(x => x.MovementDate >= from))
-            .OrderByDescending(x => x.MovementDate)
-            .Take(150)
-            .Select(x => new
-            {
-                x.ProductId,
-                x.Quantity,
-                x.MovementType,
-                x.MovementDate,
-                x.ReferenceType,
-                x.ReferenceId,
-                x.Reason,
-                x.Notes
-            })
-            .ToList();
+        var wantsLowStock =
+            q.Contains("low stock") ||
+            q.Contains("out of stock") ||
+            q.Contains("reorder") ||
+            q.Contains("ناقص") ||
+            q.Contains("نفد") ||
+            q.Contains("إعادة تخزين");
 
-        var now = DateTime.Now;
-        var monthStart = new DateTime(now.Year, now.Month, 1);
-        var nextMonth = monthStart.AddMonths(1);
+        var wantsMovements =
+            q.Contains("movement") ||
+            q.Contains("adjustment") ||
+            q.Contains("damage") ||
+            q.Contains("damaged") ||
+            q.Contains("lost") ||
+            q.Contains("return") ||
+            q.Contains("transfer") ||
+            q.Contains("حركة") ||
+            q.Contains("تالف") ||
+            q.Contains("فاقد") ||
+            q.Contains("مرتجع") ||
+            q.Contains("تسوية");
 
-        var sales =
-            (await _unitOfWork
-                .GenaricRepository<Sale>()
-                .GetWhereAsync(x =>
-                    x.SaleDate >= monthStart &&
-                    x.SaleDate < nextMonth))
-            .ToList();
+        var wantsSales =
+            q.Contains("sale") ||
+            q.Contains("sales") ||
+            q.Contains("sold") ||
+            q.Contains("selling") ||
+            q.Contains("revenue") ||
+            q.Contains("مبيعات") ||
+            q.Contains("مباع") ||
+            q.Contains("بيع");
 
-        var saleIds = sales.Select(x => x.Id).ToList();
+        var wantsPurchases =
+            q.Contains("purchase") ||
+            q.Contains("purchases") ||
+            q.Contains("purchased") ||
+            q.Contains("buy") ||
+            q.Contains("bought") ||
+            q.Contains("مشتريات") ||
+            q.Contains("شراء");
 
-        var saleItems =
-            saleIds.Count == 0
-                ? new List<SaleItem>()
-                : (await _unitOfWork
-                    .GenaricRepository<SaleItem>()
-                    .GetWhereAsync(x => saleIds.Contains(x.SaleId)))
-                  .ToList();
+        var wantsTopSelling =
+            q.Contains("top selling") ||
+            q.Contains("best selling") ||
+            q.Contains("best-selling") ||
+            q.Contains("most sold") ||
+            q.Contains("الأكثر مبيع") ||
+            q.Contains("اكثر مبيع");
 
-        var purchases =
-            (await _unitOfWork
-                .GenaricRepository<Purchase>()
-                .GetWhereAsync(x =>
-                    x.PurchaseDate >= monthStart &&
-                    x.PurchaseDate < nextMonth))
-            .ToList();
+        var wantsCategory =
+            q.Contains("category") ||
+            q.Contains("categories") ||
+            q.Contains("فئة") ||
+            q.Contains("فئات");
 
-        var purchaseIds = purchases.Select(x => x.Id).ToList();
+        var wantsOverview =
+            q.Contains("inventory") ||
+            q.Contains("overall stock") ||
+            q.Contains("total stock") ||
+            q.Contains("inventory value") ||
+            q.Contains("المخزون بالكامل") ||
+            q.Contains("إجمالي المخزون") ||
+            q.Contains("قيمة المخزون");
 
-        var purchaseItems =
-            purchaseIds.Count == 0
-                ? new List<PurchaseItem>()
-                : (await _unitOfWork
-                    .GenaricRepository<PurchaseItem>()
-                    .GetWhereAsync(x => purchaseIds.Contains(x.PurchaseId)))
-                  .ToList();
+        if (wantsLowStock)
+            contextParts.Add("LOW STOCK DATA:\n" + await GetLowStockProductsAsync());
 
-        var context = new
+        if (wantsMovements)
+            contextParts.Add(
+                $"RECENT MOVEMENTS ({days} DAYS):\n" +
+                await GetRecentStockMovementsAsync(days, 20));
+
+        if (wantsTopSelling)
+            contextParts.Add(
+                $"TOP SELLING PRODUCTS ({days} DAYS):\n" +
+                await GetTopSellingProductsAsync(days, 8));
+        else if (wantsSales)
+            contextParts.Add(
+                $"SALES SUMMARY ({days} DAYS):\n" +
+                await GetSalesSummaryAsync(days));
+
+        if (wantsPurchases)
+            contextParts.Add(
+                $"PURCHASE SUMMARY ({days} DAYS):\n" +
+                await GetPurchaseSummaryAsync(days));
+
+        if (wantsCategory)
         {
-            asOf = DateTime.Now,
-            currentMonth = monthStart.ToString("yyyy-MM"),
-            question,
-            products,
-            recentStockMovements = movements,
-            currentMonthSales = sales.Select(x => new
+            var categoryName =
+                await FindCategoryNameInQuestionAsync(question);
+
+            contextParts.Add(
+                "CATEGORY DATA:\n" +
+                await GetCategorySummaryAsync(categoryName));
+        }
+
+        var wantsProductDetails =
+            q.Contains("product") ||
+            q.Contains("products") ||
+            q.Contains("item") ||
+            q.Contains("items") ||
+            q.Contains("sku") ||
+            q.Contains("barcode") ||
+            q.Contains("stock") ||
+            q.Contains("price") ||
+            q.Contains("quantity") ||
+            q.Contains("منتج") ||
+            q.Contains("منتجات") ||
+            q.Contains("صنف") ||
+            q.Contains("أصناف") ||
+            q.Contains("كمية") ||
+            q.Contains("حركة");
+
+        if (wantsProductDetails)
+        {
+            var productName =
+                await FindProductNameInQuestionAsync(question);
+
+            if (productName != null)
             {
-                x.Id,
-                x.SaleDate,
-                x.TotalAmount,
-                x.CustomerId
-            }),
-            currentMonthSaleItems = saleItems.Select(x => new
+                contextParts.Add(
+                    "PRODUCT DATA:\n" +
+                    await GetProductStockAsync(productName));
+            }
+        }
+
+        if (q.Contains("supplier") ||
+            q.Contains("vendor") ||
+            q.Contains("مورد"))
+        {
+            var supplierName =
+                await FindSupplierNameInQuestionAsync(question);
+
+            if (supplierName != null)
             {
-                x.SaleId,
-                x.ProductId,
-                x.Quantity,
-                x.UnitPrice
-            }),
-            currentMonthPurchases = purchases.Select(x => new
+                contextParts.Add(
+                    $"SUPPLIER DATA ({days} DAYS):\n" +
+                    await GetSupplierActivityAsync(supplierName, days));
+            }
+        }
+
+        if (q.Contains("customer") ||
+            q.Contains("client") ||
+            q.Contains("عميل"))
+        {
+            var customerName =
+                await FindCustomerNameInQuestionAsync(question);
+
+            if (customerName != null)
             {
-                x.Id,
-                x.PurchaseDate,
-                x.TotalAmount,
-                x.SupplierId
-            }),
-            currentMonthPurchaseItems = purchaseItems.Select(x => new
-            {
-                x.PurchaseId,
-                x.ProductId,
-                x.Quantity,
-                x.UnitCost
-            })
-        };
+                contextParts.Add(
+                    $"CUSTOMER DATA ({days} DAYS):\n" +
+                    await GetCustomerSalesAsync(customerName, days));
+            }
+        }
+
+        if (contextParts.Count == 0 || wantsOverview)
+        {
+            contextParts.Insert(
+                0,
+                "INVENTORY OVERVIEW:\n" +
+                await GetInventoryOverviewAsync());
+        }
 
         return
             """
-            LIVE INVENTORY CONTEXT
+            TARGETED LIVE INVENTORY CONTEXT
 
-            The following data came directly from the Inventory Management database.
-            Use it as the source of truth for inventory questions.
+            This context was selected from the user's question.
+            Use only the supplied data as the source of truth.
+            Never invent values.
+            Keep the answer concise.
+            Answer in the same language as the user.
+            You are read-only.
 
-            Rules:
-            - Answer naturally and directly.
-            - Do not invent product names, quantities, prices, dates, sales, purchases, or movements.
-            - When the user asks about stock, reason about the product's current StockQuantity,
-              LowStockThreshold, sales, purchases, and stock movements when relevant.
-            - You may calculate totals, differences, percentages, rankings, and trends from the supplied data.
-            - If the data does not contain enough information to answer, say exactly what is missing.
-            - Answer in the same language as the user.
-            - Do not mention this internal context or database implementation unless asked.
-            - You are read-only.
-
-            DATA:
             """ +
-            JsonSerializer.Serialize(
-                context,
-                new JsonSerializerOptions
-                {
-                    WriteIndented = false
-                });
+            string.Join("\n\n", contextParts);
+    }
+
+    private static int ExtractPeriodDays(string question)
+    {
+        if (question.Contains("today") ||
+            question.Contains("today's") ||
+            question.Contains("اليوم"))
+            return 1;
+
+        if (question.Contains("this month") ||
+            question.Contains("current month") ||
+            question.Contains("هذا الشهر") ||
+            question.Contains("الشهر الحالي"))
+            return Math.Max(1, DateTime.UtcNow.Day);
+
+        var match =
+            Regex.Match(
+                question,
+                @"\b(\d{1,3})\s*(day|days|week|weeks|month|months)\b",
+                RegexOptions.IgnoreCase);
+
+        if (!match.Success)
+            return 30;
+
+        var value = int.Parse(match.Groups[1].Value);
+        var unit = match.Groups[2].Value.ToLowerInvariant();
+
+        return unit switch
+        {
+            "week" or "weeks" => Math.Clamp(value * 7, 1, 365),
+            "month" or "months" => Math.Clamp(value * 30, 1, 365),
+            _ => Math.Clamp(value, 1, 365)
+        };
+    }
+
+    private async Task<string?> FindProductNameInQuestionAsync(string question)
+    {
+        var normalized = question.Trim().ToLowerInvariant();
+
+        var products =
+            await _unitOfWork
+                .GenaricRepository<Product>()
+                .GetAllAsync();
+
+        return products
+            .Where(x =>
+                (!string.IsNullOrWhiteSpace(x.Name) &&
+                 normalized.Contains(x.Name.Trim().ToLowerInvariant())) ||
+                (!string.IsNullOrWhiteSpace(x.Sku) &&
+                 normalized.Contains(x.Sku.Trim().ToLowerInvariant())))
+            .OrderByDescending(x =>
+                Math.Max(
+                    x.Name?.Length ?? 0,
+                    x.Sku?.Length ?? 0))
+            .Select(x => x.Name)
+            .FirstOrDefault();
+    }
+
+    private async Task<string?> FindSupplierNameInQuestionAsync(string question)
+    {
+        var normalized = question.Trim().ToLowerInvariant();
+
+        var suppliers =
+            await _unitOfWork
+                .GenaricRepository<Supplier>()
+                .GetAllAsync();
+
+        return suppliers
+            .Where(x =>
+                !string.IsNullOrWhiteSpace(x.SupplierName) &&
+                normalized.Contains(
+                    x.SupplierName.Trim().ToLowerInvariant()))
+            .OrderByDescending(x => x.SupplierName.Length)
+            .Select(x => x.SupplierName)
+            .FirstOrDefault();
+    }
+
+    private async Task<string?> FindCustomerNameInQuestionAsync(string question)
+    {
+        var normalized = question.Trim().ToLowerInvariant();
+
+        var customers =
+            await _unitOfWork
+                .GenaricRepository<Customer>()
+                .GetAllAsync();
+
+        return customers
+            .Where(x =>
+                !string.IsNullOrWhiteSpace(x.CustomerName) &&
+                normalized.Contains(
+                    x.CustomerName.Trim().ToLowerInvariant()))
+            .OrderByDescending(x => x.CustomerName.Length)
+            .Select(x => x.CustomerName)
+            .FirstOrDefault();
+    }
+
+    private async Task<string?> FindCategoryNameInQuestionAsync(string question)
+    {
+        var normalized = question.Trim().ToLowerInvariant();
+
+        var categories =
+            await _unitOfWork
+                .GenaricRepository<Category>()
+                .GetAllAsync();
+
+        return categories
+            .Where(x =>
+                !string.IsNullOrWhiteSpace(x.Name) &&
+                normalized.Contains(
+                    x.Name.Trim().ToLowerInvariant()))
+            .OrderByDescending(x => x.Name.Length)
+            .Select(x => x.Name)
+            .FirstOrDefault();
     }
 
     private static bool LooksLikeInventoryQuestion(string question)
