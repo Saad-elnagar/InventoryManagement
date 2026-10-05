@@ -74,7 +74,12 @@
                 </div>
             </div>
             <div class="col-md-2">
-                <button type="button" class="btn btn-primary w-100 rounded-3">Search</button>
+                <button type="button"
+                    id="categorySearchButton"
+                    class="btn btn-primary w-100 rounded-3">
+                <i class="bi bi-search me-1"></i>
+                Search
+            </button>
             </div>
         </div>
     </div>
@@ -136,3 +141,46 @@
         </div>
     </div>
 </div>
+@section Scripts {
+    <script>
+        const categorySearch =
+            document.getElementById("categorySearch");
+
+        const categorySearchButton =
+            document.getElementById("categorySearchButton");
+
+        const categoryRows =
+            document.querySelectorAll(".category-row");
+
+        function filterCategories() {
+            const value =
+                categorySearch.value.trim().toLowerCase();
+
+            categoryRows.forEach(row => {
+                row.style.display =
+                    row.textContent
+                        .toLowerCase()
+                        .includes(value)
+                        ? ""
+                        : "none";
+            });
+        }
+
+        categorySearch?.addEventListener(
+            "input",
+            filterCategories);
+
+        categorySearchButton?.addEventListener(
+            "click",
+            filterCategories);
+
+        categorySearch?.addEventListener(
+            "keydown",
+            event => {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    filterCategories();
+                }
+            });
+    </script>
+}
