@@ -4,7 +4,7 @@ using InventoryManagementSystem.DAL.Entities;
 
 namespace InventoryManagementSystem.BLL.Service;
 
-public class CategoryService : ICategoryService
+public class CategoryService
 {
     private readonly IUnitOfWork _unitOfWork;
 
@@ -72,6 +72,7 @@ public class CategoryService : ICategoryService
         try
         {
             dto.Name = dto.Name.Trim();
+            dto.Description = dto.Description?.Trim();
 
             var exists =
                 await _unitOfWork
@@ -86,7 +87,7 @@ public class CategoryService : ICategoryService
             var category = new Category
             {
                 Name = dto.Name,
-                Description = dto.Description?.Trim()
+                Description = dto.Description
             };
 
             await _unitOfWork
