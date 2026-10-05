@@ -18,6 +18,7 @@ public class InventoryAiAssistant : IInventoryAiAssistant
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<InventoryAiAssistant> _logger;
     private readonly string _model;
+    private readonly string _fallbackModel;
 
     public InventoryAiAssistant(
         HttpClient httpClient,
@@ -30,6 +31,10 @@ public class InventoryAiAssistant : IInventoryAiAssistant
         _logger = logger;
         _model =
             configuration["Gemini:Model"]
+            ?? "gemini-3.5-flash-lite";
+
+        _fallbackModel =
+            configuration["Gemini:FallbackModel"]
             ?? "gemini-3.8-flash";
     }
 
@@ -161,86 +166,123 @@ public class InventoryAiAssistant : IInventoryAiAssistant
             }
         };
 
-        HttpResponseMessage response;
-
-        try
-        {
-            response =
-                await _httpClient.PostAsJsonAsync(
-                    $"models/{_model}:generateContent",
-                    payload,
-                    cancellationToken);
-        }
-        catch (TaskCanceledException ex)
-            when (!cancellationToken.IsCancellationRequested)
-        {
-            _logger.LogWarning(
-                ex,
-                "Inventory AI request timed out while waiting for Gemini.");
-
-            return "The AI assistant is taking too long to respond. Please try again.";
-        }
-
-        var responseBody =
-            await response.Content.ReadAsStringAsync(
-                cancellationToken);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            _logger.LogError(
-                "Gemini request failed. Status: {StatusCode}. Body: {Body}",
-                response.StatusCode,
-                responseBody);
-
-            throw new InvalidOperationException(
-                $"Gemini returned {(int)response.StatusCode}: {responseBody}");
-        }
-
-        using var document =
-            JsonDocument.Parse(responseBody);
-
-        if (!document.RootElement.TryGetProperty(
-                "candidates",
-                out var candidates) ||
-            candidates.ValueKind != JsonValueKind.Array ||
-            candidates.GetArrayLength() == 0)
-        {
-            _logger.LogError(
-                "Gemini returned an unexpected response: {Body}",
-                responseBody);
-
-            return "I couldn't generate a response.";
-        }
-
-        var candidate = candidates[0];
-
-        if (candidate.TryGetProperty(
-                "content",
-                out var content) &&
-            content.TryGetProperty(
-                "parts",
-                out var parts) &&
-            parts.ValueKind == JsonValueKind.Array)
-        {
-            foreach (var part in parts.EnumerateArray())
+        var models =
+            new[]
             {
-                if (!part.TryGetProperty(
-                        "text",
-                        out var textElement))
+                _model,
+                _fallbackModel
+            }.Distinct(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var model in models)
+        {
+            for (var attempt = 1; attempt <= 2; attempt++)
+            {
+                HttpResponseMessage response;
+
+                try
+                {
+                    response =
+                        await _httpClient.PostAsJsonAsync(
+                            $"models/{model}:generateContent",
+                            payload,
+                            cancellationToken);
+                }
+                catch (TaskCanceledException ex)
+                    when (!cancellationToken.IsCancellationRequested)
+                {
+                    _logger.LogWarning(
+                        ex,
+                        "Gemini request timed out. Model: {Model}, Attempt: {Attempt}",
+                        model,
+                        attempt);
+
+                    if (attempt == 2)
+                        break;
+
+                    await Task.Delay(
+                        TimeSpan.FromSeconds(1),
+                        cancellationToken);
+
                     continue;
+                }
 
-                var text = textElement.GetString();
+                var responseBody =
+                    await response.Content.ReadAsStringAsync(
+                        cancellationToken);
 
-                if (!string.IsNullOrWhiteSpace(text))
-                    return text.Trim();
+                if (response.IsSuccessStatusCode)
+                {
+                    using var document =
+                        JsonDocument.Parse(responseBody);
+
+                    if (document.RootElement.TryGetProperty(
+                            "candidates",
+                            out var candidates) &&
+                        candidates.ValueKind == JsonValueKind.Array &&
+                        candidates.GetArrayLength() > 0)
+                    {
+                        var candidate = candidates[0];
+
+                        if (candidate.TryGetProperty(
+                                "content",
+                                out var content) &&
+                            content.TryGetProperty(
+                                "parts",
+                                out var parts) &&
+                            parts.ValueKind == JsonValueKind.Array)
+                        {
+                            foreach (var part in parts.EnumerateArray())
+                            {
+                                if (!part.TryGetProperty(
+                                        "text",
+                                        out var textElement))
+                                    continue;
+
+                                var text =
+                                    textElement.GetString();
+
+                                if (!string.IsNullOrWhiteSpace(text))
+                                    return text.Trim();
+                            }
+                        }
+                    }
+
+                    _logger.LogError(
+                        "Gemini returned no usable text. Model: {Model}. Body: {Body}",
+                        model,
+                        responseBody);
+
+                    break;
+                }
+
+                _logger.LogWarning(
+                    "Gemini request failed. Model: {Model}, Status: {StatusCode}, Attempt: {Attempt}. Body: {Body}",
+                    model,
+                    response.StatusCode,
+                    attempt,
+                    responseBody);
+
+                if ((int)response.StatusCode != 429 &&
+                    (int)response.StatusCode != 500 &&
+                    (int)response.StatusCode != 502 &&
+                    (int)response.StatusCode != 503 &&
+                    (int)response.StatusCode != 504)
+                {
+                    throw new InvalidOperationException(
+                        $"Gemini returned {(int)response.StatusCode}: {responseBody}");
+                }
+
+                if (attempt < 2)
+                {
+                    await Task.Delay(
+                        TimeSpan.FromMilliseconds(500 * attempt),
+                        cancellationToken);
+                }
             }
         }
 
-        _logger.LogError(
-            "Gemini returned no usable text: {Body}",
-            responseBody);
-
-        return "I couldn't generate a response.";
+        throw new InvalidOperationException(
+            "Gemini is temporarily unavailable. Please try again.");
     }
 
     private async Task<string> BuildInventoryContextAsync(
