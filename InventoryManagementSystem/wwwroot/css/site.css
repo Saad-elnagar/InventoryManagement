@@ -640,3 +640,218 @@ textarea.form-control {
         width: 100%;
     }
 }
+
+/* Report UI */
+
+.report-nav-badge {
+    margin-left: 5px;
+    padding: 2px 6px;
+    border-radius: 999px;
+    font-size: .58rem;
+    font-weight: 800;
+    color: #1d4ed8;
+    background: #dbeafe;
+}
+
+.report-page {
+    padding-bottom: 28px;
+}
+
+.report-title-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #2563eb;
+    background: #dbeafe;
+}
+
+.report-stat-card {
+    min-height: 124px;
+}
+
+.report-stat-danger {
+    border-color: #fecaca !important;
+}
+
+.report-stat-note {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: .75rem;
+}
+
+.report-icon-primary,
+.report-icon-success,
+.report-icon-warning,
+.report-icon-danger {
+    color: #2563eb;
+    background: #eff6ff;
+}
+
+.report-icon-success {
+    color: #16a34a;
+    background: #f0fdf4;
+}
+
+.report-icon-warning {
+    color: #d97706;
+    background: #fffbeb;
+}
+
+.report-icon-danger {
+    color: #dc2626;
+    background: #fef2f2;
+}
+
+.report-card {
+    overflow: hidden;
+}
+
+.report-ai-card {
+    border-color: #dbeafe !important;
+}
+
+.report-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 20px 22px;
+    border-bottom: 1px solid var(--border);
+}
+
+.report-ai-body {
+    padding: 20px 22px 22px;
+}
+
+.report-ai-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #2563eb;
+    background: #eff6ff;
+}
+
+.report-period {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 9px;
+    color: #475569;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    font-size: .78rem;
+}
+
+.report-summary {
+    margin-top: 16px;
+    padding: 18px;
+    border-radius: 14px;
+    background: #f8fbff;
+    border: 1px solid #e0ecff;
+}
+
+.report-summary-label {
+    margin-bottom: 10px;
+    color: #2563eb;
+    font-size: .72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .7px;
+}
+
+.report-summary-text {
+    white-space: pre-line;
+    color: #334155;
+    line-height: 1.8;
+    font-size: .92rem;
+}
+
+.movement-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 10px;
+    border-radius: 9px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    font-size: .78rem;
+    font-weight: 600;
+}
+
+.report-low-stock-list {
+    padding: 4px 20px 10px;
+}
+
+.report-low-stock-item {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 15px 2px;
+    border-bottom: 1px solid #eef2f7;
+}
+
+.report-low-stock-item:last-child {
+    border-bottom: 0;
+}
+
+.report-product-icon {
+    width: 38px;
+    height: 38px;
+    flex: 0 0 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #dc2626;
+    background: #fef2f2;
+}
+
+.report-stock-number {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #172033;
+}
+
+.report-empty {
+    padding: 40px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 7px;
+    color: #64748b;
+}
+
+.report-empty i {
+    font-size: 2rem;
+    margin-bottom: 4px;
+    color: #94a3b8;
+}
+
+.report-empty strong {
+    color: #172033;
+}
+
+@media (max-width: 575.98px) {
+    .report-card-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .report-ai-body {
+        padding: 16px;
+    }
+
+    .report-period {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+        flex-wrap: wrap;
+    }
+}
