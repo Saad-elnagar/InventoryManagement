@@ -173,14 +173,43 @@ public class InventoryAiAssistant : IInventoryAiAssistant
 
         string[] inventoryTerms =
         [
-            "inventory", "stock", "product", "products", "sku",
-            "sale", "sales", "sell", "selling", "purchase", "purchases",
-            "supplier", "suppliers", "customer", "customers", "category",
-            "categories", "reorder", "low stock", "out of stock",
-            "movement", "movements", "warehouse", "revenue", "profit",
-            "units sold", "units purchased", "inventory value",
-            "مخزون", "منتج", "منتجات", "مبيعات", "بيع", "مشتريات",
-            "مورد", "عميل", "عملاء", "فئة", "رصيد المخزون"
+            // Inventory / stock
+            "inventory", "inventories", "stock", "stock level", "stock levels",
+            "stock quantity", "available stock", "available quantity",
+            "quantity on hand", "on hand", "reorder", "reorder level",
+            "reorder point", "restock", "restocking", "replenish", "replenishment",
+            "low stock", "out of stock", "overstock", "shortage", "inventory value",
+
+            // Products / SKU
+            "product", "products", "item", "items", "sku", "barcode",
+            "price", "unit price", "cost",
+
+            // Stock movements / lifecycle
+            "stock movement", "stock movements", "movement", "movements",
+            "adjustment", "adjustments", "damage", "damaged", "lost", "loss",
+            "found", "return", "returned", "opening stock", "opening balance",
+            "receive", "received", "receiving", "issue", "issued",
+            "transfer", "transferred", "vendor gift", "gifted stock",
+
+            // Sales / purchases that affect stock
+            "sale", "sales", "sell", "sold", "selling",
+            "purchase", "purchases", "purchased", "buy", "bought",
+            "units sold", "units purchased", "revenue",
+
+            // Related entities / inventory reporting
+            "supplier", "suppliers", "customer", "customers",
+            "category", "categories", "warehouse", "inventory report",
+            "stock report", "stock history", "movement history",
+
+            // Arabic
+            "مخزون", "المخزون", "رصيد المخزون", "كمية المخزون", "الكمية المتاحة",
+            "بضاعة", "منتج", "منتجات", "صنف", "أصناف", "باركود",
+            "مبيعات", "بيع", "مباع", "مشتريات", "شراء", "مشتريات",
+            "مورد", "موردين", "عميل", "عملاء", "فئة", "فئات",
+            "إعادة طلب", "إعادة تخزين", "ناقص", "نفد", "نفاذ المخزون",
+            "تالف", "تالفه", "هالك", "فاقد", "فقد", "مرتجع", "مرتجعات",
+            "تسوية", "حركة مخزون", "حركات المخزون", "إضافة للمخزون",
+            "خصم من المخزون", "رصيد", "كمية", "جرد", "جرد المخزون"
         ];
 
         return inventoryTerms.Any(normalized.Contains);
