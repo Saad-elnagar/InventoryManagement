@@ -5,6 +5,7 @@ using InventoryManagementSystem.DAL.Entities;
 using Microsoft.Extensions.Logging;
 using Microsoft.ML;
 using Microsoft.ML.Data;
+using Microsoft.ML.Transforms.TimeSeries;
 
 namespace InventoryManagementSystem.BLL.Service;
 
