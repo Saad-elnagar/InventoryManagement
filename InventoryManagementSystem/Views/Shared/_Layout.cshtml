@@ -52,6 +52,14 @@
                 }
                 <a asp-controller="Sale" asp-action="Index" class="@Active("Sale")">Sales</a>
                 <a asp-controller="StockMovement" asp-action="Index" class="@Active("StockMovement")">Stock Movements</a>
+                @if (canManage)
+                {
+                    <a asp-controller="InventoryAi" asp-action="Index" class="@Active("InventoryAi")">
+                        <i class="bi bi-stars me-1"></i>
+                        AI Assistant
+                        <span class="report-nav-badge ai-nav-badge">LOCAL</span>
+                    </a>
+                }
                 @if (User.IsInRole("Admin"))
                 {
                     <a asp-controller="User" asp-action="Index" class="@Active("User")">Users</a>
