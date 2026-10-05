@@ -18,7 +18,15 @@ using Microsoft.IdentityModel.Tokens;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
-builder.Services.AddHttpClient<IInventoryAiAssistant, InventoryAiAssistant>();
+builder.Services.AddHttpClient<IInventoryAiAssistant, InventoryAiAssistant>(client =>
+{
+    var endpoint =
+        builder.Configuration["Ollama:Endpoint"]
+        ?? "http://localhost:11434";
+
+    client.BaseAddress = new Uri(endpoint);
+    client.Timeout = TimeSpan.FromMinutes(3);
+});
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(
