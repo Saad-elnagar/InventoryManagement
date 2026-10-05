@@ -3,7 +3,7 @@ using System.Text.Json;
 using InventoryManagementSystem.BLL.DTOs;
 using InventoryManagementSystem.BLL.Interfaces;
 using InventoryManagementSystem.DAL.Entities;
-using Microsoft.Extensions.AI;
+using System.Net.Http.Json;
 using Microsoft.Extensions.Logging;
 
 namespace InventoryManagementSystem.BLL.Service;
@@ -12,16 +12,19 @@ public class InventoryAiAssistant : IInventoryAiAssistant
 {
     private const int MaxHistoryMessages = 20;
 
-    private readonly IChatClient _chatClient;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IConfiguration _configuration;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<InventoryAiAssistant> _logger;
 
     public InventoryAiAssistant(
-        IChatClient chatClient,
+        IHttpClientFactory httpClientFactory,
+        IConfiguration configuration,
         IUnitOfWork unitOfWork,
         ILogger<InventoryAiAssistant> logger)
     {
-        _chatClient = chatClient;
+        _httpClientFactory = httpClientFactory;
+        _configuration = configuration;
         _unitOfWork = unitOfWork;
         _logger = logger;
     }
@@ -88,21 +91,10 @@ public class InventoryAiAssistant : IInventoryAiAssistant
         {
             try
             {
-                var normalResponse =
-                    await _chatClient.GetResponseAsync(
-                        chatMessages,
-                        new ChatOptions
-                        {
-                            Temperature = 0.7f,
-                            MaxOutputTokens = 700
-                        },
-                        cancellationToken);
-
-                var normalText = normalResponse.Text?.Trim();
-
-                return string.IsNullOrWhiteSpace(normalText)
-                    ? "I'm here. What would you like to talk about?"
-                    : normalText;
+                return await SendToOllamaAsync(
+                    messages,
+                    cancellationToken,
+                    systemPrompt: BuildNormalSystemPrompt());
             }
             catch (Exception ex)
             {
@@ -120,38 +112,24 @@ public class InventoryAiAssistant : IInventoryAiAssistant
                 await BuildInventoryContextAsync(
                     latestUserMessage);
 
-            var inventoryMessages = new List<ChatMessage>(chatMessages);
-
-            inventoryMessages[0] = new ChatMessage(
-                ChatRole.System,
+            var inventorySystemPrompt =
                 $"""
                 You are a helpful conversational assistant for an Inventory Management System.
 
                 Answer naturally and directly.
-                For inventory questions, the database context below is the source of truth.
+                The database context below is the source of truth for inventory questions.
                 Never invent inventory values.
                 You may calculate totals, differences, rankings, and trends from the supplied data.
                 Answer in the same language as the user's latest message.
                 You are read-only.
 
                 {inventoryContext}
-                """);
+                """;
 
-            var response =
-                await _chatClient.GetResponseAsync(
-                    inventoryMessages,
-                    new ChatOptions
-                    {
-                        Temperature = 0.25f,
-                        MaxOutputTokens = 900
-                    },
-                    cancellationToken);
-
-            var text = response.Text?.Trim();
-
-            return string.IsNullOrWhiteSpace(text)
-                ? "I couldn't generate an answer from the available inventory data."
-                : text;
+            return await SendToOllamaAsync(
+                messages,
+                cancellationToken,
+                inventorySystemPrompt);
         }
         catch (Exception ex)
         {
@@ -161,6 +139,105 @@ public class InventoryAiAssistant : IInventoryAiAssistant
                 "Inventory AI is unavailable. Make sure Ollama is running and the configured model is installed.",
                 ex);
         }
+    }
+
+    private string BuildNormalSystemPrompt()
+    {
+        return """
+        You are a helpful conversational assistant for an Inventory Management System.
+
+        You can have normal conversations too.
+        Answer greetings, casual questions, explanations, small talk, and general knowledge naturally.
+
+        For inventory questions, use the live database context supplied by the application.
+        Never invent inventory values.
+        Answer in the same language as the user.
+        You are read-only.
+        """;
+    }
+
+    private async Task<string> SendToOllamaAsync(
+        IReadOnlyCollection<InventoryAiMessageDTO> messages,
+        CancellationToken cancellationToken,
+        string systemPrompt)
+    {
+        var endpoint =
+            _configuration["Ollama:Endpoint"]
+            ?? "http://localhost:11434";
+
+        var model =
+            _configuration["Ollama:Model"]
+            ?? "qwen3:4b";
+
+        var ollamaMessages = new List<object>
+        {
+            new
+            {
+                role = "system",
+                content = systemPrompt
+            }
+        };
+
+        foreach (var message in messages
+                     .Where(x =>
+                         !string.IsNullOrWhiteSpace(x.Content) &&
+                         (x.Role == "user" || x.Role == "assistant"))
+                     .TakeLast(MaxHistoryMessages))
+        {
+            ollamaMessages.Add(new
+            {
+                role = message.Role,
+                content = message.Content.Trim()
+            });
+        }
+
+        var payload = new
+        {
+            model,
+            messages = ollamaMessages,
+            stream = false,
+            think = false,
+            options = new
+            {
+                temperature = 0.4,
+                num_predict = 900
+            }
+        };
+
+        var client = _httpClientFactory.CreateClient();
+
+        using var response =
+            await client.PostAsJsonAsync(
+                $"{endpoint.TrimEnd('/')}/api/chat",
+                payload,
+                cancellationToken);
+
+        var responseBody =
+            await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogError(
+                "Ollama request failed. Status: {StatusCode}. Body: {Body}",
+                response.StatusCode,
+                responseBody);
+
+            throw new InvalidOperationException(
+                $"Ollama returned {(int)response.StatusCode}: {responseBody}");
+        }
+
+        using var document =
+            JsonDocument.Parse(responseBody);
+
+        var content =
+            document.RootElement
+                .GetProperty("message")
+                .GetProperty("content")
+                .GetString();
+
+        return string.IsNullOrWhiteSpace(content)
+            ? "I couldn't generate a response."
+            : content.Trim();
     }
 
     private async Task<string> BuildInventoryContextAsync(string question)
