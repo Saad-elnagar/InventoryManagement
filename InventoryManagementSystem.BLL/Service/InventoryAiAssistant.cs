@@ -157,10 +157,37 @@ public class InventoryAiAssistant : IInventoryAiAssistant
              normalized.Contains("inventory") ||
              normalized.Contains("item"));
 
-        if (!isLowStockQuery)
-            return null;
+        if (isLowStockQuery)
+        {
+            var json = await GetLowStockProductsAsync();
 
-        var json = await GetLowStockProductsAsync();
+            if (string.IsNullOrWhiteSpace(json) || json == "[]")
+                return "No products are currently low in stock.";
+
+            var products =
+                JsonSerializer.Deserialize<List<LowStockResult>>(json) ?? [];
+
+            if (products.Count == 0)
+                return "No products are currently low in stock.";
+
+            var lines = products.Select((p, index) =>
+                $"{index + 1}. {p.Name} ({p.Sku}) — stock: {p.CurrentStock}, reorder level: {p.ReorderLevel}, short by: {p.MissingToReorder}");
+
+            return "These products are currently low in stock:\n\n" +
+                   string.Join("\n", lines);
+        }
+
+        var isTopSellingThisMonth =
+            (normalized.Contains("top selling") ||
+             normalized.Contains("top-selling") ||
+             normalized.Contains("best selling") ||
+             normalized.Contains("best-selling")) &&
+            normalized.Contains("month");
+
+        if (isTopSellingThisMonth)
+            return await GetCurrentMonthTopSellingAnswerAsync();
+
+        return null;
 
         if (string.IsNullOrWhiteSpace(json) ||
             json.Equals("[]", StringComparison.Ordinal))
@@ -203,6 +230,72 @@ public class InventoryAiAssistant : IInventoryAiAssistant
         public int CurrentStock { get; set; }
         public int ReorderLevel { get; set; }
         public int MissingToReorder { get; set; }
+    }
+
+    private async Task<string> GetCurrentMonthTopSellingAnswerAsync()
+    {
+        var now = DateTime.Now;
+        var from = new DateTime(now.Year, now.Month, 1);
+        var to = from.AddMonths(1);
+
+        var sales =
+            (await _unitOfWork
+                .GenaricRepository<Sale>()
+                .GetWhereAsync(x => x.SaleDate >= from && x.SaleDate < to))
+            .ToList();
+
+        if (sales.Count == 0)
+            return "No sales found for the current month.";
+
+        var saleIds = sales.Select(x => x.Id).ToList();
+
+        var items =
+            (await _unitOfWork
+                .GenaricRepository<SaleItem>()
+                .GetWhereAsync(x => saleIds.Contains(x.SaleId)))
+            .ToList();
+
+        if (items.Count == 0)
+            return "No sold products found for the current month.";
+
+        var productIds = items.Select(x => x.ProductId).Distinct().ToList();
+
+        var products =
+            (await _unitOfWork
+                .GenaricRepository<Product>()
+                .GetWhereAsync(x => productIds.Contains(x.Id)))
+            .ToList();
+
+        var lookup = products.ToDictionary(x => x.Id, x => x);
+
+        var topProducts =
+            items
+                .GroupBy(x => x.ProductId)
+                .Select(g =>
+                {
+                    lookup.TryGetValue(g.Key, out var product);
+
+                    return new
+                    {
+                        Name = product?.Name ?? $"Product #{g.Key}",
+                        Sku = product?.Sku ?? "N/A",
+                        UnitsSold = g.Sum(x => x.Quantity),
+                        Revenue = g.Sum(x => x.Quantity * x.UnitPrice)
+                    };
+                })
+                .OrderByDescending(x => x.UnitsSold)
+                .ThenByDescending(x => x.Revenue)
+                .Take(10)
+                .ToList();
+
+        if (topProducts.Count == 0)
+            return "No sold products found for the current month.";
+
+        var lines = topProducts.Select((p, index) =>
+            $"{index + 1}. {p.Name} ({p.Sku}) — {p.UnitsSold} units sold, revenue: {p.Revenue:N2}");
+
+        return $"Top selling products for {from:MMMM yyyy}:\n\n" +
+               string.Join("\n", lines);
     }
 
     [Description("Get a high-level overview of the current inventory: product count, total units, low-stock items, out-of-stock items, and inventory value.")]
