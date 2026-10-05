@@ -12,19 +12,16 @@ public class InventoryAiAssistant : IInventoryAiAssistant
 {
     private const int MaxHistoryMessages = 20;
 
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IConfiguration _configuration;
+    private readonly HttpClient _httpClient;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<InventoryAiAssistant> _logger;
 
     public InventoryAiAssistant(
-        IHttpClientFactory httpClientFactory,
-        IConfiguration configuration,
+        HttpClient httpClient,
         IUnitOfWork unitOfWork,
         ILogger<InventoryAiAssistant> logger)
     {
-        _httpClientFactory = httpClientFactory;
-        _configuration = configuration;
+        _httpClient = httpClient;
         _unitOfWork = unitOfWork;
         _logger = logger;
     }
@@ -117,13 +114,8 @@ public class InventoryAiAssistant : IInventoryAiAssistant
         CancellationToken cancellationToken,
         string systemPrompt)
     {
-        var endpoint =
-            _configuration["Ollama:Endpoint"]
-            ?? "http://localhost:11434";
-
-        var model =
-            _configuration["Ollama:Model"]
-            ?? "qwen3:4b";
+        const string endpoint = "http://localhost:11434";
+        const string model = "qwen3:4b";
 
         var ollamaMessages = new List<object>
         {
@@ -160,11 +152,11 @@ public class InventoryAiAssistant : IInventoryAiAssistant
             }
         };
 
-        var client = _httpClientFactory.CreateClient();
+        _httpClient.BaseAddress = new Uri(endpoint);
 
         using var response =
-            await client.PostAsJsonAsync(
-                $"{endpoint.TrimEnd('/')}/api/chat",
+            await _httpClient.PostAsJsonAsync(
+                "/api/chat",
                 payload,
                 cancellationToken);
 
