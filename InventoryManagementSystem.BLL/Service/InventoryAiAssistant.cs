@@ -214,13 +214,6 @@ public class InventoryAiAssistant : IInventoryAiAssistant
                 : (await _unitOfWork
                     .GenaricRepository<SaleItem>()
                     .GetWhereAsync(x => saleIds.Contains(x.SaleId)))
-                  .Select(x => new
-                  {
-                      x.SaleId,
-                      x.ProductId,
-                      x.Quantity,
-                      x.UnitPrice
-                  })
                   .ToList();
 
         var purchases =
@@ -239,13 +232,6 @@ public class InventoryAiAssistant : IInventoryAiAssistant
                 : (await _unitOfWork
                     .GenaricRepository<PurchaseItem>()
                     .GetWhereAsync(x => purchaseIds.Contains(x.PurchaseId)))
-                  .Select(x => new
-                  {
-                      x.PurchaseId,
-                      x.ProductId,
-                      x.Quantity,
-                      x.UnitPrice
-                  })
                   .ToList();
 
         var context = new
