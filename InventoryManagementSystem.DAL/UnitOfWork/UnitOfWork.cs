@@ -1,3 +1,4 @@
+
 using InventoryManagementSystem.DAL.Entities;
 using InventoryManagementSystem.DAL.Repository;
 using InventoryManagementSystem.DAL.Repository.Implementation;
@@ -21,7 +22,9 @@ public class UnitOfWork : IUnitOfWork
     public IGenaricRepository<T> GenaricRepository<T>()
         where T : BaseEntity
     {
-        if (_repositories.TryGetValue(typeof(T), out var repository))
+        if (_repositories.TryGetValue(
+                typeof(T),
+                out var repository))
         {
             return (IGenaricRepository<T>)repository;
         }
@@ -47,7 +50,8 @@ public class UnitOfWork : IUnitOfWork
             return;
 
         _transaction =
-            await _context.Database.BeginTransactionAsync();
+            await _context.Database
+                .BeginTransactionAsync();
     }
 
     public async Task CommitTransactionAsync()
@@ -55,11 +59,16 @@ public class UnitOfWork : IUnitOfWork
         if (_transaction == null)
             return;
 
-        await _transaction.CommitAsync();
+        try
+        {
+            await _transaction.CommitAsync();
+        }
+        finally
+        {
+            await _transaction.DisposeAsync();
 
-        await _transaction.DisposeAsync();
-
-        _transaction = null;
+            _transaction = null;
+        }
     }
 
     public async Task RollbackTransactionAsync()
@@ -67,10 +76,15 @@ public class UnitOfWork : IUnitOfWork
         if (_transaction == null)
             return;
 
-        await _transaction.RollbackAsync();
+        try
+        {
+            await _transaction.RollbackAsync();
+        }
+        finally
+        {
+            await _transaction.DisposeAsync();
 
-        await _transaction.DisposeAsync();
-
-        _transaction = null;
+            _transaction = null;
+        }
     }
 }

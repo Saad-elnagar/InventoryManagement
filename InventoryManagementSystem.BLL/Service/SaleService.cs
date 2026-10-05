@@ -1,3 +1,4 @@
+
 using InventoryManagementSystem.BLL.DTOs;
 using InventoryManagementSystem.BLL.Enums;
 using InventoryManagementSystem.BLL.Interfaces;
@@ -150,6 +151,8 @@ public class SaleService : ISaleService
     public async Task<SaleDTO> CreateAsync(
         SaleDTO dto)
     {
+        await _unitOfWork.BeginTransactionAsync();
+
         try
         {
             var customerExists =
@@ -212,9 +215,11 @@ public class SaleService : ISaleService
                 }
 
                 var totalQuantity =
-                    group.Sum(x => x.Quantity);
+                    group.Sum(
+                        x => x.Quantity);
 
-                if (product.StockQuantity < totalQuantity)
+                if (product.StockQuantity <
+                    totalQuantity)
                 {
                     throw new Exception(
                         $"Not enough stock for product {product.Name}. " +
@@ -239,8 +244,6 @@ public class SaleService : ISaleService
                 .GenaricRepository<Sale>()
                 .AddAsync(sale);
 
-            await _unitOfWork.SaveChangesAsync();
-
             foreach (var item in dto.Items)
             {
                 await _unitOfWork
@@ -257,7 +260,8 @@ public class SaleService : ISaleService
                 var product =
                     products[item.ProductId];
 
-                product.StockQuantity -= item.Quantity;
+                product.StockQuantity -=
+                    item.Quantity;
 
                 _unitOfWork
                     .GenaricRepository<Product>()
@@ -269,7 +273,9 @@ public class SaleService : ISaleService
                         new StockMovement
                         {
                             ProductId = item.ProductId,
-                            Quantity = -item.Quantity,
+
+                            Quantity =
+                                -item.Quantity,
 
                             MovementType =
                                 StockMovementType
@@ -281,22 +287,26 @@ public class SaleService : ISaleService
 
                             ReferenceType = "Sale",
                             ReferenceId = sale.Id,
+
                             Reason = "Product sold"
                         });
             }
 
             await _unitOfWork.SaveChangesAsync();
 
+            await _unitOfWork.CommitTransactionAsync();
+
             dto.Id = sale.Id;
             dto.TotalAmount = totalAmount;
 
             return dto;
         }
-        catch (Exception ex)
+        catch
         {
-            throw new Exception(
-                "Error while creating sale.",
-                ex);
+            await _unitOfWork.RollbackTransactionAsync();
+
+            throw;
         }
     }
 }
+

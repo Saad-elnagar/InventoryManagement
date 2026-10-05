@@ -1,3 +1,4 @@
+
 using InventoryManagementSystem.BLL.DTOs;
 using InventoryManagementSystem.BLL.Enums;
 using InventoryManagementSystem.BLL.Interfaces;
@@ -24,10 +25,11 @@ public class PurchaseService : IPurchaseService
                     .GenaricRepository<Purchase>()
                     .GetAllAsync();
 
-            var supplierIds = purchases
-                .Select(p => p.SupplierId)
-                .Distinct()
-                .ToList();
+            var supplierIds =
+                purchases
+                    .Select(p => p.SupplierId)
+                    .Distinct()
+                    .ToList();
 
             var suppliers =
                 await _unitOfWork
@@ -35,8 +37,8 @@ public class PurchaseService : IPurchaseService
                     .GetWhereAsync(
                         s => supplierIds.Contains(s.Id));
 
-            var supplierDictionary = suppliers
-                .ToDictionary(
+            var supplierDictionary =
+                suppliers.ToDictionary(
                     s => s.Id,
                     s => s.SupplierName);
 
@@ -46,12 +48,14 @@ public class PurchaseService : IPurchaseService
                 {
                     Id = p.Id,
                     SupplierId = p.SupplierId,
+
                     SupplierName =
                         supplierDictionary.TryGetValue(
                             p.SupplierId,
                             out var supplierName)
                             ? supplierName
                             : null,
+
                     PurchaseDate = p.PurchaseDate,
                     TotalAmount = p.TotalAmount
                 });
@@ -88,10 +92,11 @@ public class PurchaseService : IPurchaseService
                     .GetWhereAsync(
                         x => x.PurchaseId == id);
 
-            var productIds = purchaseItems
-                .Select(x => x.ProductId)
-                .Distinct()
-                .ToList();
+            var productIds =
+                purchaseItems
+                    .Select(x => x.ProductId)
+                    .Distinct()
+                    .ToList();
 
             var products =
                 await _unitOfWork
@@ -99,8 +104,8 @@ public class PurchaseService : IPurchaseService
                     .GetWhereAsync(
                         x => productIds.Contains(x.Id));
 
-            var productDictionary = products
-                .ToDictionary(
+            var productDictionary =
+                products.ToDictionary(
                     x => x.Id,
                     x => x.Name);
 
@@ -119,12 +124,14 @@ public class PurchaseService : IPurchaseService
                         Id = x.Id,
                         PurchaseId = x.PurchaseId,
                         ProductId = x.ProductId,
+
                         ProductName =
                             productDictionary.TryGetValue(
                                 x.ProductId,
                                 out var productName)
                                 ? productName
                                 : null,
+
                         Quantity = x.Quantity,
                         UnitPrice = x.UnitCost
                     })
@@ -142,6 +149,8 @@ public class PurchaseService : IPurchaseService
     public async Task<PurchaseDTO> CreateAsync(
         PurchaseDTO dto)
     {
+        await _unitOfWork.BeginTransactionAsync();
+
         try
         {
             var supplierExists =
@@ -151,8 +160,10 @@ public class PurchaseService : IPurchaseService
                         s => s.Id == dto.SupplierId);
 
             if (!supplierExists)
+            {
                 throw new Exception(
                     "Supplier not found.");
+            }
 
             if (dto.Items == null ||
                 dto.Items.Count == 0)
@@ -164,16 +175,22 @@ public class PurchaseService : IPurchaseService
             foreach (var item in dto.Items)
             {
                 if (item.ProductId <= 0)
+                {
                     throw new Exception(
                         "Please select a product.");
+                }
 
                 if (item.Quantity <= 0)
+                {
                     throw new Exception(
                         "Quantity must be greater than zero.");
+                }
 
                 if (item.UnitPrice <= 0)
+                {
                     throw new Exception(
                         "Unit cost must be greater than zero.");
+                }
             }
 
             var products =
@@ -197,8 +214,9 @@ public class PurchaseService : IPurchaseService
 
                 products[group.Key] = product;
 
-                totalAmount += group.Sum(
-                    x => x.Quantity * x.UnitPrice);
+                totalAmount +=
+                    group.Sum(
+                        x => x.Quantity * x.UnitPrice);
             }
 
             var purchase = new Purchase
@@ -211,8 +229,6 @@ public class PurchaseService : IPurchaseService
             await _unitOfWork
                 .GenaricRepository<Purchase>()
                 .AddAsync(purchase);
-
-            await _unitOfWork.SaveChangesAsync();
 
             foreach (var item in dto.Items)
             {
@@ -243,30 +259,37 @@ public class PurchaseService : IPurchaseService
                         {
                             ProductId = item.ProductId,
                             Quantity = item.Quantity,
+
                             MovementType =
                                 StockMovementType
                                     .Purchase
                                     .ToString(),
+
                             MovementDate =
                                 DateTime.UtcNow,
+
                             ReferenceType = "Purchase",
                             ReferenceId = purchase.Id,
+
                             Reason = "Purchase received"
                         });
             }
 
             await _unitOfWork.SaveChangesAsync();
 
+            await _unitOfWork.CommitTransactionAsync();
+
             dto.Id = purchase.Id;
             dto.TotalAmount = totalAmount;
 
             return dto;
         }
-        catch (Exception ex)
+        catch
         {
-            throw new Exception(
-                "Error while creating purchase.",
-                ex);
+            await _unitOfWork.RollbackTransactionAsync();
+
+            throw;
         }
     }
 }
+
