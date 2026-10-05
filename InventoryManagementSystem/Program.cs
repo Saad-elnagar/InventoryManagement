@@ -203,9 +203,12 @@ builder.Services.AddSingleton<IChatClient>(_ =>
         builder.Configuration["Ollama:Model"]
         ?? "qwen3:4b";
 
-    return new OllamaApiClient(
+    IChatClient client =
+        new OllamaApiClient(
             new Uri(endpoint),
-            model)
+            model);
+
+    return client
         .AsBuilder()
         .UseFunctionInvocation()
         .Build();
