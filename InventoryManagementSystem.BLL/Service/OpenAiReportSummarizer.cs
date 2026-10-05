@@ -8,24 +8,24 @@ using Microsoft.Extensions.Logging;
 
 namespace InventoryManagementSystem.BLL.Service;
 
-public class OpenAiReportSummarizer : IAiReportSummarizer
+public class OpenRouterReportSummarizer : IAiReportSummarizer
 {
     private readonly HttpClient _httpClient;
     private readonly MlNetReportSummarizer _forecastSummarizer;
-    private readonly ILogger<OpenAiReportSummarizer> _logger;
+    private readonly ILogger<OpenRouterReportSummarizer> _logger;
     private readonly string _model;
 
-    public OpenAiReportSummarizer(
+    public OpenRouterReportSummarizer(
         HttpClient httpClient,
         MlNetReportSummarizer forecastSummarizer,
-        ILogger<OpenAiReportSummarizer> logger,
+        ILogger<OpenRouterReportSummarizer> logger,
         IConfiguration configuration)
     {
         _httpClient = httpClient;
         _forecastSummarizer = forecastSummarizer;
         _logger = logger;
         _model =
-            configuration["OpenAI:Model"]
+            configuration["OpenRouter:Model"]
             ?? "gpt-5.2";
     }
 
@@ -102,7 +102,7 @@ public class OpenAiReportSummarizer : IAiReportSummarizer
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogError(
-                    "OpenAI report request failed. Status: {StatusCode}. Body: {Body}",
+                    "OpenRouter report request failed. Status: {StatusCode}. Body: {Body}",
                     response.StatusCode,
                     responseBody);
 
@@ -125,7 +125,7 @@ public class OpenAiReportSummarizer : IAiReportSummarizer
         {
             _logger.LogError(
                 ex,
-                "OpenAI report summarization failed.");
+                "OpenRouter report summarization failed.");
 
             return BuildFallbackReport(
                 report,
