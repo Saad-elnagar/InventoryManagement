@@ -22,11 +22,11 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddHttpClient<IInventoryAiAssistant, InventoryAiAssistant>(client =>
 {
     var apiKey =
-        builder.Configuration["OpenAI:ApiKey"]
-        ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+        builder.Configuration["OpenRouter:ApiKey"]
+        ?? Environment.GetEnvironmentVariable("OPENROUTER_API_KEY");
 
     client.BaseAddress =
-        new Uri("https://api.openai.com/v1/");
+        new Uri("https://openrouter.ai/api/v1/");
 
     client.Timeout =
         TimeSpan.FromSeconds(60);
@@ -221,11 +221,11 @@ builder.Services.AddScoped<MlNetReportSummarizer>();
 builder.Services.AddHttpClient<IAiReportSummarizer, OpenAiReportSummarizer>(client =>
 {
     var apiKey =
-        builder.Configuration["OpenAI:ApiKey"]
-        ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+        builder.Configuration["OpenRouter:ApiKey"]
+        ?? Environment.GetEnvironmentVariable("OPENROUTER_API_KEY");
 
     client.BaseAddress =
-        new Uri("https://api.openai.com/v1/");
+        new Uri("https://openrouter.ai/api/v1/");
 
     client.Timeout =
         TimeSpan.FromMinutes(3);
