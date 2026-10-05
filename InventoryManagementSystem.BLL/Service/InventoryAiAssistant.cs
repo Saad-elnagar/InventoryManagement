@@ -114,41 +114,27 @@ public class InventoryAiAssistant : IInventoryAiAssistant
             }
         }
 
-        var deterministicAnswer =
-            await TryHandleDeterministicQueryAsync(
-                latestUserMessage,
-                cancellationToken);
-
-        if (deterministicAnswer != null)
-            return deterministicAnswer;
-
-        var options = new ChatOptions
-        {
-            Temperature = 0.1f,
-            MaxOutputTokens = 700,
-            Tools =
-            [
-                AIFunctionFactory.Create(GetInventoryOverviewAsync),
-                AIFunctionFactory.Create(SearchProductsAsync),
-                AIFunctionFactory.Create(GetProductStockAsync),
-                AIFunctionFactory.Create(GetLowStockProductsAsync),
-                AIFunctionFactory.Create(GetTopSellingProductsAsync),
-                AIFunctionFactory.Create(GetSalesSummaryAsync),
-                AIFunctionFactory.Create(GetPurchaseSummaryAsync),
-                AIFunctionFactory.Create(GetRecentStockMovementsAsync),
-                AIFunctionFactory.Create(GetProductMovementHistoryAsync),
-                AIFunctionFactory.Create(GetSupplierActivityAsync),
-                AIFunctionFactory.Create(GetCustomerSalesAsync),
-                AIFunctionFactory.Create(GetCategorySummaryAsync)
-            ]
-        };
-
         try
         {
+            var inventoryContext =
+                await BuildInventoryContextAsync(
+                    latestUserMessage);
+
+            var inventoryMessages = new List<ChatMessage>(chatMessages)
+            {
+                new(
+                    ChatRole.System,
+                    inventoryContext)
+            };
+
             var response =
                 await _chatClient.GetResponseAsync(
-                    chatMessages,
-                    options,
+                    inventoryMessages,
+                    new ChatOptions
+                    {
+                        Temperature = 0.25f,
+                        MaxOutputTokens = 900
+                    },
                     cancellationToken);
 
             var text = response.Text?.Trim();
@@ -165,6 +151,154 @@ public class InventoryAiAssistant : IInventoryAiAssistant
                 "Inventory AI is unavailable. Make sure Ollama is running and the configured model is installed.",
                 ex);
         }
+    }
+
+    private async Task<string> BuildInventoryContextAsync(string question)
+    {
+        var products =
+            (await _unitOfWork
+                .GenaricRepository<Product>()
+                .GetAllAsync())
+            .Select(x => new
+            {
+                x.Id,
+                x.Sku,
+                x.Name,
+                x.CategoryId,
+                x.UnitPrice,
+                x.StockQuantity,
+                x.LowStockThreshold,
+                x.Description
+            })
+            .OrderBy(x => x.Name)
+            .ToList();
+
+        var from = DateTime.Now.AddDays(-90);
+
+        var movements =
+            (await _unitOfWork
+                .GenaricRepository<StockMovement>()
+                .GetWhereAsync(x => x.MovementDate >= from))
+            .OrderByDescending(x => x.MovementDate)
+            .Take(150)
+            .Select(x => new
+            {
+                x.ProductId,
+                x.Quantity,
+                x.MovementType,
+                x.MovementDate,
+                x.ReferenceType,
+                x.ReferenceId,
+                x.Reason,
+                x.Notes
+            })
+            .ToList();
+
+        var now = DateTime.Now;
+        var monthStart = new DateTime(now.Year, now.Month, 1);
+        var nextMonth = monthStart.AddMonths(1);
+
+        var sales =
+            (await _unitOfWork
+                .GenaricRepository<Sale>()
+                .GetWhereAsync(x =>
+                    x.SaleDate >= monthStart &&
+                    x.SaleDate < nextMonth))
+            .ToList();
+
+        var saleIds = sales.Select(x => x.Id).ToList();
+
+        var saleItems =
+            saleIds.Count == 0
+                ? []
+                : (await _unitOfWork
+                    .GenaricRepository<SaleItem>()
+                    .GetWhereAsync(x => saleIds.Contains(x.SaleId)))
+                  .Select(x => new
+                  {
+                      x.SaleId,
+                      x.ProductId,
+                      x.Quantity,
+                      x.UnitPrice
+                  })
+                  .ToList();
+
+        var purchases =
+            (await _unitOfWork
+                .GenaricRepository<Purchase>()
+                .GetWhereAsync(x =>
+                    x.PurchaseDate >= monthStart &&
+                    x.PurchaseDate < nextMonth))
+            .ToList();
+
+        var purchaseIds = purchases.Select(x => x.Id).ToList();
+
+        var purchaseItems =
+            purchaseIds.Count == 0
+                ? []
+                : (await _unitOfWork
+                    .GenaricRepository<PurchaseItem>()
+                    .GetWhereAsync(x => purchaseIds.Contains(x.PurchaseId)))
+                  .Select(x => new
+                  {
+                      x.PurchaseId,
+                      x.ProductId,
+                      x.Quantity,
+                      x.UnitPrice
+                  })
+                  .ToList();
+
+        var context = new
+        {
+            asOf = DateTime.Now,
+            currentMonth = monthStart.ToString("yyyy-MM"),
+            question,
+            products,
+            recentStockMovements = movements,
+            currentMonthSales = sales.Select(x => new
+            {
+                x.Id,
+                x.SaleDate,
+                x.TotalAmount,
+                x.CustomerId
+            }),
+            currentMonthSaleItems = saleItems,
+            currentMonthPurchases = purchases.Select(x => new
+            {
+                x.Id,
+                x.PurchaseDate,
+                x.TotalAmount,
+                x.SupplierId
+            }),
+            currentMonthPurchaseItems = purchaseItems
+        };
+
+        return
+            """
+            LIVE INVENTORY CONTEXT
+
+            The following data came directly from the Inventory Management database.
+            Use it as the source of truth for inventory questions.
+
+            Rules:
+            - Answer naturally and directly.
+            - Do not invent product names, quantities, prices, dates, sales, purchases, or movements.
+            - When the user asks about stock, reason about the product's current StockQuantity,
+              LowStockThreshold, sales, purchases, and stock movements when relevant.
+            - You may calculate totals, differences, percentages, rankings, and trends from the supplied data.
+            - If the data does not contain enough information to answer, say exactly what is missing.
+            - Answer in the same language as the user.
+            - Do not mention this internal context or database implementation unless asked.
+            - You are read-only.
+
+            DATA:
+            """ +
+            JsonSerializer.Serialize(
+                context,
+                new JsonSerializerOptions
+                {
+                    WriteIndented = false
+                });
     }
 
     private static bool LooksLikeInventoryQuestion(string question)
@@ -213,133 +347,6 @@ public class InventoryAiAssistant : IInventoryAiAssistant
         ];
 
         return inventoryTerms.Any(normalized.Contains);
-    }
-
-    private async Task<string?> TryHandleDeterministicQueryAsync(
-        string question,
-        CancellationToken cancellationToken)
-    {
-        var normalized = question.Trim().ToLowerInvariant();
-
-        var isLowStockQuery =
-            (normalized.Contains("low stock") ||
-             normalized.Contains("low-stock") ||
-             normalized.Contains("low in stock") ||
-             normalized.Contains("below reorder") ||
-             normalized.Contains("need reorder") ||
-             normalized.Contains("needs reorder") ||
-             normalized.Contains("reorder level")) &&
-            (normalized.Contains("product") ||
-             normalized.Contains("stock") ||
-             normalized.Contains("inventory") ||
-             normalized.Contains("item"));
-
-        if (isLowStockQuery)
-        {
-            var json = await GetLowStockProductsAsync();
-
-            if (string.IsNullOrWhiteSpace(json) || json == "[]")
-                return "No products are currently low in stock.";
-
-            var products =
-                JsonSerializer.Deserialize<List<LowStockResult>>(json) ?? [];
-
-            if (products.Count == 0)
-                return "No products are currently low in stock.";
-
-            var lines = products.Select((p, index) =>
-                $"{index + 1}. {p.Name} ({p.Sku}) — stock: {p.CurrentStock}, reorder level: {p.ReorderLevel}, short by: {p.MissingToReorder}");
-
-            return "These products are currently low in stock:\n\n" +
-                   string.Join("\n", lines);
-        }
-
-        var isTopSellingThisMonth =
-            (normalized.Contains("top selling") ||
-             normalized.Contains("top-selling") ||
-             normalized.Contains("best selling") ||
-             normalized.Contains("best-selling")) &&
-            normalized.Contains("month");
-
-        if (isTopSellingThisMonth)
-            return await GetCurrentMonthTopSellingAnswerAsync();
-
-        return null;
-    }
-
-    private sealed class LowStockResult
-    {
-        public string? Sku { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public int CurrentStock { get; set; }
-        public int ReorderLevel { get; set; }
-        public int MissingToReorder { get; set; }
-    }
-
-    private async Task<string> GetCurrentMonthTopSellingAnswerAsync()
-    {
-        var now = DateTime.Now;
-        var from = new DateTime(now.Year, now.Month, 1);
-        var to = from.AddMonths(1);
-
-        var sales =
-            (await _unitOfWork
-                .GenaricRepository<Sale>()
-                .GetWhereAsync(x => x.SaleDate >= from && x.SaleDate < to))
-            .ToList();
-
-        if (sales.Count == 0)
-            return "No sales found for the current month.";
-
-        var saleIds = sales.Select(x => x.Id).ToList();
-
-        var items =
-            (await _unitOfWork
-                .GenaricRepository<SaleItem>()
-                .GetWhereAsync(x => saleIds.Contains(x.SaleId)))
-            .ToList();
-
-        if (items.Count == 0)
-            return "No sold products found for the current month.";
-
-        var productIds = items.Select(x => x.ProductId).Distinct().ToList();
-
-        var products =
-            (await _unitOfWork
-                .GenaricRepository<Product>()
-                .GetWhereAsync(x => productIds.Contains(x.Id)))
-            .ToList();
-
-        var lookup = products.ToDictionary(x => x.Id, x => x);
-
-        var topProducts =
-            items
-                .GroupBy(x => x.ProductId)
-                .Select(g =>
-                {
-                    lookup.TryGetValue(g.Key, out var product);
-
-                    return new
-                    {
-                        Name = product?.Name ?? $"Product #{g.Key}",
-                        Sku = product?.Sku ?? "N/A",
-                        UnitsSold = g.Sum(x => x.Quantity),
-                        Revenue = g.Sum(x => x.Quantity * x.UnitPrice)
-                    };
-                })
-                .OrderByDescending(x => x.UnitsSold)
-                .ThenByDescending(x => x.Revenue)
-                .Take(10)
-                .ToList();
-
-        if (topProducts.Count == 0)
-            return "No sold products found for the current month.";
-
-        var lines = topProducts.Select((p, index) =>
-            $"{index + 1}. {p.Name} ({p.Sku}) — {p.UnitsSold} units sold, revenue: {p.Revenue:N2}");
-
-        return $"Top selling products for {from:MMMM yyyy}:\n\n" +
-               string.Join("\n", lines);
     }
 
     [Description("Get a high-level overview of the current inventory: product count, total units, low-stock items, out-of-stock items, and inventory value.")]
