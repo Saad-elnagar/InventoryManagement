@@ -5,6 +5,9 @@ namespace InventoryManagementSystem.BLL.DTOs;
 public class ProductDTO
 {
     public int Id { get; set; }
+
+    [Required]
+    [MaxLength(50)]
     public string SKU { get; set; } = string.Empty;
 
     [Required]
@@ -23,7 +26,7 @@ public class ProductDTO
     [Range(0, int.MaxValue)]
     public int ReorderLevel { get; set; }
 
-    [Required]
+    [Range(1, int.MaxValue)]
     public int CategoryId { get; set; }
 
     public string? CategoryName { get; set; }
