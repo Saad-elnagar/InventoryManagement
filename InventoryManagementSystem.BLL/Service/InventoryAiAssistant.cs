@@ -29,7 +29,7 @@ public class InventoryAiAssistant : IInventoryAiAssistant
         _unitOfWork = unitOfWork;
         _logger = logger;
         _model =
-            configuration["OpenRouter:Model"]
+            configuration["Gemini:Model"]
             ?? "gpt-5.2";
     }
 
@@ -51,7 +51,7 @@ public class InventoryAiAssistant : IInventoryAiAssistant
         {
             if (!LooksLikeInventoryQuestion(latestUserMessage))
             {
-                return await SendToOpenRouterAsync(
+                return await SendToGeminiAsync(
                     messages,
                     cancellationToken,
                     BuildNormalSystemPrompt());
@@ -81,7 +81,7 @@ public class InventoryAiAssistant : IInventoryAiAssistant
                 {inventoryContext}
                 """;
 
-            return await SendToOpenRouterAsync(
+            return await SendToGeminiAsync(
                 messages,
                 cancellationToken,
                 inventorySystemPrompt);
@@ -95,7 +95,7 @@ public class InventoryAiAssistant : IInventoryAiAssistant
             _logger.LogError(ex, "Inventory AI request failed.");
 
             throw new InvalidOperationException(
-                "Inventory AI is unavailable. Make sure the OpenRouter API key is configured and the selected model is available.",
+                "Inventory AI is unavailable. Make sure the Gemini API key is configured and the selected model is available.",
                 ex);
         }
     }
@@ -115,12 +115,12 @@ public class InventoryAiAssistant : IInventoryAiAssistant
         """;
     }
 
-    private async Task<string> SendToOpenRouterAsync(
+    private async Task<string> SendToGeminiAsync(
         IReadOnlyCollection<InventoryAiMessageDTO> messages,
         CancellationToken cancellationToken,
         string systemPrompt)
     {
-        var input =
+        var contents =
             messages
                 .Where(x =>
                     !string.IsNullOrWhiteSpace(x.Content) &&
@@ -128,17 +128,37 @@ public class InventoryAiAssistant : IInventoryAiAssistant
                 .TakeLast(MaxHistoryMessages)
                 .Select(x => new
                 {
-                    role = x.Role,
-                    content = x.Content!.Trim()
+                    role = x.Role == "assistant"
+                        ? "model"
+                        : "user",
+                    parts = new[]
+                    {
+                        new
+                        {
+                            text = x.Content!.Trim()
+                        }
+                    }
                 })
                 .ToList();
 
         var payload = new
         {
-            model = _model,
-            instructions = systemPrompt,
-            input,
-            max_output_tokens = 240
+            systemInstruction = new
+            {
+                parts = new[]
+                {
+                    new
+                    {
+                        text = systemPrompt
+                    }
+                }
+            },
+            contents,
+            generationConfig = new
+            {
+                temperature = 0.2,
+                maxOutputTokens = 240
+            }
         };
 
         HttpResponseMessage response;
@@ -147,7 +167,7 @@ public class InventoryAiAssistant : IInventoryAiAssistant
         {
             response =
                 await _httpClient.PostAsJsonAsync(
-                    "responses",
+                    $"models/{_model}:generateContent",
                     payload,
                     cancellationToken);
         }
@@ -156,76 +176,68 @@ public class InventoryAiAssistant : IInventoryAiAssistant
         {
             _logger.LogWarning(
                 ex,
-                "Inventory AI request timed out while waiting for OpenRouter.");
+                "Inventory AI request timed out while waiting for Gemini.");
 
             return "The AI assistant is taking too long to respond. Please try again.";
         }
 
         var responseBody =
-            await response.Content.ReadAsStringAsync(cancellationToken);
+            await response.Content.ReadAsStringAsync(
+                cancellationToken);
 
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogError(
-                "OpenRouter request failed. Status: {StatusCode}. Body: {Body}",
+                "Gemini request failed. Status: {StatusCode}. Body: {Body}",
                 response.StatusCode,
                 responseBody);
 
             throw new InvalidOperationException(
-                $"OpenRouter returned {(int)response.StatusCode}: {responseBody}");
+                $"Gemini returned {(int)response.StatusCode}: {responseBody}");
         }
 
         using var document =
             JsonDocument.Parse(responseBody);
 
-        if (document.RootElement.TryGetProperty(
-                "output_text",
-                out var outputTextElement))
+        if (!document.RootElement.TryGetProperty(
+                "candidates",
+                out var candidates) ||
+            candidates.ValueKind != JsonValueKind.Array ||
+            candidates.GetArrayLength() == 0)
         {
-            var outputText =
-                outputTextElement.GetString();
+            _logger.LogError(
+                "Gemini returned an unexpected response: {Body}",
+                responseBody);
 
-            if (!string.IsNullOrWhiteSpace(outputText))
-                return outputText.Trim();
+            return "I couldn't generate a response.";
         }
 
-        if (document.RootElement.TryGetProperty(
-                "output",
-                out var outputElement) &&
-            outputElement.ValueKind == JsonValueKind.Array)
+        var candidate = candidates[0];
+
+        if (candidate.TryGetProperty(
+                "content",
+                out var content) &&
+            content.TryGetProperty(
+                "parts",
+                out var parts) &&
+            parts.ValueKind == JsonValueKind.Array)
         {
-            foreach (var item in outputElement.EnumerateArray())
+            foreach (var part in parts.EnumerateArray())
             {
-                if (!item.TryGetProperty(
-                        "content",
-                        out var contentElement) ||
-                    contentElement.ValueKind != JsonValueKind.Array)
+                if (!part.TryGetProperty(
+                        "text",
+                        out var textElement))
                     continue;
 
-                foreach (var contentItem in
-                         contentElement.EnumerateArray())
-                {
-                    if (!contentItem.TryGetProperty(
-                            "type",
-                            out var typeElement) ||
-                        typeElement.GetString() != "output_text")
-                        continue;
+                var text = textElement.GetString();
 
-                    if (!contentItem.TryGetProperty(
-                            "text",
-                            out var textElement))
-                        continue;
-
-                    var text = textElement.GetString();
-
-                    if (!string.IsNullOrWhiteSpace(text))
-                        return text.Trim();
-                }
+                if (!string.IsNullOrWhiteSpace(text))
+                    return text.Trim();
             }
         }
 
         _logger.LogError(
-            "OpenRouter returned an unexpected response: {Body}",
+            "Gemini returned no usable text: {Body}",
             responseBody);
 
         return "I couldn't generate a response.";
