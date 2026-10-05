@@ -452,7 +452,7 @@ public class InventoryAiAssistant : IInventoryAiAssistant
 
         var products =
             productIds.Count == 0
-                ? []
+                ? Enumerable.Empty<Product>()
                 : (await _unitOfWork
                     .GenaricRepository<Product>()
                     .GetWhereAsync(x => productIds.Contains(x.Id)))
@@ -600,7 +600,7 @@ public class InventoryAiAssistant : IInventoryAiAssistant
 
         var items =
             purchaseIds.Count == 0
-                ? []
+                ? Enumerable.Empty<PurchaseItem>()
                 : (await _unitOfWork
                     .GenaricRepository<PurchaseItem>()
                     .GetWhereAsync(
@@ -611,7 +611,7 @@ public class InventoryAiAssistant : IInventoryAiAssistant
 
         var products =
             productIds.Count == 0
-                ? []
+                ? Enumerable.Empty<Product>()
                 : (await _unitOfWork
                     .GenaricRepository<Product>()
                     .GetWhereAsync(x => productIds.Contains(x.Id)))
@@ -739,7 +739,7 @@ public class InventoryAiAssistant : IInventoryAiAssistant
 
         var products =
             selectedIds.Count == 0
-                ? []
+                ? Enumerable.Empty<Product>()
                 : (await _unitOfWork
                     .GenaricRepository<Product>()
                     .GetWhereAsync(
