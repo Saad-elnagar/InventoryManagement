@@ -5,6 +5,7 @@ using InventoryManagementSystem.BLL.DTOs;
 using InventoryManagementSystem.BLL.Interfaces;
 using InventoryManagementSystem.DAL.Entities;
 using System.Net.Http.Json;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace InventoryManagementSystem.BLL.Service;
@@ -16,15 +17,20 @@ public class InventoryAiAssistant : IInventoryAiAssistant
     private readonly HttpClient _httpClient;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<InventoryAiAssistant> _logger;
+    private readonly string _model;
 
     public InventoryAiAssistant(
         HttpClient httpClient,
         IUnitOfWork unitOfWork,
-        ILogger<InventoryAiAssistant> logger)
+        ILogger<InventoryAiAssistant> logger,
+        IConfiguration configuration)
     {
         _httpClient = httpClient;
         _unitOfWork = unitOfWork;
         _logger = logger;
+        _model =
+            configuration["OpenAI:Model"]
+            ?? "gpt-5.2";
     }
 
     public async Task<string> ChatAsync(
@@ -45,7 +51,7 @@ public class InventoryAiAssistant : IInventoryAiAssistant
         {
             if (!LooksLikeInventoryQuestion(latestUserMessage))
             {
-                return await SendToOllamaAsync(
+                return await SendToOpenAiAsync(
                     messages,
                     cancellationToken,
                     BuildNormalSystemPrompt());
@@ -75,7 +81,7 @@ public class InventoryAiAssistant : IInventoryAiAssistant
                 {inventoryContext}
                 """;
 
-            return await SendToOllamaAsync(
+            return await SendToOpenAiAsync(
                 messages,
                 cancellationToken,
                 inventorySystemPrompt);
@@ -89,7 +95,7 @@ public class InventoryAiAssistant : IInventoryAiAssistant
             _logger.LogError(ex, "Inventory AI request failed.");
 
             throw new InvalidOperationException(
-                "Inventory AI is unavailable. Make sure Ollama is running and the configured model is installed.",
+                "Inventory AI is unavailable. Make sure the OpenAI API key is configured and the selected model is available.",
                 ex);
         }
     }
@@ -109,50 +115,30 @@ public class InventoryAiAssistant : IInventoryAiAssistant
         """;
     }
 
-    private async Task<string> SendToOllamaAsync(
+    private async Task<string> SendToOpenAiAsync(
         IReadOnlyCollection<InventoryAiMessageDTO> messages,
         CancellationToken cancellationToken,
         string systemPrompt)
     {
-        const string model = "qwen3:4b";
-
-        var ollamaMessages = new List<object>
-        {
-            new
-            {
-                role = "system",
-                content = systemPrompt
-            }
-        };
-
-        foreach (var message in messages
-                     .Where(x =>
-                         !string.IsNullOrWhiteSpace(x.Content) &&
-                         (x.Role == "user" || x.Role == "assistant"))
-                     .TakeLast(MaxHistoryMessages))
-        {
-            ollamaMessages.Add(new
-            {
-                role = message.Role,
-                content = message.Content.Trim()
-            });
-        }
+        var input =
+            messages
+                .Where(x =>
+                    !string.IsNullOrWhiteSpace(x.Content) &&
+                    (x.Role == "user" || x.Role == "assistant"))
+                .TakeLast(MaxHistoryMessages)
+                .Select(x => new
+                {
+                    role = x.Role,
+                    content = x.Content!.Trim()
+                })
+                .ToList();
 
         var payload = new
         {
-            model,
-            messages = ollamaMessages,
-            stream = false,
-            think = false,
-            keep_alive = "30m",
-            options = new
-            {
-                temperature = 0.2,
-                top_p = 0.85,
-                repeat_penalty = 1.1,
-                num_ctx = 4096,
-                num_predict = 240
-            }
+            model = _model,
+            instructions = systemPrompt,
+            input,
+            max_output_tokens = 240
         };
 
         HttpResponseMessage response;
@@ -161,7 +147,7 @@ public class InventoryAiAssistant : IInventoryAiAssistant
         {
             response =
                 await _httpClient.PostAsJsonAsync(
-                    "/api/chat",
+                    "responses",
                     payload,
                     cancellationToken);
         }
@@ -170,7 +156,7 @@ public class InventoryAiAssistant : IInventoryAiAssistant
         {
             _logger.LogWarning(
                 ex,
-                "Inventory AI request timed out while waiting for Ollama.");
+                "Inventory AI request timed out while waiting for OpenAI.");
 
             return "The AI assistant is taking too long to respond. Please try again.";
         }
@@ -181,27 +167,68 @@ public class InventoryAiAssistant : IInventoryAiAssistant
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogError(
-                "Ollama request failed. Status: {StatusCode}. Body: {Body}",
-                response.StatusCode, responseBody);
+                "OpenAI request failed. Status: {StatusCode}. Body: {Body}",
+                response.StatusCode,
+                responseBody);
 
             throw new InvalidOperationException(
-                $"Ollama returned {(int)response.StatusCode}: {responseBody}");
+                $"OpenAI returned {(int)response.StatusCode}: {responseBody}");
         }
 
-        using var document = JsonDocument.Parse(responseBody);
+        using var document =
+            JsonDocument.Parse(responseBody);
 
-        if (!document.RootElement.TryGetProperty("message", out var messageElement) ||
-            !messageElement.TryGetProperty("content", out var contentElement))
+        if (document.RootElement.TryGetProperty(
+                "output_text",
+                out var outputTextElement))
         {
-            _logger.LogError("Ollama returned an unexpected response: {Body}", responseBody);
-            return "I couldn't generate a response.";
+            var outputText =
+                outputTextElement.GetString();
+
+            if (!string.IsNullOrWhiteSpace(outputText))
+                return outputText.Trim();
         }
 
-        var content = contentElement.GetString();
+        if (document.RootElement.TryGetProperty(
+                "output",
+                out var outputElement) &&
+            outputElement.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in outputElement.EnumerateArray())
+            {
+                if (!item.TryGetProperty(
+                        "content",
+                        out var contentElement) ||
+                    contentElement.ValueKind != JsonValueKind.Array)
+                    continue;
 
-        return string.IsNullOrWhiteSpace(content)
-            ? "I couldn't generate a response."
-            : content.Trim();
+                foreach (var contentItem in
+                         contentElement.EnumerateArray())
+                {
+                    if (!contentItem.TryGetProperty(
+                            "type",
+                            out var typeElement) ||
+                        typeElement.GetString() != "output_text")
+                        continue;
+
+                    if (!contentItem.TryGetProperty(
+                            "text",
+                            out var textElement))
+                        continue;
+
+                    var text = textElement.GetString();
+
+                    if (!string.IsNullOrWhiteSpace(text))
+                        return text.Trim();
+                }
+            }
+        }
+
+        _logger.LogError(
+            "OpenAI returned an unexpected response: {Body}",
+            responseBody);
+
+        return "I couldn't generate a response.";
     }
 
     private async Task<string> BuildInventoryContextAsync(
