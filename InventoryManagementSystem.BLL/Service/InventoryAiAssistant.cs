@@ -72,6 +72,27 @@ public class InventoryAiAssistant : IInventoryAiAssistant
         if (chatMessages.Count == 1)
             return "Ask me about your inventory, stock, sales, purchases, products, suppliers, customers, or reports.";
 
+        // Qwen3 can sometimes choose not to invoke a function for simple list queries.
+        // Handle the most important inventory lookups deterministically so answers always
+        // come from the database instead of depending on the model's tool-selection behavior.
+        var latestUserMessage = messages
+            .LastOrDefault(x =>
+                x.Role == "user" &&
+                !string.IsNullOrWhiteSpace(x.Content))
+            ?.Content
+            ?.Trim();
+
+        if (!string.IsNullOrWhiteSpace(latestUserMessage))
+        {
+            var deterministicAnswer =
+                await TryHandleDeterministicQueryAsync(
+                    latestUserMessage,
+                    cancellationToken);
+
+            if (deterministicAnswer != null)
+                return deterministicAnswer;
+        }
+
         var options = new ChatOptions
         {
             Temperature = 0.1f,
@@ -115,6 +136,73 @@ public class InventoryAiAssistant : IInventoryAiAssistant
                 "Inventory AI is unavailable. Make sure Ollama is running and the configured model is installed.",
                 ex);
         }
+    }
+
+    private async Task<string?> TryHandleDeterministicQueryAsync(
+        string question,
+        CancellationToken cancellationToken)
+    {
+        var normalized = question.Trim().ToLowerInvariant();
+
+        var isLowStockQuery =
+            (normalized.Contains("low stock") ||
+             normalized.Contains("low-stock") ||
+             normalized.Contains("low in stock") ||
+             normalized.Contains("below reorder") ||
+             normalized.Contains("need reorder") ||
+             normalized.Contains("needs reorder") ||
+             normalized.Contains("reorder level")) &&
+            (normalized.Contains("product") ||
+             normalized.Contains("stock") ||
+             normalized.Contains("inventory") ||
+             normalized.Contains("item"));
+
+        if (!isLowStockQuery)
+            return null;
+
+        var json = await GetLowStockProductsAsync();
+
+        if (string.IsNullOrWhiteSpace(json) ||
+            json.Equals("[]", StringComparison.Ordinal))
+        {
+            return normalized.Contains("product") &&
+                   !normalized.Contains("stock")
+                ? "No products currently need reordering."
+                : "No products are currently low in stock.";
+        }
+
+        try
+        {
+            var products =
+                JsonSerializer.Deserialize<List<LowStockResult>>(json)
+                ?? [];
+
+            if (products.Count == 0)
+                return "No products are currently low in stock.";
+
+            var lines = products.Select((p, index) =>
+                $"{index + 1}. **{p.Name}** ({p.Sku}) — stock: {p.CurrentStock}, reorder level: {p.ReorderLevel}, short by: {p.MissingToReorder}");
+
+            return "These products are currently low in stock:\n\n" +
+                   string.Join("\n", lines);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Could not format the low-stock inventory result.");
+
+            return json;
+        }
+    }
+
+    private sealed class LowStockResult
+    {
+        public string? Sku { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public int CurrentStock { get; set; }
+        public int ReorderLevel { get; set; }
+        public int MissingToReorder { get; set; }
     }
 
     [Description("Get a high-level overview of the current inventory: product count, total units, low-stock items, out-of-stock items, and inventory value.")]
