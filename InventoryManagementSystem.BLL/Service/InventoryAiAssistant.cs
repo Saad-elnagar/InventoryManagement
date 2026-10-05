@@ -188,39 +188,6 @@ public class InventoryAiAssistant : IInventoryAiAssistant
             return await GetCurrentMonthTopSellingAnswerAsync();
 
         return null;
-
-        if (string.IsNullOrWhiteSpace(json) ||
-            json.Equals("[]", StringComparison.Ordinal))
-        {
-            return normalized.Contains("product") &&
-                   !normalized.Contains("stock")
-                ? "No products currently need reordering."
-                : "No products are currently low in stock.";
-        }
-
-        try
-        {
-            var products =
-                JsonSerializer.Deserialize<List<LowStockResult>>(json)
-                ?? [];
-
-            if (products.Count == 0)
-                return "No products are currently low in stock.";
-
-            var lines = products.Select((p, index) =>
-                $"{index + 1}. **{p.Name}** ({p.Sku}) — stock: {p.CurrentStock}, reorder level: {p.ReorderLevel}, short by: {p.MissingToReorder}");
-
-            return "These products are currently low in stock:\n\n" +
-                   string.Join("\n", lines);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(
-                ex,
-                "Could not format the low-stock inventory result.");
-
-            return json;
-        }
     }
 
     private sealed class LowStockResult
