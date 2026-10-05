@@ -210,7 +210,7 @@ public class InventoryAiAssistant : IInventoryAiAssistant
 
         var saleItems =
             saleIds.Count == 0
-                ? []
+                ? new List<SaleItem>()
                 : (await _unitOfWork
                     .GenaricRepository<SaleItem>()
                     .GetWhereAsync(x => saleIds.Contains(x.SaleId)))
@@ -235,7 +235,7 @@ public class InventoryAiAssistant : IInventoryAiAssistant
 
         var purchaseItems =
             purchaseIds.Count == 0
-                ? []
+                ? new List<PurchaseItem>()
                 : (await _unitOfWork
                     .GenaricRepository<PurchaseItem>()
                     .GetWhereAsync(x => purchaseIds.Contains(x.PurchaseId)))
