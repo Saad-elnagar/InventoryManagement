@@ -128,9 +128,10 @@ builder.Services
                 var isHtmlRequest =
                     HttpMethods.IsGet(request.Method) &&
                     request.Headers.Accept.Any(
-                        x => x?.Contains(
-                            "text/html",
-                            StringComparison.OrdinalIgnoreCase));
+                        x => x != null &&
+                             x.Contains(
+                                 "text/html",
+                                 StringComparison.OrdinalIgnoreCase));
 
                 var isApiRequest =
                     request.Path.StartsWithSegments("/api");
@@ -161,9 +162,10 @@ builder.Services
                 var isHtmlRequest =
                     HttpMethods.IsGet(request.Method) &&
                     request.Headers.Accept.Any(
-                        x => x.Contains(
-                            "text/html",
-                            StringComparison.OrdinalIgnoreCase));
+                        x => x != null &&
+                             x.Contains(
+                                 "text/html",
+                                 StringComparison.OrdinalIgnoreCase));
 
                 var isApiRequest =
                     request.Path.StartsWithSegments("/api");
