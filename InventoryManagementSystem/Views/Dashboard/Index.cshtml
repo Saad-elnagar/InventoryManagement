@@ -1,202 +1,736 @@
 @model InventoryManagementSystem.BLL.DTOs.DashboardDTO
 @using System.Text.Json
+
 @{
     ViewData["Title"] = "Dashboard";
 
-    int total = Model.TotalProducts;
-    int low = Model.LowStockProducts;
-    int out_ = Model.OutOfStockProducts;
-    int healthy = Math.Max(total - low - out_, 0);
+    var total = Model.TotalProducts;
+    var low = Model.LowStockProducts;
+    var outOfStock = Model.OutOfStockProducts;
+    var healthy = Math.Max(total - low - outOfStock, 0);
 
-    double Pct(int n) => total > 0 ? n * 100.0 / total : 0;
-    double healthPct = Pct(healthy);
-    int avgStock = total > 0 ? Model.TotalStock / total : 0;
-    int maxCat = Model.CategoryStatistics.Any() ? Model.CategoryStatistics.Max(c => c.ProductCount) : 1;
+    double Pct(int value) =>
+        total > 0
+            ? value * 100.0 / total
+            : 0;
+
+    var healthPct = Pct(healthy);
+
+    var avgStock =
+        total > 0
+            ? Model.TotalStock / total
+            : 0;
+
+    var maxCategoryProducts =
+        Model.CategoryStatistics.Any()
+            ? Model.CategoryStatistics.Max(x => x.ProductCount)
+            : 1;
 }
 
-<!-- ===== KPI row 1 ===== -->
-<div class="row g-3 mb-3">
-    <div class="col-6 col-xl-3">
-        <div class="kpi-card">
-            <i class="bi bi-box-seam kpi-icon"></i>
-            <div class="kpi-label">Total Products</div>
-            <div class="kpi-value">@total</div>
-            <div class="kpi-hint">Unique items in inventory</div>
-        </div>
-    </div>
-    <div class="col-6 col-xl-3">
-        <div class="kpi-card kpi-warn">
-            <i class="bi bi-exclamation-triangle kpi-icon"></i>
-            <div class="kpi-label">Low Stock Alerts</div>
-            <div class="kpi-value">@low</div>
-            <div class="kpi-hint">Items below reorder point</div>
-        </div>
-    </div>
-    <div class="col-6 col-xl-3">
-        <div class="kpi-card kpi-danger">
-            <i class="bi bi-x-circle kpi-icon"></i>
-            <div class="kpi-label">Out of Stock</div>
-            <div class="kpi-value">@out_</div>
-            <div class="kpi-hint">Items need immediate reorder</div>
-        </div>
-    </div>
-    <div class="col-6 col-xl-3">
-        <div class="kpi-card">
-            <i class="bi bi-currency-dollar kpi-icon"></i>
-            <div class="kpi-label">Total Value</div>
-            <div class="kpi-value">EGP @Model.InventoryValue.ToString("N2")</div>
-            <div class="kpi-hint">Current inventory value</div>
-        </div>
-    </div>
-</div>
+<div class="dashboard-page">
 
-<!-- ===== KPI row 2 ===== -->
-<div class="row g-3 mb-3">
-    <div class="col-6 col-xl-3">
-        <div class="kpi-card">
-            <i class="bi bi-bar-chart kpi-icon"></i>
-            <div class="kpi-label">Avg Stock Level</div>
-            <div class="kpi-value">@avgStock</div>
-            <div class="kpi-hint">Average units per product</div>
-        </div>
-    </div>
-    <div class="col-6 col-xl-3">
-        <div class="kpi-card kpi-ok">
-            <i class="bi bi-graph-up-arrow kpi-icon"></i>
-            <div class="kpi-label">Stock Health</div>
-            <div class="kpi-value">@healthPct.ToString("0")%</div>
-            <div class="kpi-hint">Percentage in stock</div>
-        </div>
-    </div>
-    <div class="col-6 col-xl-3">
-        <div class="kpi-card">
-            <i class="bi bi-cash-stack kpi-icon"></i>
-            <div class="kpi-label">Total Sales</div>
-            <div class="kpi-value">EGP @Model.TotalSales.ToString("N0")</div>
-            <div class="kpi-hint">All time sales</div>
-        </div>
-    </div>
-    <div class="col-6 col-xl-3">
-        <div class="kpi-card">
-            <i class="bi bi-cart-plus kpi-icon"></i>
-            <div class="kpi-label">Total Purchases</div>
-            <div class="kpi-value">EGP @Model.TotalPurchases.ToString("N0")</div>
-            <div class="kpi-hint">All time purchases</div>
-        </div>
-    </div>
-</div>
+    <section class="dashboard-hero">
 
-<!-- ===== Category + Status ===== -->
-<div class="row g-3 mb-3">
-    <div class="col-12 col-lg-6">
-        <div class="panel">
-            <h2 class="panel-title">Inventory by Category</h2>
-            @foreach (var c in Model.CategoryStatistics)
-            {
-                var w = maxCat > 0 ? c.ProductCount * 100.0 / maxCat : 0;
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between align-items-center mb-1" style="font-size:.75rem;">
-                        <span>@c.CategoryName <span class="mini-tag ms-1">@c.ProductCount items</span></span>
-                    </div>
-                    <div class="thin-progress"><span style="width:@w.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)%"></span></div>
+        <div class="dashboard-hero-grid">
+
+            <div class="dashboard-hero-copy">
+
+                <div class="section-kicker">
+                    Inventory overview
                 </div>
-            }
-            @if (!Model.CategoryStatistics.Any())
-            {
-                <div class="text-muted small">No categories yet.</div>
-            }
-        </div>
-    </div>
 
-    <div class="col-12 col-lg-6">
-        <div class="panel">
-            <h2 class="panel-title">Stock Status Distribution</h2>
+                <h1>
+                    Good morning. Here is your inventory at a glance.
+                </h1>
 
-            <div class="stack-bar mb-3">
-                @if (healthy > 0)
-                {
-                    <span class="bg-ok" style="width:@Pct(healthy).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)%">@Pct(healthy).ToString("0")%</span>
-                }
-                @if (low > 0)
-                {
-                    <span class="bg-low" style="width:@Pct(low).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)%"></span>
-                }
-                @if (out_ > 0)
-                {
-                    <span class="bg-out" style="width:@Pct(out_).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)%"></span>
-                }
+                <p>
+                    Monitor stock health, movement activity, sales performance,
+                    and purchasing in one place.
+                </p>
+
             </div>
 
-            <div class="d-flex justify-content-between mb-1" style="font-size:.72rem;"><span><i class="dot bg-ok me-2"></i>In Stock</span><span class="text-muted">@healthy products</span></div>
-            <div class="d-flex justify-content-between mb-1" style="font-size:.72rem;"><span><i class="dot bg-low me-2"></i>Low Stock</span><span class="text-muted">@low products</span></div>
-            <div class="d-flex justify-content-between mb-3" style="font-size:.72rem;"><span><i class="dot bg-out me-2"></i>Out of Stock</span><span class="text-muted">@out_ products</span></div>
+            <div class="dashboard-hero-actions">
 
-            <hr class="my-3" />
-            <div class="row text-center">
-                <div class="col-4"><i class="bi bi-check-circle fs-4" style="color:#10b981"></i><div class="fw-bold">@healthy</div><div class="kpi-hint">Healthy Stock</div></div>
-                <div class="col-4"><i class="bi bi-exclamation-triangle fs-4" style="color:#d4a006"></i><div class="fw-bold">@low</div><div class="kpi-hint">Need Attention</div></div>
-                <div class="col-4"><i class="bi bi-x-circle fs-4" style="color:#ef4444"></i><div class="fw-bold">@out_</div><div class="kpi-hint">Urgent</div></div>
+                <span class="dashboard-chip">
+                    <i class="bi bi-circle-fill text-success"
+                       style="font-size:.42rem;"></i>
+                    System operational
+                </span>
+
+                @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+                {
+                    <a asp-controller="InventoryAi"
+                       asp-action="Index"
+                       class="btn btn-primary">
+
+                        <i class="bi bi-stars me-2"></i>
+                        Ask Inventory AI
+
+                    </a>
+                }
+
+                <a asp-controller="StockMovement"
+                   asp-action="Index"
+                   class="btn btn-light">
+
+                    <i class="bi bi-arrow-left-right me-2"></i>
+                    View activity
+
+                </a>
+
+            </div>
+
+        </div>
+
+    </section>
+
+    <div class="row g-3 mb-3">
+
+        <div class="col-6 col-xl-3">
+            <div class="kpi-card">
+
+                <i class="bi bi-box-seam kpi-icon"></i>
+
+                <div class="kpi-label">
+                    Total Products
+                </div>
+
+                <div class="kpi-value">
+                    @total
+                </div>
+
+                <div class="kpi-hint">
+                    Unique items in inventory
+                </div>
+
             </div>
         </div>
-    </div>
-</div>
 
-<!-- ===== Movements + Products ===== -->
-<div class="row g-3">
-    <div class="col-12 col-lg-6">
-        <div class="panel">
-            <h2 class="panel-title"><i class="bi bi-graph-up"></i> Stock Movements (@DateTime.Now.Year)</h2>
-            <div style="height:260px"><canvas id="movementsChart"></canvas></div>
+        <div class="col-6 col-xl-3">
+            <div class="kpi-card kpi-warn">
+
+                <i class="bi bi-exclamation-triangle kpi-icon"></i>
+
+                <div class="kpi-label">
+                    Low Stock
+                </div>
+
+                <div class="kpi-value">
+                    @low
+                </div>
+
+                <div class="kpi-hint">
+                    At or below reorder level
+                </div>
+
+            </div>
         </div>
+
+        <div class="col-6 col-xl-3">
+            <div class="kpi-card kpi-danger">
+
+                <i class="bi bi-x-circle kpi-icon"></i>
+
+                <div class="kpi-label">
+                    Out of Stock
+                </div>
+
+                <div class="kpi-value">
+                    @outOfStock
+                </div>
+
+                <div class="kpi-hint">
+                    Immediate attention required
+                </div>
+
+            </div>
+        </div>
+
+        <div class="col-6 col-xl-3">
+            <div class="kpi-card">
+
+                <i class="bi bi-currency-exchange kpi-icon"></i>
+
+                <div class="kpi-label">
+                    Inventory Value
+                </div>
+
+                <div class="kpi-value">
+                    EGP @Model.InventoryValue.ToString("N0")
+                </div>
+
+                <div class="kpi-hint">
+                    Current stock value
+                </div>
+
+            </div>
+        </div>
+
     </div>
 
-    <div class="col-12 col-lg-6">
-        <div class="panel">
-            <h2 class="panel-title"><i class="bi bi-clock"></i> Lowest Stock Products</h2>
-            @foreach (var p in Model.Products)
-            {
-                var cls = p.Status == "Available" ? "bg-ok" : p.Status == "Low" ? "bg-low" : "bg-out";
-                var txt = p.Status == "Available" ? "OK" : p.Status == "Low" ? "LOW" : "OUT";
-                <div class="d-flex justify-content-between align-items-center py-2 border-bottom" style="font-size:.78rem;">
+    <div class="row g-3 mb-3">
+
+        <div class="col-6 col-xl-3">
+            <div class="kpi-card">
+
+                <i class="bi bi-boxes kpi-icon"></i>
+
+                <div class="kpi-label">
+                    Total Units
+                </div>
+
+                <div class="kpi-value">
+                    @Model.TotalStock
+                </div>
+
+                <div class="kpi-hint">
+                    Units currently on hand
+                </div>
+
+            </div>
+        </div>
+
+        <div class="col-6 col-xl-3">
+            <div class="kpi-card kpi-ok">
+
+                <i class="bi bi-heart-pulse kpi-icon"></i>
+
+                <div class="kpi-label">
+                    Stock Health
+                </div>
+
+                <div class="kpi-value">
+                    @healthPct.ToString("0")%
+                </div>
+
+                <div class="kpi-hint">
+                    Healthy products
+                </div>
+
+            </div>
+        </div>
+
+        <div class="col-6 col-xl-3">
+            <div class="kpi-card">
+
+                <i class="bi bi-graph-up-arrow kpi-icon"></i>
+
+                <div class="kpi-label">
+                    Sales
+                </div>
+
+                <div class="kpi-value">
+                    EGP @Model.TotalSales.ToString("N0")
+                </div>
+
+                <div class="kpi-hint">
+                    All-time sales value
+                </div>
+
+            </div>
+        </div>
+
+        <div class="col-6 col-xl-3">
+            <div class="kpi-card">
+
+                <i class="bi bi-cart-check kpi-icon"></i>
+
+                <div class="kpi-label">
+                    Purchases
+                </div>
+
+                <div class="kpi-value">
+                    EGP @Model.TotalPurchases.ToString("N0")
+                </div>
+
+                <div class="kpi-hint">
+                    All-time purchasing value
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <div class="row g-3 mb-3">
+
+        <div class="col-12 col-xl-7">
+
+            <div class="panel h-100">
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+
                     <div>
-                        <a asp-controller="Product" asp-action="Details" asp-route-id="@p.Id" class="text-decoration-none fw-medium" style="color:#1d63c7">@p.Name</a>
-                        <div class="kpi-hint mt-0">Reorder level: @p.ReorderLevel</div>
+
+                        <h2 class="panel-title mb-1">
+                            Inventory by category
+                        </h2>
+
+                        <div class="kpi-hint">
+                            Product distribution across categories
+                        </div>
+
                     </div>
-                    <div class="text-end">
-                        <span class="status-pill @cls">@txt</span>
-                        <div class="fw-semibold mt-1" style="font-size:.7rem;">@p.Quantity units</div>
-                    </div>
+
+                    <a asp-controller="Category"
+                       asp-action="Index"
+                       class="btn btn-light btn-sm">
+
+                        View categories
+
+                    </a>
+
                 </div>
-            }
-            @if (!Model.Products.Any())
-            {
-                <div class="text-muted small">No products available.</div>
-            }
+
+                @if (Model.CategoryStatistics.Any())
+                {
+                    foreach (var category in Model.CategoryStatistics)
+                    {
+                        var width =
+                            maxCategoryProducts > 0
+                                ? category.ProductCount * 100.0 / maxCategoryProducts
+                                : 0;
+
+                        <div class="mb-3">
+
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+
+                                <span class="fw-semibold"
+                                      style="font-size:.73rem;color:#334155;">
+
+                                    @category.CategoryName
+
+                                </span>
+
+                                <span class="mini-tag px-2 py-1">
+                                    @category.ProductCount products
+                                </span>
+
+                            </div>
+
+                            <div class="thin-progress">
+
+                                <span style="width:@width.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)%"></span>
+
+                            </div>
+
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="empty-state py-4">
+                        <div class="empty-state-icon">
+                            <i class="bi bi-tags"></i>
+                        </div>
+                        <div class="fw-bold mb-1">No categories yet</div>
+                        <div class="text-muted small">
+                            Add your first category to organize products.
+                        </div>
+                    </div>
+                }
+
+            </div>
+
         </div>
+
+        <div class="col-12 col-xl-5">
+
+            <div class="panel h-100">
+
+                <h2 class="panel-title">
+                    Stock health
+                </h2>
+
+                <div class="stack-bar mb-3">
+
+                    @if (healthy > 0)
+                    {
+                        <span class="bg-ok"
+                              style="width:@Pct(healthy).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)%">
+                        </span>
+                    }
+
+                    @if (low > 0)
+                    {
+                        <span class="bg-low"
+                              style="width:@Pct(low).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)%">
+                        </span>
+                    }
+
+                    @if (outOfStock > 0)
+                    {
+                        <span class="bg-out"
+                              style="width:@Pct(outOfStock).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)%">
+                        </span>
+                    }
+
+                </div>
+
+                <div class="d-flex flex-column gap-2">
+
+                    <div class="d-flex justify-content-between align-items-center">
+
+                        <span style="font-size:.72rem;">
+                            <i class="dot bg-ok me-2"></i>
+                            Healthy stock
+                        </span>
+
+                        <strong style="font-size:.72rem;">
+                            @healthy
+                        </strong>
+
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center">
+
+                        <span style="font-size:.72rem;">
+                            <i class="dot bg-low me-2"></i>
+                            Low stock
+                        </span>
+
+                        <strong style="font-size:.72rem;">
+                            @low
+                        </strong>
+
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center">
+
+                        <span style="font-size:.72rem;">
+                            <i class="dot bg-out me-2"></i>
+                            Out of stock
+                        </span>
+
+                        <strong style="font-size:.72rem;">
+                            @outOfStock
+                        </strong>
+
+                    </div>
+
+                </div>
+
+                <hr class="my-3" />
+
+                <div class="row text-center g-2">
+
+                    <div class="col-4">
+
+                        <div class="fw-bold"
+                             style="font-size:1.05rem;">
+                            @healthy
+                        </div>
+
+                        <div class="kpi-hint">
+                            Healthy
+                        </div>
+
+                    </div>
+
+                    <div class="col-4">
+
+                        <div class="fw-bold text-warning"
+                             style="font-size:1.05rem;">
+                            @low
+                        </div>
+
+                        <div class="kpi-hint">
+                            Attention
+                        </div>
+
+                    </div>
+
+                    <div class="col-4">
+
+                        <div class="fw-bold text-danger"
+                             style="font-size:1.05rem;">
+                            @outOfStock
+                        </div>
+
+                        <div class="kpi-hint">
+                            Urgent
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="mt-4 pt-3 border-top">
+
+                    <div class="d-flex justify-content-between align-items-center">
+
+                        <span class="kpi-hint">
+                            Average units per product
+                        </span>
+
+                        <strong style="font-size:.78rem;color:#0f172a;">
+                            @avgStock
+                        </strong>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
     </div>
+
+    <div class="row g-3">
+
+        <div class="col-12 col-xl-7">
+
+            <div class="panel">
+
+                <div class="d-flex justify-content-between align-items-center mb-2">
+
+                    <div>
+
+                        <h2 class="panel-title mb-1">
+                            Stock movement trend
+                        </h2>
+
+                        <div class="kpi-hint">
+                            Inbound vs outbound activity
+                        </div>
+
+                    </div>
+
+                    <span class="mini-tag px-2 py-1">
+                        @DateTime.Now.Year
+                    </span>
+
+                </div>
+
+                <div style="height:270px;">
+                    <canvas id="movementsChart"></canvas>
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-12 col-xl-5">
+
+            <div class="panel">
+
+                <div class="d-flex justify-content-between align-items-center mb-2">
+
+                    <div>
+
+                        <h2 class="panel-title mb-1">
+                            Lowest stock
+                        </h2>
+
+                        <div class="kpi-hint">
+                            Products closest to running out
+                        </div>
+
+                    </div>
+
+                    <a asp-controller="Product"
+                       asp-action="LowStock"
+                       class="btn btn-light btn-sm">
+
+                        View all
+
+                    </a>
+
+                </div>
+
+                @if (Model.Products.Any())
+                {
+                    foreach (var product in Model.Products)
+                    {
+                        var isAvailable = product.Status == "Available";
+                        var isLow = product.Status == "Low";
+
+                        var statusClass =
+                            isAvailable
+                                ? "bg-ok"
+                                : isLow
+                                    ? "bg-low"
+                                    : "bg-out";
+
+                        var statusText =
+                            isAvailable
+                                ? "OK"
+                                : isLow
+                                    ? "LOW"
+                                    : "OUT";
+
+                        <div class="d-flex justify-content-between align-items-center py-3 border-bottom">
+
+                            <div class="min-w-0">
+
+                                <a asp-controller="Product"
+                                   asp-action="Details"
+                                   asp-route-id="@product.Id"
+                                   class="text-decoration-none fw-semibold text-truncate d-block"
+                                   style="color:#1d4ed8;font-size:.74rem;">
+
+                                    @product.Name
+
+                                </a>
+
+                                <div class="kpi-hint">
+                                    Reorder level: @product.ReorderLevel
+                                </div>
+
+                            </div>
+
+                            <div class="text-end ms-3">
+
+                                <span class="status-pill @statusClass">
+                                    @statusText
+                                </span>
+
+                                <div class="fw-bold mt-1"
+                                     style="font-size:.68rem;color:#0f172a;">
+
+                                    @product.Quantity units
+
+                                </div>
+
+                            </div>
+
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="empty-state py-4">
+
+                        <div class="empty-state-icon">
+                            <i class="bi bi-box-seam"></i>
+                        </div>
+
+                        <div class="fw-bold mb-1">
+                            No product alerts
+                        </div>
+
+                        <div class="text-muted small">
+                            Your inventory looks healthy.
+                        </div>
+
+                    </div>
+                }
+
+            </div>
+
+        </div>
+
+    </div>
+
 </div>
 
 @section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        const labels = @Html.Raw(JsonSerializer.Serialize(Model.StockMovements.Select(x => x.Month)));
-        const inbound = @Html.Raw(JsonSerializer.Serialize(Model.StockMovements.Select(x => x.Inbound)));
-        const outbound = @Html.Raw(JsonSerializer.Serialize(Model.StockMovements.Select(x => x.Outbound)));
 
-        new Chart(document.getElementById("movementsChart"), {
-            type: "bar",
-            data: {
-                labels: labels,
-                datasets: [
-                    { label: "Inbound", data: inbound, backgroundColor: "#10b981", borderRadius: 4 },
-                    { label: "Outbound", data: outbound, backgroundColor: "#1d63c7", borderRadius: 4 }
-                ]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { position: "bottom", labels: { boxWidth: 10, font: { size: 11 } } } },
-                scales: { x: { grid: { display: false } }, y: { beginAtZero: true, grid: { color: "#f1f3f5" } } }
-            }
-        });
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+
+        const labels =
+            @Html.Raw(
+                JsonSerializer.Serialize(
+                    Model.StockMovements.Select(x => x.Month)));
+
+        const inbound =
+            @Html.Raw(
+                JsonSerializer.Serialize(
+                    Model.StockMovements.Select(x => x.Inbound)));
+
+        const outbound =
+            @Html.Raw(
+                JsonSerializer.Serialize(
+                    Model.StockMovements.Select(x => x.Outbound)));
+
+        const chart =
+            document.getElementById("movementsChart");
+
+        if (chart) {
+
+            new Chart(chart, {
+                type: "bar",
+
+                data: {
+                    labels: labels,
+
+                    datasets: [
+                        {
+                            label: "Inbound",
+                            data: inbound,
+                            backgroundColor: "#10b981",
+                            borderRadius: 7,
+                            borderSkipped: false
+                        },
+                        {
+                            label: "Outbound",
+                            data: outbound,
+                            backgroundColor: "#2563eb",
+                            borderRadius: 7,
+                            borderSkipped: false
+                        }
+                    ]
+                },
+
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+
+                    plugins: {
+                        legend: {
+                            position: "bottom",
+
+                            labels: {
+                                boxWidth: 10,
+                                boxHeight: 10,
+                                usePointStyle: true,
+                                pointStyle: "circle",
+                                padding: 16,
+                                font: {
+                                    size: 10,
+                                    weight: "600"
+                                }
+                            }
+                        }
+                    },
+
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+
+                            ticks: {
+                                color: "#94a3b8",
+                                font: {
+                                    size: 9
+                                }
+                            }
+                        },
+
+                        y: {
+                            beginAtZero: true,
+
+                            grid: {
+                                color: "#eef2f7"
+                            },
+
+                            ticks: {
+                                color: "#94a3b8",
+                                font: {
+                                    size: 9
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+        }
+
     </script>
 }
