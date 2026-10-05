@@ -26,4 +26,4 @@ jobs:
         run: dotnet build InventoryManagement.sln --configuration Release --no-restore
 
       - name: Test
-        run: dotnet test InventoryManagementSystem.Tests/InventoryManagementSystem.Tests.csproj --configuration Release --no-build --verbosity normal
+        run: dotnet test InventoryManagementSystem.Tests/InventoryManagementSystem.Tests.csproj --configuration Release --no-build --verbosity normal --logger "console;verbosity=normal"
