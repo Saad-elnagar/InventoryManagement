@@ -5,11 +5,11 @@ namespace InventoryManagementSystem.BLL.DTOs;
 
 public class CreateStockMovementDTO
 {
-    [Required]
+    [Range(1, int.MaxValue)]
     public int ProductId { get; set; }
 
     [Required]
-    public StockMovementType MovementType { get; set; }
+    public StockMovementType? MovementType { get; set; }
 
     [Range(1, int.MaxValue)]
     public int Quantity { get; set; }
