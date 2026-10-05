@@ -263,6 +263,44 @@
         </div>
 
 
+
+        <!-- REPORTS -->
+
+        @if (User.IsInRole("Admin"))
+        {
+            <div class="sidebar-section">
+
+                <div class="sidebar-section-title">
+                    REPORTS
+                </div>
+
+                <ul class="sidebar-menu">
+
+                    <li>
+
+                        <a asp-controller="Report"
+                           asp-action="Preview"
+                           class="sidebar-link @(currentController == "Report" ? "active" : "")">
+
+                            <i class="bi bi-bar-chart-line"></i>
+
+                            <span>
+                                Daily Report
+                            </span>
+
+                            <span class="sidebar-ai-badge">
+                                AI
+                            </span>
+
+                        </a>
+
+                    </li>
+
+                </ul>
+
+            </div>
+        }
+
         <!-- ADMINISTRATION -->
 
         @if (User.IsInRole("Admin"))
