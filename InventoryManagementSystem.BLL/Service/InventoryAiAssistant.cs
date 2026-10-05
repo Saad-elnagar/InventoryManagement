@@ -248,7 +248,13 @@ public class InventoryAiAssistant : IInventoryAiAssistant
                 x.TotalAmount,
                 x.CustomerId
             }),
-            currentMonthSaleItems = saleItems,
+            currentMonthSaleItems = saleItems.Select(x => new
+            {
+                x.SaleId,
+                x.ProductId,
+                x.Quantity,
+                x.UnitPrice
+            }),
             currentMonthPurchases = purchases.Select(x => new
             {
                 x.Id,
@@ -256,7 +262,13 @@ public class InventoryAiAssistant : IInventoryAiAssistant
                 x.TotalAmount,
                 x.SupplierId
             }),
-            currentMonthPurchaseItems = purchaseItems
+            currentMonthPurchaseItems = purchaseItems.Select(x => new
+            {
+                x.PurchaseId,
+                x.ProductId,
+                x.Quantity,
+                x.UnitCost
+            })
         };
 
         return
