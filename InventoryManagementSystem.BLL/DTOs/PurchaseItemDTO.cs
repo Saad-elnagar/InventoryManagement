@@ -6,10 +6,9 @@ public class PurchaseItemDTO
 {
     public int Id { get; set; }
 
-    [Required]
     public int PurchaseId { get; set; }
 
-    [Required]
+    [Range(1, int.MaxValue)]
     public int ProductId { get; set; }
 
     public string? ProductName { get; set; }
