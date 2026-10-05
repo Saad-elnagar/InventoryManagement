@@ -114,7 +114,6 @@ public class InventoryAiAssistant : IInventoryAiAssistant
         CancellationToken cancellationToken,
         string systemPrompt)
     {
-        const string endpoint = "http://localhost:11434";
         const string model = "qwen3:4b";
 
         var ollamaMessages = new List<object>
@@ -151,8 +150,6 @@ public class InventoryAiAssistant : IInventoryAiAssistant
                 num_predict = 900
             }
         };
-
-        _httpClient.BaseAddress = new Uri(endpoint);
 
         using var response =
             await _httpClient.PostAsJsonAsync(
