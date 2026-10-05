@@ -1,4 +1,4 @@
-﻿using InventoryManagementSystem.BLL.DTOs;
+using InventoryManagementSystem.BLL.DTOs;
 using InventoryManagementSystem.BLL.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,13 +10,16 @@ public class SaleController : Controller
 {
     private readonly ISaleService _saleService;
     private readonly IProductService _productService;
+    private readonly ICustomerService _customerService;
 
     public SaleController(
         ISaleService saleService,
-        IProductService productService)
+        IProductService productService,
+        ICustomerService customerService)
     {
         _saleService = saleService;
         _productService = productService;
+        _customerService = customerService;
     }
 
     [HttpGet]
@@ -87,5 +90,8 @@ public class SaleController : Controller
     {
         ViewBag.Products =
             await _productService.GetAllAsync();
+
+        ViewBag.Customers =
+            await _customerService.GetAllAsync();
     }
 }
