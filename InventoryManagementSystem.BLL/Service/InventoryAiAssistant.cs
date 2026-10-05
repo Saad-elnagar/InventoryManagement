@@ -99,10 +99,60 @@ public class InventoryAiAssistant : IInventoryAiAssistant
         {
             _logger.LogError(ex, "Inventory AI request failed.");
 
+            if (LooksLikeLowStockQuestion(latestUserMessage))
+            {
+                return await BuildLowStockFallbackAsync();
+            }
+
             throw new InvalidOperationException(
-                "Inventory AI is unavailable. Make sure the Gemini API key is configured and the selected model is available.",
+                "Inventory AI is temporarily unavailable. Please try again.",
                 ex);
         }
+    }
+
+    private static bool LooksLikeLowStockQuestion(string question)
+    {
+        var q = question.Trim().ToLowerInvariant();
+
+        return q.Contains("low stock") ||
+               q.Contains("out of stock") ||
+               q.Contains("reorder") ||
+               q.Contains("ناقص") ||
+               q.Contains("نفد") ||
+               q.Contains("إعادة تخزين") ||
+               q.Contains("اسم المنتجات") ||
+               q.Contains("product names") ||
+               q.Contains("what are their names");
+    }
+
+    private async Task<string> BuildLowStockFallbackAsync()
+    {
+        var products =
+            await _unitOfWork
+                .GenaricRepository<Product>()
+                .GetWhereAsync(
+                    x => x.StockQuantity <= x.LowStockThreshold);
+
+        var result =
+            products
+                .OrderBy(x => x.StockQuantity)
+                .ToList();
+
+        if (result.Count == 0)
+            return "There are currently no low-stock products.";
+
+        var builder = new System.Text.StringBuilder();
+
+        builder.AppendLine(
+            $"There are {result.Count} low-stock products:");
+
+        foreach (var product in result)
+        {
+            builder.AppendLine(
+                $"- {product.Name}: current stock {product.StockQuantity}, reorder level {product.LowStockThreshold}");
+        }
+
+        return builder.ToString().Trim();
     }
 
     private string BuildNormalSystemPrompt()
