@@ -311,8 +311,13 @@ public class InventoryAiAssistant : IInventoryAiAssistant
             q.Contains("إجمالي المخزون") ||
             q.Contains("قيمة المخزون");
 
-        if (wantsLowStock)
-            contextParts.Add("LOW STOCK DATA:\n" + await GetLowStockProductsAsync());
+        if (wantsLowStock ||
+            (isLowStockFollowUp && conversationMentionsLowStock))
+        {
+            contextParts.Add(
+                "LOW STOCK DATA:\n" +
+                await GetLowStockProductsAsync());
+        }
 
         if (wantsMovements)
             contextParts.Add(
