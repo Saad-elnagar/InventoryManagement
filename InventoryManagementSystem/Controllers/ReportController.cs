@@ -66,7 +66,8 @@ public class ReportController : Controller
         try
         {
             await _backgroundService
-                .SendDailyReportAsync();
+                .SendDailyReportAsync(
+                    failIfNotConfigured: true);
 
             TempData["Success"] =
                 "Daily report sent successfully.";
