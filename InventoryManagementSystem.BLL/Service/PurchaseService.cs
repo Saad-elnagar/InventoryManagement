@@ -1,8 +1,6 @@
-
 using InventoryManagementSystem.BLL.DTOs;
 using InventoryManagementSystem.BLL.Enums;
 using InventoryManagementSystem.BLL.Interfaces;
-using InventoryManagementSystem.DAL;
 using InventoryManagementSystem.DAL.Entities;
 
 namespace InventoryManagementSystem.BLL.Service;
@@ -48,14 +46,12 @@ public class PurchaseService : IPurchaseService
                 {
                     Id = p.Id,
                     SupplierId = p.SupplierId,
-
                     SupplierName =
                         supplierDictionary.TryGetValue(
                             p.SupplierId,
                             out var supplierName)
                             ? supplierName
                             : null,
-
                     PurchaseDate = p.PurchaseDate,
                     TotalAmount = p.TotalAmount
                 });
@@ -83,8 +79,7 @@ public class PurchaseService : IPurchaseService
             var supplier =
                 await _unitOfWork
                     .GenaricRepository<Supplier>()
-                    .GetByIdAsync(
-                        purchase.SupplierId);
+                    .GetByIdAsync(purchase.SupplierId);
 
             var purchaseItems =
                 await _unitOfWork
@@ -116,7 +111,6 @@ public class PurchaseService : IPurchaseService
                 SupplierName = supplier?.SupplierName,
                 PurchaseDate = purchase.PurchaseDate,
                 TotalAmount = purchase.TotalAmount,
-
                 Items = purchaseItems
                     .OrderBy(x => x.Id)
                     .Select(x => new PurchaseItemDTO
@@ -124,14 +118,12 @@ public class PurchaseService : IPurchaseService
                         Id = x.Id,
                         PurchaseId = x.PurchaseId,
                         ProductId = x.ProductId,
-
                         ProductName =
                             productDictionary.TryGetValue(
                                 x.ProductId,
                                 out var productName)
                                 ? productName
                                 : null,
-
                         Quantity = x.Quantity,
                         UnitPrice = x.UnitCost
                     })
@@ -146,60 +138,45 @@ public class PurchaseService : IPurchaseService
         }
     }
 
-    public async Task<PurchaseDTO> CreateAsync(
-        PurchaseDTO dto)
+    public async Task<PurchaseDTO> CreateAsync(PurchaseDTO dto)
     {
         await _unitOfWork.BeginTransactionAsync();
 
         try
         {
+            if (dto.SupplierId <= 0)
+                throw new Exception("Please select a supplier.");
+
             var supplierExists =
                 await _unitOfWork
                     .GenaricRepository<Supplier>()
-                    .AnyAsync(
-                        s => s.Id == dto.SupplierId);
+                    .AnyAsync(s => s.Id == dto.SupplierId);
 
             if (!supplierExists)
-            {
-                throw new Exception(
-                    "Supplier not found.");
-            }
+                throw new Exception("Supplier not found.");
 
-            if (dto.Items == null ||
-                dto.Items.Count == 0)
-            {
+            if (dto.Items == null || dto.Items.Count == 0)
                 throw new Exception(
                     "Purchase must contain at least one item.");
-            }
 
             foreach (var item in dto.Items)
             {
                 if (item.ProductId <= 0)
-                {
-                    throw new Exception(
-                        "Please select a product.");
-                }
+                    throw new Exception("Please select a product.");
 
                 if (item.Quantity <= 0)
-                {
                     throw new Exception(
                         "Quantity must be greater than zero.");
-                }
 
                 if (item.UnitPrice <= 0)
-                {
                     throw new Exception(
                         "Unit cost must be greater than zero.");
-                }
             }
 
-            var products =
-                new Dictionary<int, Product>();
+            var products = new Dictionary<int, Product>();
+            decimal totalAmount = 0m;
 
-            decimal totalAmount = 0;
-
-            foreach (var group in dto.Items.GroupBy(
-                         x => x.ProductId))
+            foreach (var group in dto.Items.GroupBy(x => x.ProductId))
             {
                 var product =
                     await _unitOfWork
@@ -207,16 +184,13 @@ public class PurchaseService : IPurchaseService
                         .GetByIdAsync(group.Key);
 
                 if (product == null)
-                {
                     throw new Exception(
                         $"Product {group.Key} not found.");
-                }
 
                 products[group.Key] = product;
 
-                totalAmount +=
-                    group.Sum(
-                        x => x.Quantity * x.UnitPrice);
+                totalAmount += group.Sum(
+                    x => x.Quantity * x.UnitPrice);
             }
 
             var purchase = new Purchase
@@ -229,6 +203,8 @@ public class PurchaseService : IPurchaseService
             await _unitOfWork
                 .GenaricRepository<Purchase>()
                 .AddAsync(purchase);
+
+            await _unitOfWork.SaveChangesAsync();
 
             foreach (var item in dto.Items)
             {
@@ -243,9 +219,7 @@ public class PurchaseService : IPurchaseService
                             UnitCost = item.UnitPrice
                         });
 
-                var product =
-                    products[item.ProductId];
-
+                var product = products[item.ProductId];
                 product.StockQuantity += item.Quantity;
 
                 _unitOfWork
@@ -259,24 +233,16 @@ public class PurchaseService : IPurchaseService
                         {
                             ProductId = item.ProductId,
                             Quantity = item.Quantity,
-
                             MovementType =
-                                StockMovementType
-                                    .Purchase
-                                    .ToString(),
-
-                            MovementDate =
-                                DateTime.UtcNow,
-
+                                StockMovementType.Purchase.ToString(),
+                            MovementDate = DateTime.UtcNow,
                             ReferenceType = "Purchase",
                             ReferenceId = purchase.Id,
-
                             Reason = "Purchase received"
                         });
             }
 
             await _unitOfWork.SaveChangesAsync();
-
             await _unitOfWork.CommitTransactionAsync();
 
             dto.Id = purchase.Id;
@@ -287,9 +253,7 @@ public class PurchaseService : IPurchaseService
         catch
         {
             await _unitOfWork.RollbackTransactionAsync();
-
             throw;
         }
     }
 }
-
