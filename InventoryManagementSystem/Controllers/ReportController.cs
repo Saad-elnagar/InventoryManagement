@@ -45,18 +45,45 @@ public class ReportController : Controller
             await _reportService
                 .BuildDailyReportAsync();
 
-        var summary =
-            await _aiReportSummarizer
-                .SummarizeAsync(report);
-
         var model =
             new DailyReportPreviewViewModel
             {
                 Report = report,
-                Summary = summary
+                Summary = "AI analysis is loading..."
             };
 
         return View(model);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> AiSummary()
+    {
+        try
+        {
+            var report =
+                await _reportService
+                    .BuildDailyReportAsync();
+
+            var summary =
+                await _aiReportSummarizer
+                    .SummarizeAsync(report);
+
+            return Json(new
+            {
+                success = true,
+                summary
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+        }
     }
 
     [HttpPost]
