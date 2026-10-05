@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Text;
+using System.Net.Http.Headers;
 using InventoryManagementSystem;
 using InventoryManagementSystem.BLL.Interfaces;
 using InventoryManagementSystem.BLL.Service;
@@ -20,12 +21,23 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 builder.Services.AddHttpClient<IInventoryAiAssistant, InventoryAiAssistant>(client =>
 {
-    var endpoint =
-        builder.Configuration["Ollama:Endpoint"]
-        ?? "http://localhost:11434";
+    var apiKey =
+        builder.Configuration["OpenAI:ApiKey"]
+        ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY");
 
-    client.BaseAddress = new Uri(endpoint);
-    client.Timeout = TimeSpan.FromSeconds(60);
+    client.BaseAddress =
+        new Uri("https://api.openai.com/v1/");
+
+    client.Timeout =
+        TimeSpan.FromSeconds(60);
+
+    if (!string.IsNullOrWhiteSpace(apiKey))
+    {
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue(
+                "Bearer",
+                apiKey);
+    }
 });
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -206,14 +218,25 @@ builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 
 builder.Services.AddScoped<MlNetReportSummarizer>();
 
-builder.Services.AddHttpClient<IAiReportSummarizer, OllamaReportSummarizer>(client =>
+builder.Services.AddHttpClient<IAiReportSummarizer, OpenAiReportSummarizer>(client =>
 {
-    var endpoint =
-        builder.Configuration["Ollama:Endpoint"]
-        ?? "http://localhost:11434";
+    var apiKey =
+        builder.Configuration["OpenAI:ApiKey"]
+        ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY");
 
-    client.BaseAddress = new Uri(endpoint);
-    client.Timeout = TimeSpan.FromMinutes(3);
+    client.BaseAddress =
+        new Uri("https://api.openai.com/v1/");
+
+    client.Timeout =
+        TimeSpan.FromMinutes(3);
+
+    if (!string.IsNullOrWhiteSpace(apiKey))
+    {
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue(
+                "Bearer",
+                apiKey);
+    }
 });
 
 builder.Services.AddHostedService<
