@@ -8,24 +8,24 @@ using Microsoft.Extensions.Logging;
 
 namespace InventoryManagementSystem.BLL.Service;
 
-public class OpenRouterReportSummarizer : IAiReportSummarizer
+public class GeminiReportSummarizer : IAiReportSummarizer
 {
     private readonly HttpClient _httpClient;
     private readonly MlNetReportSummarizer _forecastSummarizer;
-    private readonly ILogger<OpenRouterReportSummarizer> _logger;
+    private readonly ILogger<GeminiReportSummarizer> _logger;
     private readonly string _model;
 
-    public OpenRouterReportSummarizer(
+    public GeminiReportSummarizer(
         HttpClient httpClient,
         MlNetReportSummarizer forecastSummarizer,
-        ILogger<OpenRouterReportSummarizer> logger,
+        ILogger<GeminiReportSummarizer> logger,
         IConfiguration configuration)
     {
         _httpClient = httpClient;
         _forecastSummarizer = forecastSummarizer;
         _logger = logger;
         _model =
-            configuration["OpenRouter:Model"]
+            configuration["Gemini:Model"]
             ?? "gpt-5.2";
     }
 
@@ -77,23 +77,41 @@ public class OpenRouterReportSummarizer : IAiReportSummarizer
         {
             var payload = new
             {
-                model = _model,
-                instructions =
-                    "You are a precise, read-only inventory reporting assistant.",
-                input = new[]
+                systemInstruction = new
+                {
+                    parts = new[]
+                    {
+                        new
+                        {
+                            text =
+                                "You are a precise, read-only inventory reporting assistant."
+                        }
+                    }
+                },
+                contents = new[]
                 {
                     new
                     {
                         role = "user",
-                        content = prompt
+                        parts = new[]
+                        {
+                            new
+                            {
+                                text = prompt
+                            }
+                        }
                     }
                 },
-                max_output_tokens = 1200
+                generationConfig = new
+                {
+                    temperature = 0.25,
+                    maxOutputTokens = 1200
+                }
             };
 
             using var response =
                 await _httpClient.PostAsJsonAsync(
-                    "responses",
+                    $"models/{_model}:generateContent",
                     payload);
 
             var responseBody =
@@ -102,7 +120,7 @@ public class OpenRouterReportSummarizer : IAiReportSummarizer
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogError(
-                    "OpenRouter report request failed. Status: {StatusCode}. Body: {Body}",
+                    "Gemini report request failed. Status: {StatusCode}. Body: {Body}",
                     response.StatusCode,
                     responseBody);
 
@@ -125,7 +143,7 @@ public class OpenRouterReportSummarizer : IAiReportSummarizer
         {
             _logger.LogError(
                 ex,
-                "OpenRouter report summarization failed.");
+                "Gemini report summarization failed.");
 
             return BuildFallbackReport(
                 report,
@@ -136,49 +154,35 @@ public class OpenRouterReportSummarizer : IAiReportSummarizer
     private static string? ExtractText(
         JsonElement root)
     {
-        if (root.TryGetProperty(
-                "output_text",
-                out var outputText) &&
-            outputText.ValueKind == JsonValueKind.String)
+        if (!root.TryGetProperty(
+                "candidates",
+                out var candidates) ||
+            candidates.ValueKind != JsonValueKind.Array ||
+            candidates.GetArrayLength() == 0)
+            return null;
+
+        var candidate = candidates[0];
+
+        if (!candidate.TryGetProperty(
+                "content",
+                out var content) ||
+            !content.TryGetProperty(
+                "parts",
+                out var parts) ||
+            parts.ValueKind != JsonValueKind.Array)
+            return null;
+
+        foreach (var part in parts.EnumerateArray())
         {
-            var text = outputText.GetString();
+            if (!part.TryGetProperty(
+                    "text",
+                    out var textElement))
+                continue;
+
+            var text = textElement.GetString();
 
             if (!string.IsNullOrWhiteSpace(text))
                 return text.Trim();
-        }
-
-        if (!root.TryGetProperty(
-                "output",
-                out var output) ||
-            output.ValueKind != JsonValueKind.Array)
-            return null;
-
-        foreach (var item in output.EnumerateArray())
-        {
-            if (!item.TryGetProperty(
-                    "content",
-                    out var content) ||
-                content.ValueKind != JsonValueKind.Array)
-                continue;
-
-            foreach (var part in content.EnumerateArray())
-            {
-                if (!part.TryGetProperty(
-                        "type",
-                        out var type) ||
-                    type.GetString() != "output_text")
-                    continue;
-
-                if (!part.TryGetProperty(
-                        "text",
-                        out var textElement))
-                    continue;
-
-                var text = textElement.GetString();
-
-                if (!string.IsNullOrWhiteSpace(text))
-                    return text.Trim();
-            }
         }
 
         return null;
