@@ -14,6 +14,7 @@ public class GeminiReportSummarizer : IAiReportSummarizer
     private readonly MlNetReportSummarizer _forecastSummarizer;
     private readonly ILogger<GeminiReportSummarizer> _logger;
     private readonly string _model;
+    private readonly string _fallbackModel;
 
     public GeminiReportSummarizer(
         HttpClient httpClient,
@@ -26,6 +27,10 @@ public class GeminiReportSummarizer : IAiReportSummarizer
         _logger = logger;
         _model =
             configuration["Gemini:Model"]
+            ?? "gemini-3.5-flash-lite";
+
+        _fallbackModel =
+            configuration["Gemini:FallbackModel"]
             ?? "gemini-3.8-flash";
     }
 
@@ -109,35 +114,56 @@ public class GeminiReportSummarizer : IAiReportSummarizer
                 }
             };
 
-            using var response =
-                await _httpClient.PostAsJsonAsync(
-                    $"models/{_model}:generateContent",
-                    payload);
-
-            var responseBody =
-                await response.Content.ReadAsStringAsync();
-
-            if (!response.IsSuccessStatusCode)
+            foreach (var model in new[] { _model, _fallbackModel }
+                         .Distinct(StringComparer.OrdinalIgnoreCase))
             {
-                _logger.LogError(
-                    "Gemini report request failed. Status: {StatusCode}. Body: {Body}",
-                    response.StatusCode,
-                    responseBody);
+                for (var attempt = 1; attempt <= 2; attempt++)
+                {
+                    using var response =
+                        await _httpClient.PostAsJsonAsync(
+                            $"models/{model}:generateContent",
+                            payload);
 
-                return BuildFallbackReport(
-                    report,
-                    forecastSummary);
+                    var responseBody =
+                        await response.Content.ReadAsStringAsync();
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        using var document =
+                            JsonDocument.Parse(responseBody);
+
+                        var content =
+                            ExtractText(document.RootElement);
+
+                        if (!string.IsNullOrWhiteSpace(content))
+                            return content.Trim();
+
+                        break;
+                    }
+
+                    _logger.LogWarning(
+                        "Gemini report request failed. Model: {Model}, Status: {StatusCode}, Attempt: {Attempt}. Body: {Body}",
+                        model,
+                        response.StatusCode,
+                        attempt,
+                        responseBody);
+
+                    if ((int)response.StatusCode != 429 &&
+                        (int)response.StatusCode != 500 &&
+                        (int)response.StatusCode != 502 &&
+                        (int)response.StatusCode != 503 &&
+                        (int)response.StatusCode != 504)
+                        break;
+
+                    if (attempt < 2)
+                        await Task.Delay(
+                            TimeSpan.FromMilliseconds(500 * attempt));
+                }
             }
 
-            using var document =
-                JsonDocument.Parse(responseBody);
-
-            var content =
-                ExtractText(document.RootElement);
-
-            return string.IsNullOrWhiteSpace(content)
-                ? BuildFallbackReport(report, forecastSummary)
-                : content.Trim();
+            return BuildFallbackReport(
+                report,
+                forecastSummary);
         }
         catch (Exception ex)
         {
