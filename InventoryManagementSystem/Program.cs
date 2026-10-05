@@ -1,6 +1,5 @@
 using System.Security.Claims;
 using System.Text;
-using System.Net.Http.Headers;
 using InventoryManagementSystem;
 using InventoryManagementSystem.BLL.Interfaces;
 using InventoryManagementSystem.BLL.Service;
@@ -22,21 +21,20 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddHttpClient<IInventoryAiAssistant, InventoryAiAssistant>(client =>
 {
     var apiKey =
-        builder.Configuration["OpenRouter:ApiKey"]
-        ?? Environment.GetEnvironmentVariable("OPENROUTER_API_KEY");
+        builder.Configuration["Gemini:ApiKey"]
+        ?? Environment.GetEnvironmentVariable("GEMINI_API_KEY");
 
     client.BaseAddress =
-        new Uri("https://openrouter.ai/api/v1/");
+        new Uri("https://generativelanguage.googleapis.com/v1beta/");
 
     client.Timeout =
         TimeSpan.FromSeconds(60);
 
     if (!string.IsNullOrWhiteSpace(apiKey))
     {
-        client.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue(
-                "Bearer",
-                apiKey);
+        client.DefaultRequestHeaders.TryAddWithoutValidation(
+            "x-goog-api-key",
+            apiKey);
     }
 });
 
@@ -218,24 +216,23 @@ builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 
 builder.Services.AddScoped<MlNetReportSummarizer>();
 
-builder.Services.AddHttpClient<IAiReportSummarizer, OpenAiReportSummarizer>(client =>
+builder.Services.AddHttpClient<IAiReportSummarizer, GeminiReportSummarizer>(client =>
 {
     var apiKey =
-        builder.Configuration["OpenRouter:ApiKey"]
-        ?? Environment.GetEnvironmentVariable("OPENROUTER_API_KEY");
+        builder.Configuration["Gemini:ApiKey"]
+        ?? Environment.GetEnvironmentVariable("GEMINI_API_KEY");
 
     client.BaseAddress =
-        new Uri("https://openrouter.ai/api/v1/");
+        new Uri("https://generativelanguage.googleapis.com/v1beta/");
 
     client.Timeout =
         TimeSpan.FromMinutes(3);
 
     if (!string.IsNullOrWhiteSpace(apiKey))
     {
-        client.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue(
-                "Bearer",
-                apiKey);
+        client.DefaultRequestHeaders.TryAddWithoutValidation(
+            "x-goog-api-key",
+            apiKey);
     }
 });
 
