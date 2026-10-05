@@ -194,9 +194,9 @@ builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 
-builder.Services.AddHttpClient<
+builder.Services.AddScoped<
     IAiReportSummarizer,
-    AnthropicReportSummarizer>();
+    MlNetReportSummarizer>();
 
 builder.Services.AddHostedService<
     DailyReportBackgroundService>();
