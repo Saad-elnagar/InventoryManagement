@@ -120,12 +120,22 @@ public class InventoryAiAssistant : IInventoryAiAssistant
                 await BuildInventoryContextAsync(
                     latestUserMessage);
 
-            var inventoryMessages = new List<ChatMessage>(chatMessages)
-            {
-                new(
-                    ChatRole.System,
-                    inventoryContext)
-            };
+            var inventoryMessages = new List<ChatMessage>(chatMessages);
+
+            inventoryMessages[0] = new ChatMessage(
+                ChatRole.System,
+                $"""
+                You are a helpful conversational assistant for an Inventory Management System.
+
+                Answer naturally and directly.
+                For inventory questions, the database context below is the source of truth.
+                Never invent inventory values.
+                You may calculate totals, differences, rankings, and trends from the supplied data.
+                Answer in the same language as the user's latest message.
+                You are read-only.
+
+                {inventoryContext}
+                """);
 
             var response =
                 await _chatClient.GetResponseAsync(
