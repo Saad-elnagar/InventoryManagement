@@ -146,8 +146,14 @@
                     <div class="report-summary">
                         <div class="report-summary-label">AI Analysis</div>
 
-                        <div class="report-summary-text">
-                            @Model.Summary
+                        <div class="report-summary-text"
+                             id="aiReportSummary">
+                            <div class="d-flex align-items-center gap-2 text-muted">
+                                <span class="spinner-border spinner-border-sm"
+                                      role="status"
+                                      aria-hidden="true"></span>
+                                <span>Generating AI analysis...</span>
+                            </div>
                         </div>
                     </div>
 
@@ -283,3 +289,52 @@
     </div>
 
 </div>
+
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", async function () {
+            const summaryElement =
+                document.getElementById("aiReportSummary");
+
+            if (!summaryElement) {
+                return;
+            }
+
+            try {
+                const response =
+                    await fetch(
+                        '@Url.Action("AiSummary", "Report")',
+                        {
+                            method: "GET",
+                            headers: {
+                                "Accept": "application/json"
+                            },
+                            cache: "no-store"
+                        });
+
+                if (!response.ok) {
+                    throw new Error("AI summary request failed.");
+                }
+
+                const result = await response.json();
+
+                if (result.success && result.summary) {
+                    summaryElement.textContent = result.summary;
+                    return;
+                }
+
+                throw new Error(
+                    result.message || "AI summary unavailable.");
+            }
+            catch (error) {
+                summaryElement.innerHTML = `
+                    <div class="text-muted">
+                        <i class="bi bi-info-circle me-2"></i>
+                        AI analysis is temporarily unavailable.
+                        The report data above is still valid.
+                    </div>`;
+            }
+        });
+    </script>
+}
