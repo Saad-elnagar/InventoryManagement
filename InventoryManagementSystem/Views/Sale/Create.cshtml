@@ -8,6 +8,10 @@
     var productList =
         ViewBag.Products as IEnumerable<ProductDTO>
         ?? Enumerable.Empty<ProductDTO>();
+
+    var customerList =
+        ViewBag.Customers as IEnumerable<CustomerDTO>
+        ?? Enumerable.Empty<CustomerDTO>();
 }
 
 <div class="container-fluid py-4">
@@ -51,15 +55,29 @@
 
                         <label asp-for="CustomerId"
                                class="form-label fw-semibold">
-                            Customer ID
+                            Customer
                         </label>
 
-                        <input asp-for="CustomerId"
-                               type="number"
-                               min="1"
-                               class="form-control"
-                               placeholder="Enter customer ID"
-                               required />
+                        <select asp-for="CustomerId"
+                                class="form-select"
+                                required>
+
+                            <option value="">
+                                Select Customer
+                            </option>
+
+                            @foreach (var customer in customerList)
+                            {
+                                <option value="@customer.Id">
+                                    @customer.Name
+                                    @if (!string.IsNullOrWhiteSpace(customer.ContactName))
+                                    {
+                                        <text> - @customer.ContactName</text>
+                                    }
+                                </option>
+                            }
+
+                        </select>
 
                         <span asp-validation-for="CustomerId"
                               class="text-danger">
