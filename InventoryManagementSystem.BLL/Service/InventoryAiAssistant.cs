@@ -30,7 +30,7 @@ public class InventoryAiAssistant : IInventoryAiAssistant
         _logger = logger;
         _model =
             configuration["Gemini:Model"]
-            ?? "gemini-2.5-flash";
+            ?? "gemini-3.8-flash";
     }
 
     public async Task<string> ChatAsync(
