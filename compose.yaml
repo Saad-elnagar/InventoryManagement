@@ -1,7 +1,8 @@
-﻿services:
+services:
   inventory.web:
-    image: inventory.web
+    image: inventory-management-system
     build:
       context: .
-      dockerfile: Inventory.Web/Dockerfile
-
+      dockerfile: InventoryManagementSystem/Dockerfile
+    ports:
+      - "8080:8080"
