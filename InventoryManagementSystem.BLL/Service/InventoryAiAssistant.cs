@@ -91,9 +91,30 @@ public class InventoryAiAssistant : IInventoryAiAssistant
                 cancellationToken,
                 inventorySystemPrompt);
         }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException ex)
         {
-            return "The AI assistant took too long to respond. Please try again.";
+            if (LooksLikeLowStockQuestion(latestUserMessage))
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Gemini request was canceled. Returning low-stock data directly from the database.");
+
+                return await BuildLowStockFallbackAsync();
+            }
+
+            if (!cancellationToken.IsCancellationRequested)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Gemini request timed out.");
+
+                return "The AI assistant took too long to respond. Please try again.";
+            }
+
+            _logger.LogDebug(
+                "Inventory AI request was canceled by the client.");
+
+            throw;
         }
         catch (Exception ex)
         {
