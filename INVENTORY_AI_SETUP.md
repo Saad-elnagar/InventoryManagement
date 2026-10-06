@@ -143,8 +143,8 @@ The reporting pipeline combines:
 
 and can present the result in the report UI or send it by email.
 
-## Legacy Ollama Code
+## Current Provider
 
-Earlier development used Ollama and `qwen3:4b` for local AI experiments. Some legacy Ollama classes and package references remain in the repository for historical/extension purposes, but Ollama is **not the active provider registered by `Program.cs`**.
+The repository has been cleaned so the active AI implementation is Gemini. The previous Ollama report implementation and its unused package dependencies have been removed from the current codebase.
 
 The current active AI configuration is Gemini.
