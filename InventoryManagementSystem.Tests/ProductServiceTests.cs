@@ -16,6 +16,7 @@ public class ProductServiceTests
     {
         var categoryRepo = _uow.Repository<Category>();
         var productRepo = _uow.Repository<Product>();
+        var stockMovementRepo = _uow.Repository<StockMovement>();
 
         categoryRepo
             .Setup(r => r.AnyAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Category, bool>>>()))
@@ -24,6 +25,10 @@ public class ProductServiceTests
         productRepo
             .Setup(r => r.AddAsync(It.IsAny<Product>()))
             .Callback<Product>(p => p.Id = 25)
+            .Returns(Task.CompletedTask);
+
+        stockMovementRepo
+            .Setup(r => r.AddAsync(It.IsAny<StockMovement>()))
             .Returns(Task.CompletedTask);
 
         var dto = new ProductDTO
@@ -62,6 +67,7 @@ public class ProductServiceTests
 
         var dto = new ProductDTO
         {
+            SKU = "SKU-99",
             Name = "Keyboard",
             Price = 1200m,
             Quantity = 10,
@@ -71,8 +77,7 @@ public class ProductServiceTests
 
         var ex = await Assert.ThrowsAsync<Exception>(() => Sut.CreateAsync(dto));
 
-        Assert.Equal("Error while creating product.", ex.Message);
-        Assert.Equal("Category not found.", ex.InnerException?.Message);
+        Assert.Equal("Category not found.", ex.Message);
     }
 
     [Fact]
