@@ -20,6 +20,7 @@ public class InventoryAiAssistant : IInventoryAiAssistant
     private readonly string _model;
     private readonly string _fallbackModel;
     private readonly string _backupModel;
+    private readonly bool _hasApiKey;
 
     public InventoryAiAssistant(
         HttpClient httpClient,
@@ -41,6 +42,11 @@ public class InventoryAiAssistant : IInventoryAiAssistant
         _backupModel =
             configuration["Gemini:BackupModel"]
             ?? "gemini-3.8-flash";
+
+        _hasApiKey =
+            !string.IsNullOrWhiteSpace(
+                configuration["Gemini:ApiKey"] ??
+                Environment.GetEnvironmentVariable("GEMINI_API_KEY"));
     }
 
     public async Task<string> ChatAsync(
@@ -59,6 +65,14 @@ public class InventoryAiAssistant : IInventoryAiAssistant
 
         try
         {
+            if (!_hasApiKey)
+            {
+                if (LooksLikeLowStockQuestion(latestUserMessage))
+                    return await BuildLowStockFallbackAsync();
+
+                return "Gemini API key is not configured. Run: dotnet user-secrets set \"Gemini:ApiKey\" \"YOUR_GEMINI_KEY\"";
+            }
+
             if (LooksLikeLowStockQuestion(latestUserMessage))
             {
                 return await BuildLowStockFallbackAsync();
