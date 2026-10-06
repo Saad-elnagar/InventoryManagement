@@ -576,7 +576,7 @@ InventoryManagement/
 - Google Gemini REST API
 - ML.NET
 - ML.NET TimeSeries
-- Legacy Ollama integration code from the earlier local-model prototype remains in the repository, but Gemini is the active provider.
+- Gemini is the active AI provider for conversational inventory assistance and AI report summarization.
 
 ### Testing
 
