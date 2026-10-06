@@ -15,6 +15,7 @@ public class GeminiReportSummarizer : IAiReportSummarizer
     private readonly ILogger<GeminiReportSummarizer> _logger;
     private readonly string _model;
     private readonly string _fallbackModel;
+    private readonly string _backupModel;
 
     public GeminiReportSummarizer(
         HttpClient httpClient,
@@ -31,6 +32,10 @@ public class GeminiReportSummarizer : IAiReportSummarizer
 
         _fallbackModel =
             configuration["Gemini:FallbackModel"]
+            ?? "gemini-3.5-flash-lite";
+
+        _backupModel =
+            configuration["Gemini:BackupModel"]
             ?? "gemini-3.8-flash";
     }
 
@@ -114,7 +119,8 @@ public class GeminiReportSummarizer : IAiReportSummarizer
                 }
             };
 
-            foreach (var model in new[] { _model, _fallbackModel }
+            foreach (var model in new[] { _model, _fallbackModel, _backupModel }
+                         .Where(x => !string.IsNullOrWhiteSpace(x))
                          .Distinct(StringComparer.OrdinalIgnoreCase))
             {
                 for (var attempt = 1; attempt <= 2; attempt++)
