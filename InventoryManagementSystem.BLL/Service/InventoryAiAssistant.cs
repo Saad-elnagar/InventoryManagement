@@ -19,6 +19,7 @@ public class InventoryAiAssistant : IInventoryAiAssistant
     private readonly ILogger<InventoryAiAssistant> _logger;
     private readonly string _model;
     private readonly string _fallbackModel;
+    private readonly string _backupModel;
 
     public InventoryAiAssistant(
         HttpClient httpClient,
@@ -35,6 +36,10 @@ public class InventoryAiAssistant : IInventoryAiAssistant
 
         _fallbackModel =
             configuration["Gemini:FallbackModel"]
+            ?? "gemini-3.5-flash-lite";
+
+        _backupModel =
+            configuration["Gemini:BackupModel"]
             ?? "gemini-3.8-flash";
     }
 
@@ -54,6 +59,11 @@ public class InventoryAiAssistant : IInventoryAiAssistant
 
         try
         {
+            if (LooksLikeLowStockQuestion(latestUserMessage))
+            {
+                return await BuildLowStockFallbackAsync();
+            }
+
             if (!LooksLikeInventoryQuestion(latestUserMessage))
             {
                 return await SendToGeminiAsync(
@@ -241,22 +251,111 @@ public class InventoryAiAssistant : IInventoryAiAssistant
             new[]
             {
                 _model,
-                _fallbackModel
-            }.Distinct(StringComparer.OrdinalIgnoreCase);
+                _fallbackModel,
+                _backupModel
+            }
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase);
 
         foreach (var model in models)
         {
             for (var attempt = 1; attempt <= 2; attempt++)
             {
-                HttpResponseMessage response;
-
                 try
                 {
-                    response =
+                    using var requestCts =
+                        CancellationTokenSource.CreateLinkedTokenSource(
+                            cancellationToken);
+
+                    requestCts.CancelAfter(
+                        TimeSpan.FromSeconds(20));
+
+                    using var response =
                         await _httpClient.PostAsJsonAsync(
                             $"models/{model}:generateContent",
                             payload,
+                            requestCts.Token);
+
+                    var responseBody =
+                        await response.Content.ReadAsStringAsync(
+                            requestCts.Token);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        using var document =
+                            JsonDocument.Parse(responseBody);
+
+                        if (document.RootElement.TryGetProperty(
+                                "candidates",
+                                out var candidates) &&
+                            candidates.ValueKind == JsonValueKind.Array &&
+                            candidates.GetArrayLength() > 0)
+                        {
+                            var candidate = candidates[0];
+
+                            if (candidate.TryGetProperty(
+                                    "content",
+                                    out var content) &&
+                                content.TryGetProperty(
+                                    "parts",
+                                    out var parts) &&
+                                parts.ValueKind == JsonValueKind.Array)
+                            {
+                                foreach (var part in parts.EnumerateArray())
+                                {
+                                    if (!part.TryGetProperty(
+                                            "text",
+                                            out var textElement))
+                                        continue;
+
+                                    var text =
+                                        textElement.GetString();
+
+                                    if (!string.IsNullOrWhiteSpace(text))
+                                        return text.Trim();
+                                }
+                            }
+                        }
+
+                        _logger.LogWarning(
+                            "Gemini returned no usable text. Model: {Model}. Body: {Body}",
+                            model,
+                            responseBody);
+
+                        break;
+                    }
+
+                    _logger.LogWarning(
+                        "Gemini request failed. Model: {Model}, Status: {StatusCode}, Attempt: {Attempt}. Body: {Body}",
+                        model,
+                        response.StatusCode,
+                        attempt,
+                        responseBody);
+
+                    var statusCode = (int)response.StatusCode;
+
+                    if (statusCode == 401 || statusCode == 403)
+                    {
+                        throw new InvalidOperationException(
+                            "Gemini API key is invalid or does not have access to this model.");
+                    }
+
+                    if (statusCode != 429 &&
+                        statusCode != 500 &&
+                        statusCode != 502 &&
+                        statusCode != 503 &&
+                        statusCode != 504)
+                    {
+                        throw new InvalidOperationException(
+                            $"Gemini returned {statusCode}: {responseBody}");
+                    }
+
+                    if (attempt < 2)
+                    {
+                        await Task.Delay(
+                            TimeSpan.FromMilliseconds(300 * attempt),
                             cancellationToken);
+                    }
                 }
                 catch (TaskCanceledException ex)
                     when (!cancellationToken.IsCancellationRequested)
@@ -267,93 +366,18 @@ public class InventoryAiAssistant : IInventoryAiAssistant
                         model,
                         attempt);
 
-                    if (attempt == 2)
-                        break;
-
-                    await Task.Delay(
-                        TimeSpan.FromSeconds(1),
-                        cancellationToken);
-
-                    continue;
-                }
-
-                var responseBody =
-                    await response.Content.ReadAsStringAsync(
-                        cancellationToken);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    using var document =
-                        JsonDocument.Parse(responseBody);
-
-                    if (document.RootElement.TryGetProperty(
-                            "candidates",
-                            out var candidates) &&
-                        candidates.ValueKind == JsonValueKind.Array &&
-                        candidates.GetArrayLength() > 0)
+                    if (attempt < 2)
                     {
-                        var candidate = candidates[0];
-
-                        if (candidate.TryGetProperty(
-                                "content",
-                                out var content) &&
-                            content.TryGetProperty(
-                                "parts",
-                                out var parts) &&
-                            parts.ValueKind == JsonValueKind.Array)
-                        {
-                            foreach (var part in parts.EnumerateArray())
-                            {
-                                if (!part.TryGetProperty(
-                                        "text",
-                                        out var textElement))
-                                    continue;
-
-                                var text =
-                                    textElement.GetString();
-
-                                if (!string.IsNullOrWhiteSpace(text))
-                                    return text.Trim();
-                            }
-                        }
+                        continue;
                     }
 
-                    _logger.LogError(
-                        "Gemini returned no usable text. Model: {Model}. Body: {Body}",
-                        model,
-                        responseBody);
-
                     break;
-                }
-
-                _logger.LogWarning(
-                    "Gemini request failed. Model: {Model}, Status: {StatusCode}, Attempt: {Attempt}. Body: {Body}",
-                    model,
-                    response.StatusCode,
-                    attempt,
-                    responseBody);
-
-                if ((int)response.StatusCode != 429 &&
-                    (int)response.StatusCode != 500 &&
-                    (int)response.StatusCode != 502 &&
-                    (int)response.StatusCode != 503 &&
-                    (int)response.StatusCode != 504)
-                {
-                    throw new InvalidOperationException(
-                        $"Gemini returned {(int)response.StatusCode}: {responseBody}");
-                }
-
-                if (attempt < 2)
-                {
-                    await Task.Delay(
-                        TimeSpan.FromMilliseconds(500 * attempt),
-                        cancellationToken);
                 }
             }
         }
 
         throw new InvalidOperationException(
-            "Gemini is temporarily unavailable. Please try again.");
+            "Gemini is unavailable right now. The app tried all configured Gemini models.");
     }
 
     private async Task<string> BuildInventoryContextAsync(
