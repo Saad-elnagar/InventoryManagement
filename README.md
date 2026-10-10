@@ -1,5 +1,7 @@
 # Inventory Management System
 
+[![Build](https://github.com/Saad-elnagar/InventoryManagement/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/Saad-elnagar/InventoryManagement/actions/workflows/tests.yml)
+
 A full-featured **Inventory Management System** built with **ASP.NET Core MVC, .NET 10, Entity Framework Core, SQL Server, ASP.NET Core Identity, JWT authentication, ML.NET, and Gemini AI**.
 
 The application is designed around a service-oriented business layer, transactional stock operations, role-based access control, reporting, and a read-only AI assistant that can answer natural-language questions using live inventory data.
