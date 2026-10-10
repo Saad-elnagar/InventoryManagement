@@ -143,8 +143,10 @@ The reporting pipeline combines:
 
 and can present the result in the report UI or send it by email.
 
-## Current Provider
+## Provider Status
 
-The repository has been cleaned so the active AI implementation is Gemini. The previous Ollama report implementation and its unused package dependencies have been removed from the current codebase.
+The current startup configuration registers `GeminiReportSummarizer` as the active `IAiReportSummarizer` implementation and configures the chat assistant to call Gemini. ML.NET is registered separately for forecasting/report analysis.
 
-The current active AI configuration is Gemini.
+`OllamaReportSummarizer.cs` is still present in the source tree, but it is not the active `IAiReportSummarizer` registration in `Program.cs`. Do not assume Ollama is used at runtime unless the dependency-injection registration is changed.
+
+If the provider is changed later, update this guide and verify the service registrations in `InventoryManagementSystem/Program.cs`.
