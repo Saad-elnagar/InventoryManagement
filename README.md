@@ -670,28 +670,15 @@ Report:RecipientEmail
 
 ## 16. Database Configuration
 
-The default application connection string points to SQL Server on:
+The tracked `appsettings.json` intentionally contains a placeholder connection string. Configure the real connection string with .NET User Secrets instead of editing or committing credentials.
 
-```text
-localhost:1433
+From the repository root:
+
+```bash
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost,1433;Database=InventoryManagementDB;User Id=sa;Password=YOUR_SQL_SERVER_PASSWORD;TrustServerCertificate=True;Encrypt=False" --project InventoryManagementSystem/InventoryManagementSystem.csproj
 ```
 
-Example shape:
-
-```json
-"ConnectionStrings": {
-  "DefaultConnection": "Server=localhost,1433;Database=InventoryManagementDB;User Id=sa;Password=YOUR_PASSWORD;TrustServerCertificate=True;"
-}
-```
-
-For a new environment, update the connection string to match the local SQL Server instance.
-
-The solution contains EF Core database/auth migration infrastructure under:
-
-```text
-InventoryManagementSystem.DAL/Migrations
-```
-
+Use the host and port that match your SQL Server deployment. For a local Docker SQL Server container published to port 1433, `localhost,1433` is a common host-side address. The connection string above is an example only; replace the password locally and never commit it.
 ---
 
 ## 17. Run Locally
