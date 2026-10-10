@@ -51,3 +51,18 @@ Thumbs.db
 .env.*
 secrets.json
 appsettings.Local.json
+
+# Local developer configuration and credentials
+.env
+.env.*
+!.env.example
+**/appsettings.Local.json
+**/appsettings.Secrets.json
+**/secrets.json
+**/secrets.*.json
+UserSecrets/
+
+# Local IDE state and test artifacts
+.idea/
+TestResults/
+coverage/
