@@ -1,10 +1,8 @@
-using InventoryManagementSystem.DAL.Entities;
-
 namespace InventoryManagementSystem.BLL.Pagination;
 
 public class PaginationResult<T>
 {
-    public IReadOnlyList<T> Data { get; set; } = null !;
+    public IReadOnlyList<T> Data { get; set; } = [];
 
     public int Page { get; set; }
 

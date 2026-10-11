@@ -102,11 +102,23 @@ public class GenaricRepository<T> : IGenaricRepository<T>
 
         var totalCount = await query.CountAsync();
 
-        var items = await query
-            .OrderBy(orderBy)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
+        var skip = (long)(page - 1) * pageSize;
+
+        List<T> items;
+
+        if (skip >= totalCount)
+        {
+            items = [];
+        }
+        else
+        {
+            items = await query
+                .OrderBy(orderBy)
+                .ThenBy(entity => entity.Id)
+                .Skip((int)skip)
+                .Take(pageSize)
+                .ToListAsync();
+        }
 
         return (items, totalCount);
     }
