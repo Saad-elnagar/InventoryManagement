@@ -89,6 +89,14 @@ public class CustomerService : ICustomerService
         if (customer == null)
             return 0;
 
+        var hasSales =
+            await _unitOfWork.GenaricRepository<Sale>()
+                .AnyAsync(sale => sale.CustomerId == id);
+
+        if (hasSales)
+            throw new Exception(
+                "Cannot delete customer because it has sales history.");
+
         _unitOfWork.GenaricRepository<Customer>()
             .Delete(customer);
 
