@@ -22,4 +22,29 @@ public static class ProductMappingExtensions
             CategoryName = categoryName
         };
     }
+    public static Product ToEntity(this ProductDTO dto)
+    {
+        return new Product
+        {
+            Name = dto.Name.Trim(),
+            Sku = dto.SKU.Trim(),
+            Description = dto.Description?.Trim(),
+            UnitPrice = dto.Price,
+            StockQuantity = dto.Quantity,
+            LowStockThreshold = dto.ReorderLevel,
+            CategoryId = dto.CategoryId
+        };
+    }
+
+    public static void ApplyTo(this ProductDTO dto, Product product)
+    {
+        product.Name = dto.Name.Trim();
+        product.Sku = dto.SKU.Trim();
+        product.Description = dto.Description?.Trim();
+        product.UnitPrice = dto.Price;
+        product.StockQuantity = dto.Quantity;
+        product.LowStockThreshold = dto.ReorderLevel;
+        product.CategoryId = dto.CategoryId;
+    }
+
 }

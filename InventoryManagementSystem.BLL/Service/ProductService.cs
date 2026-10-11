@@ -96,16 +96,7 @@ public class ProductService : IProductService
             if (skuExists)
                 throw new Exception("SKU already exists.");
 
-            var product = new Product
-            {
-                Name = name,
-                Sku = sku,
-                Description = description,
-                UnitPrice = dto.Price,
-                StockQuantity = dto.Quantity,
-                LowStockThreshold = dto.ReorderLevel,
-                CategoryId = dto.CategoryId
-            };
+            var product = dto.ToEntity();
 
             await _unitOfWork
                 .GenaricRepository<Product>()
@@ -199,13 +190,7 @@ public class ProductService : IProductService
             await _unitOfWork.BeginTransactionAsync();
             transactionStarted = true;
 
-            product.Name = name;
-            product.Sku = sku;
-            product.Description = dto.Description?.Trim();
-            product.UnitPrice = dto.Price;
-            product.StockQuantity = dto.Quantity;
-            product.LowStockThreshold = dto.ReorderLevel;
-            product.CategoryId = dto.CategoryId;
+            dto.ApplyTo(product);
 
             productRepository.Update(product);
 
