@@ -45,14 +45,7 @@ public class SupplierService : ISupplierService
         if (exists)
             throw new Exception("Supplier already exists.");
 
-        var supplier = new Supplier
-        {
-            SupplierName = dto.SupplierName,
-            ContactName = dto.ContactName,
-            Phone = dto.Phone,
-            Email = dto.Email,
-            Address = dto.Address
-        };
+        var supplier = dto.ToEntity();
 
         await _unitOfWork.GenaricRepository<Supplier>()
             .AddAsync(supplier);
@@ -82,11 +75,7 @@ public class SupplierService : ISupplierService
         if (exists)
             throw new Exception("Supplier already exists.");
 
-        supplier.SupplierName = dto.SupplierName;
-        supplier.ContactName = dto.ContactName;
-        supplier.Phone = dto.Phone;
-        supplier.Email = dto.Email;
-        supplier.Address = dto.Address;
+        dto.ApplyTo(supplier);
 
         _unitOfWork.GenaricRepository<Supplier>()
             .Update(supplier);
