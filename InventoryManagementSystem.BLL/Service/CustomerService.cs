@@ -1,5 +1,6 @@
 using InventoryManagementSystem.BLL.DTOs;
 using InventoryManagementSystem.BLL.Interfaces;
+using InventoryManagementSystem.BLL.Mappings;
 using InventoryManagementSystem.DAL.Entities;
 
 namespace InventoryManagementSystem.BLL.Service;
@@ -20,15 +21,7 @@ public class CustomerService : ICustomerService
                 .GetAllAsync();
 
         return customers
-            .Select(c => new CustomerDTO
-            {
-                Id = c.Id,
-                Name = c.CustomerName,
-                ContactName = c.ContactName,
-                Phone = c.Phone,
-                Address = c.Address,
-                Email = c.Email
-            })
+            .Select(c => c.ToDto())
             .ToList();
     }
 
@@ -41,15 +34,7 @@ public class CustomerService : ICustomerService
         if (customer == null)
             return null;
 
-        return new CustomerDTO
-        {
-            Id = customer.Id,
-            Name = customer.CustomerName,
-            ContactName = customer.ContactName,
-            Phone = customer.Phone,
-            Address = customer.Address,
-            Email = customer.Email
-        };
+        return customer.ToDto();
     }
 
     public async Task<int> CreateAsync(CustomerDTO dto)

@@ -1,5 +1,6 @@
 ﻿using InventoryManagementSystem.BLL.DTOs;
 using InventoryManagementSystem.BLL.Interfaces;
+using InventoryManagementSystem.BLL.Mappings;
 using InventoryManagementSystem.DAL.Entities;
 using InventoryManagementSystem.BLL.Pagination;
 using Microsoft.EntityFrameworkCore;
@@ -27,12 +28,7 @@ public class CategoryService : ICategoryService
 
             return categories
                 .OrderBy(c => c.Name)
-                .Select(c => new CategoryDTO
-                {
-                    Id = c.Id,
-                    Name = c.Name,
-                    Description = c.Description
-                });
+                .Select(c => c.ToDto());
         }
         catch (Exception ex)
         {
@@ -54,12 +50,7 @@ public class CategoryService : ICategoryService
             if (category == null)
                 return null;
 
-            return new CategoryDTO
-            {
-                Id = category.Id,
-                Name = category.Name,
-                Description = category.Description
-            };
+            return category.ToDto();
         }
         catch (Exception ex)
         {
@@ -101,7 +92,7 @@ public class CategoryService : ICategoryService
 
             dto.Id = category.Id;
 
-            return dto;
+            return category.ToDto();
         }
         catch (Exception ex)
         {
@@ -241,12 +232,7 @@ public class CategoryService : ICategoryService
                 category => category.Name);
 
         var data = result.Items
-            .Select(category => new CategoryDTO
-            {
-                Id = category.Id,
-                Name = category.Name,
-                Description = category.Description
-            })
+            .Select(category => category.ToDto())
             .ToList();
 
         return PaginationHelper.Create(

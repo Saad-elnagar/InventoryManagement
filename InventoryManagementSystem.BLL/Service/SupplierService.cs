@@ -1,5 +1,6 @@
 using InventoryManagementSystem.BLL.DTOs;
 using InventoryManagementSystem.BLL.Interfaces;
+using InventoryManagementSystem.BLL.Mappings;
 using InventoryManagementSystem.DAL.Entities;
 
 namespace InventoryManagementSystem.BLL.Service;
@@ -19,15 +20,7 @@ public class SupplierService : ISupplierService
             await _unitOfWork.GenaricRepository<Supplier>()
                 .GetAllAsync();
 
-        return suppliers.Select(s => new SupplierDTO
-        {
-            Id = s.Id,
-            SupplierName = s.SupplierName,
-            ContactName = s.ContactName,
-            Phone = s.Phone,
-            Email = s.Email,
-            Address = s.Address
-        });
+        return suppliers.Select(s => s.ToDto());
     }
 
     public async Task<SupplierDTO?> GetByIdAsync(int id)
@@ -39,15 +32,7 @@ public class SupplierService : ISupplierService
         if (supplier == null)
             return null;
 
-        return new SupplierDTO
-        {
-            Id = supplier.Id,
-            SupplierName = supplier.SupplierName,
-            ContactName = supplier.ContactName,
-            Phone = supplier.Phone,
-            Email = supplier.Email,
-            Address = supplier.Address
-        };
+        return supplier.ToDto();
     }
 
     public async Task<SupplierDTO> CreateAsync(SupplierDTO dto)

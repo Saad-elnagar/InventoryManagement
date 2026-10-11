@@ -1,5 +1,6 @@
 using InventoryManagementSystem.BLL.DTOs;
 using InventoryManagementSystem.BLL.Interfaces;
+using InventoryManagementSystem.BLL.Mappings;
 using InventoryManagementSystem.BLL.Pagination;
 using InventoryManagementSystem.DAL;
 using InventoryManagementSystem.DAL.Entities;
@@ -26,17 +27,7 @@ public class ProductService : IProductService
                     .GenaricRepository<Product>()
                     .GetAllAsync();
 
-            return products.Select(p => new ProductDTO
-            {
-                Id = p.Id,
-                SKU = p.Sku,
-                Name = p.Name,
-                Description = p.Description,
-                Price = p.UnitPrice,
-                Quantity = p.StockQuantity,
-                ReorderLevel = p.LowStockThreshold,
-                CategoryId = p.CategoryId
-            });
+            return products.Select(p => p.ToDto());
         }
         catch (Exception ex)
         {
@@ -61,18 +52,7 @@ public class ProductService : IProductService
                 .GenaricRepository<Category>()
                 .GetByIdAsync(product.CategoryId);
 
-        return new ProductDTO
-        {
-            Id = product.Id,
-            SKU = product.Sku,
-            Name = product.Name,
-            Description = product.Description,
-            Price = product.UnitPrice,
-            Quantity = product.StockQuantity,
-            ReorderLevel = product.LowStockThreshold,
-            CategoryId = product.CategoryId,
-            CategoryName = category?.Name
-        };
+        return product.ToDto(category?.Name);
     }
 
     public async Task<ProductDTO> CreateAsync(ProductDTO dto)
@@ -146,16 +126,7 @@ public class ProductService : IProductService
 
             await _unitOfWork.CommitTransactionAsync();
 
-            dto.Id = product.Id;
-            dto.SKU = product.Sku;
-            dto.Name = product.Name;
-            dto.Description = product.Description;
-            dto.Quantity = product.StockQuantity;
-            dto.Price = product.UnitPrice;
-            dto.ReorderLevel = product.LowStockThreshold;
-            dto.CategoryId = product.CategoryId;
-
-            return dto;
+            return product.ToDto();
         }
         catch
         {
@@ -281,17 +252,7 @@ public class ProductService : IProductService
                     .GetWhereAsync(
                         p => p.StockQuantity <= p.LowStockThreshold);
 
-            return products.Select(p => new ProductDTO
-            {
-                Id = p.Id,
-                SKU = p.Sku,
-                Name = p.Name,
-                Description = p.Description,
-                Price = p.UnitPrice,
-                Quantity = p.StockQuantity,
-                ReorderLevel = p.LowStockThreshold,
-                CategoryId = p.CategoryId
-            });
+            return products.Select(p => p.ToDto());
         }
         catch (Exception ex)
         {
@@ -324,17 +285,7 @@ public class ProductService : IProductService
 
             var data =
                 result.Items
-                    .Select(p => new ProductDTO
-                    {
-                        Id = p.Id,
-                        SKU = p.Sku,
-                        Name = p.Name,
-                        Description = p.Description,
-                        Price = p.UnitPrice,
-                        Quantity = p.StockQuantity,
-                        ReorderLevel = p.LowStockThreshold,
-                        CategoryId = p.CategoryId
-                    })
+                    .Select(p => p.ToDto())
                     .ToList();
 
             return PaginationHelper.Create(
@@ -397,17 +348,7 @@ public class ProductService : IProductService
 
         var data =
             result.Items
-                .Select(p => new ProductDTO
-                {
-                    Id = p.Id,
-                    SKU = p.Sku,
-                    Name = p.Name,
-                    Description = p.Description,
-                    Price = p.UnitPrice,
-                    Quantity = p.StockQuantity,
-                    ReorderLevel = p.LowStockThreshold,
-                    CategoryId = p.CategoryId
-                })
+                .Select(p => p.ToDto())
                 .ToList();
 
 
