@@ -1,6 +1,7 @@
 using InventoryManagementSystem.BLL.DTOs;
 using InventoryManagementSystem.BLL.Enums;
 using InventoryManagementSystem.BLL.Interfaces;
+using InventoryManagementSystem.BLL.Mappings;
 using InventoryManagementSystem.DAL;
 using InventoryManagementSystem.DAL.Entities;
 
@@ -43,19 +44,9 @@ public class SaleService : ISaleService
 
             return sales
                 .OrderByDescending(s => s.SaleDate)
-                .Select(s => new SaleDTO
-                {
-                    Id = s.Id,
-                    CustomerId = s.CustomerId,
-                    CustomerName =
-                        customerDictionary.TryGetValue(
-                            s.CustomerId,
-                            out var customerName)
-                            ? customerName
-                            : null,
-                    SaleDate = s.SaleDate,
-                    TotalAmount = s.TotalAmount
-                });
+                .Select(s => s.ToDto(
+                    customerDictionary.GetValueOrDefault(s.CustomerId)));
+
         }
         catch (Exception ex)
         {
@@ -105,31 +96,11 @@ public class SaleService : ISaleService
                     x => x.Id,
                     x => x.Name);
 
-            return new SaleDTO
-            {
-                Id = sale.Id,
-                CustomerId = sale.CustomerId,
-                CustomerName = customer?.CustomerName,
-                SaleDate = sale.SaleDate,
-                TotalAmount = sale.TotalAmount,
-                Items = saleItems
-                    .OrderBy(x => x.Id)
-                    .Select(x => new SaleItemDTO
-                    {
-                        Id = x.Id,
-                        SaleId = x.SaleId,
-                        ProductId = x.ProductId,
-                        ProductName =
-                            productDictionary.TryGetValue(
-                                x.ProductId,
-                                out var productName)
-                                ? productName
-                                : null,
-                        Quantity = x.Quantity,
-                        UnitPrice = x.UnitPrice
-                    })
-                    .ToList()
-            };
+            return sale.ToDto(
+                customer?.CustomerName,
+                saleItems,
+                productDictionary);
+
         }
         catch (Exception ex)
         {

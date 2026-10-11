@@ -1,6 +1,7 @@
 using InventoryManagementSystem.BLL.DTOs;
 using InventoryManagementSystem.BLL.Enums;
 using InventoryManagementSystem.BLL.Interfaces;
+using InventoryManagementSystem.BLL.Mappings;
 using InventoryManagementSystem.DAL;
 using InventoryManagementSystem.DAL.Entities;
 
@@ -43,19 +44,9 @@ public class PurchaseService : IPurchaseService
 
             return purchases
                 .OrderByDescending(p => p.PurchaseDate)
-                .Select(p => new PurchaseDTO
-                {
-                    Id = p.Id,
-                    SupplierId = p.SupplierId,
-                    SupplierName =
-                        supplierDictionary.TryGetValue(
-                            p.SupplierId,
-                            out var supplierName)
-                            ? supplierName
-                            : null,
-                    PurchaseDate = p.PurchaseDate,
-                    TotalAmount = p.TotalAmount
-                });
+                .Select(p => p.ToDto(
+                    supplierDictionary.GetValueOrDefault(p.SupplierId)));
+
         }
         catch (Exception ex)
         {
@@ -105,31 +96,11 @@ public class PurchaseService : IPurchaseService
                     x => x.Id,
                     x => x.Name);
 
-            return new PurchaseDTO
-            {
-                Id = purchase.Id,
-                SupplierId = purchase.SupplierId,
-                SupplierName = supplier?.SupplierName,
-                PurchaseDate = purchase.PurchaseDate,
-                TotalAmount = purchase.TotalAmount,
-                Items = purchaseItems
-                    .OrderBy(x => x.Id)
-                    .Select(x => new PurchaseItemDTO
-                    {
-                        Id = x.Id,
-                        PurchaseId = x.PurchaseId,
-                        ProductId = x.ProductId,
-                        ProductName =
-                            productDictionary.TryGetValue(
-                                x.ProductId,
-                                out var productName)
-                                ? productName
-                                : null,
-                        Quantity = x.Quantity,
-                        UnitPrice = x.UnitCost
-                    })
-                    .ToList()
-            };
+            return purchase.ToDto(
+                supplier?.SupplierName,
+                purchaseItems,
+                productDictionary);
+
         }
         catch (Exception ex)
         {
