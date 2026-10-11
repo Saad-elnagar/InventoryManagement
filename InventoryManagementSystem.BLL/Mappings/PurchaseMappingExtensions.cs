@@ -44,4 +44,25 @@ public static class PurchaseMappingExtensions
             UnitPrice = item.UnitCost
         };
     }
+    public static Purchase ToEntity(this PurchaseDTO dto, decimal totalAmount)
+    {
+        return new Purchase
+        {
+            SupplierId = dto.SupplierId,
+            PurchaseDate = dto.PurchaseDate,
+            TotalAmount = totalAmount
+        };
+    }
+
+    public static PurchaseItem ToEntity(this PurchaseItemDTO item, int purchaseId)
+    {
+        return new PurchaseItem
+        {
+            PurchaseId = purchaseId,
+            ProductId = item.ProductId,
+            Quantity = item.Quantity,
+            UnitCost = item.UnitPrice
+        };
+    }
+
 }

@@ -165,12 +165,7 @@ public class PurchaseService : IPurchaseService
                     x => x.Quantity * x.UnitPrice);
             }
 
-            var purchase = new Purchase
-            {
-                SupplierId = dto.SupplierId,
-                PurchaseDate = dto.PurchaseDate,
-                TotalAmount = totalAmount
-            };
+            var purchase = dto.ToEntity(totalAmount);
 
             await _unitOfWork
                 .GenaricRepository<Purchase>()
@@ -182,14 +177,7 @@ public class PurchaseService : IPurchaseService
             {
                 await _unitOfWork
                     .GenaricRepository<PurchaseItem>()
-                    .AddAsync(
-                        new PurchaseItem
-                        {
-                            PurchaseId = purchase.Id,
-                            ProductId = item.ProductId,
-                            Quantity = item.Quantity,
-                            UnitCost = item.UnitPrice
-                        });
+                    .AddAsync(item.ToEntity(purchase.Id));
 
                 var product = products[item.ProductId];
                 product.StockQuantity += item.Quantity;
