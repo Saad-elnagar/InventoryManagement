@@ -1,6 +1,9 @@
 ﻿using InventoryManagementSystem.BLL.DTOs;
 using InventoryManagementSystem.BLL.Interfaces;
 using InventoryManagementSystem.DAL.Entities;
+using InventoryManagementSystem.BLL.Pagination;
+using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace InventoryManagementSystem.BLL.Service;
 
@@ -194,4 +197,62 @@ public class CategoryService : ICategoryService
                 ex);
         }
     }
+
+    public async Task<PaginationResult<CategoryDTO>> SearchAsync(
+        string? search,
+        int page = 1,
+        int pageSize = 10)
+    {
+        var parameters = new PaginationParams
+        {
+            Page = page,
+            PageSize = pageSize
+        };
+        parameters.Normalize();
+
+        Expression<Func<Category, bool>>? predicate = null;
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            var pattern = $"%{term}%";
+
+            predicate = category =>
+                EF.Functions.Like(
+                    EF.Functions.Collate(
+                        category.Name,
+                        "SQL_Latin1_General_CP1_CI_AS"),
+                    pattern)
+                ||
+                (category.Description != null &&
+                 EF.Functions.Like(
+                     EF.Functions.Collate(
+                         category.Description,
+                         "SQL_Latin1_General_CP1_CI_AS"),
+                     pattern));
+        }
+
+        var result = await _unitOfWork
+            .GenaricRepository<Category>()
+            .GetPagedAsync(
+                parameters.Page,
+                parameters.PageSize,
+                predicate,
+                category => category.Name);
+
+        var data = result.Items
+            .Select(category => new CategoryDTO
+            {
+                Id = category.Id,
+                Name = category.Name,
+                Description = category.Description
+            })
+            .ToList();
+
+        return PaginationHelper.Create(
+            data,
+            parameters,
+            result.TotalCount);
+    }
+
 }

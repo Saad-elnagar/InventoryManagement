@@ -313,6 +313,8 @@ public class ProductService : IProductService
                 PageSize = pageSize
             };
 
+            parameters.Normalize();
+
             var result =
                 await _unitOfWork
                     .GenaricRepository<Product>()
@@ -358,12 +360,19 @@ public class ProductService : IProductService
 
         search = search.Trim();
 
+        var parameters = new PaginationParams
+        {
+            Page = page,
+            PageSize = pageSize
+        };
+        parameters.Normalize();
+
         var result =
             await _unitOfWork
                 .GenaricRepository<Product>()
                 .GetPagedAsync(
-                    page,
-                    pageSize,
+                    parameters.Page,
+                    parameters.PageSize,
                     p =>
                         EF.Functions.Like(
                             EF.Functions.Collate(
@@ -401,11 +410,7 @@ public class ProductService : IProductService
                 })
                 .ToList();
 
-        var parameters = new PaginationParams
-        {
-            Page = page,
-            PageSize = pageSize
-        };
+
 
         return PaginationHelper.Create(
             data,

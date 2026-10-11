@@ -70,11 +70,27 @@ public class GenaricRepository<T> : IGenaricRepository<T>
             .ToListAsync();
     }
 
-    public async Task<(IEnumerable<T> Items, int TotalCount)> GetPagedAsync(
+    public Task<(IEnumerable<T> Items, int TotalCount)> GetPagedAsync(
         int page,
         int pageSize,
         Expression<Func<T, bool>>? predicate = null)
     {
+        return GetPagedAsync(
+            page,
+            pageSize,
+            predicate,
+            entity => entity.Id);
+    }
+
+    public async Task<(IEnumerable<T> Items, int TotalCount)> GetPagedAsync<TKey>(
+        int page,
+        int pageSize,
+        Expression<Func<T, bool>>? predicate,
+        Expression<Func<T, TKey>> orderBy)
+    {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+
         var query = _context
             .Set<T>()
             .AsNoTracking();
@@ -87,7 +103,7 @@ public class GenaricRepository<T> : IGenaricRepository<T>
         var totalCount = await query.CountAsync();
 
         var items = await query
-            .OrderBy(x => x.Id)
+            .OrderBy(orderBy)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();

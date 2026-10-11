@@ -29,6 +29,12 @@ public interface IGenaricRepository<T>
         int pageSize,
         Expression<Func<T, bool>>? predicate = null);
 
+    Task<(IEnumerable<T> Items, int TotalCount)> GetPagedAsync<TKey>(
+        int page,
+        int pageSize,
+        Expression<Func<T, bool>>? predicate,
+        Expression<Func<T, TKey>> orderBy);
+
 
     Task AddAsync(T entity);
 

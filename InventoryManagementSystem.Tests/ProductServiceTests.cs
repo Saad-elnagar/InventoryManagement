@@ -231,4 +231,25 @@ public class ProductServiceTests
         Assert.True(result.HasPrevious);
         Assert.True(result.HasNext);
     }
+
+    [Fact]
+    public async Task GetPagedAsync_NormalizesPageAndPageSizeBeforeQuerying()
+    {
+        var repo = _uow.Repository<Product>();
+
+        repo.Setup(r => r.GetPagedAsync(1, 100, null))
+            .ReturnsAsync((
+                (IEnumerable<Product>)Array.Empty<Product>(),
+                250));
+
+        var result = await Sut.GetPagedAsync(page: 0, pageSize: 1000);
+
+        Assert.Equal(1, result.Page);
+        Assert.Equal(100, result.PageSize);
+        Assert.Equal(250, result.TotalCount);
+        Assert.Equal(3, result.TotalPages);
+
+        repo.Verify(r => r.GetPagedAsync(1, 100, null), Times.Once);
+    }
+
 }
