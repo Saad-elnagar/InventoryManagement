@@ -1,6 +1,8 @@
 using InventoryManagementSystem.DAL.Entities;
 using InventoryManagementSystem.DAL.Repository;
 
+namespace InventoryManagementSystem.DAL;
+
 public interface IUnitOfWork
 {
     IGenaricRepository<T> GenaricRepository<T>()

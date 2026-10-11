@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using InventoryManagementSystem.BLL.DTOs;
 using InventoryManagementSystem.BLL.Interfaces;
+using InventoryManagementSystem.DAL;
 using InventoryManagementSystem.DAL.Entities;
 using System.Net.Http.Json;
 using Microsoft.Extensions.Configuration;
