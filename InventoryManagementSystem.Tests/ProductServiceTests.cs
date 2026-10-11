@@ -194,7 +194,7 @@ public class ProductServiceTests
         Assert.Equal(3, product.LowStockThreshold);
         Assert.Equal(2, product.CategoryId);
 
-        _uow.Repository<Product>().Verify(r => r.Update(product), Times.Once);;
+        _uow.Repository<Product>().Verify(r => r.Update(product), Times.Once);
         Assert.NotNull(stockMovement);
         Assert.Equal(4, stockMovement!.Quantity);
         Assert.Equal(StockMovementType.Adjustment.ToString(), stockMovement.MovementType);
