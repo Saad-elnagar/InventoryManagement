@@ -1,4 +1,5 @@
 using InventoryManagementSystem.BLL.DTOs;
+using InventoryManagementSystem.BLL.Enums;
 using InventoryManagementSystem.BLL.Service;
 using InventoryManagementSystem.DAL.Entities;
 using InventoryManagementSystem.Tests.TestDoubles;
@@ -166,6 +167,12 @@ public class ProductServiceTests
             .Setup(r => r.AnyAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Category, bool>>>()))
             .ReturnsAsync(true);
 
+        StockMovement? stockMovement = null;
+        _uow.Repository<StockMovement>()
+            .Setup(r => r.AddAsync(It.IsAny<StockMovement>()))
+            .Callback<StockMovement>(movement => stockMovement = movement)
+            .Returns(Task.CompletedTask);
+
         var dto = new ProductDTO
         {
             SKU = "SKU-5",
@@ -187,7 +194,13 @@ public class ProductServiceTests
         Assert.Equal(3, product.LowStockThreshold);
         Assert.Equal(2, product.CategoryId);
 
-        _uow.Repository<Product>().Verify(r => r.Update(product), Times.Once);
+        _uow.Repository<Product>().Verify(r => r.Update(product), Times.Once);;
+        Assert.NotNull(stockMovement);
+        Assert.Equal(4, stockMovement!.Quantity);
+        Assert.Equal(StockMovementType.Adjustment.ToString(), stockMovement.MovementType);
+        Assert.Equal("Stock quantity adjusted through product edit", stockMovement.Reason);
+        _uow.VerifyTransactionStarted(Times.Once());
+        _uow.VerifyCommitted(Times.Once());
     }
 
     [Fact]

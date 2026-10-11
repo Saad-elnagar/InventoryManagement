@@ -61,8 +61,8 @@ public class ProductService : IProductService
 
         try
         {
-            var sku = dto.SKU.Trim();
-            var name = dto.Name.Trim();
+            var sku = dto.SKU?.Trim() ?? string.Empty;
+            var name = dto.Name?.Trim() ?? string.Empty;
             var description = dto.Description?.Trim();
 
             if (string.IsNullOrWhiteSpace(sku))
@@ -70,6 +70,15 @@ public class ProductService : IProductService
 
             if (string.IsNullOrWhiteSpace(name))
                 throw new Exception("Product name is required.");
+
+            if (dto.Price <= 0)
+                throw new Exception("Price must be greater than zero.");
+
+            if (dto.Quantity < 0)
+                throw new Exception("Quantity cannot be negative.");
+
+            if (dto.ReorderLevel < 0)
+                throw new Exception("Reorder level cannot be negative.");
 
             var categoryExists =
                 await _unitOfWork
@@ -137,6 +146,8 @@ public class ProductService : IProductService
 
     public async Task<bool> UpdateAsync(int id, ProductDTO dto)
     {
+        var transactionStarted = false;
+
         try
         {
             var productRepository =
@@ -151,11 +162,23 @@ public class ProductService : IProductService
             if (product == null)
                 return false;
 
-            var sku = dto.SKU.Trim();
-            var name = dto.Name.Trim();
+            var sku = dto.SKU?.Trim() ?? string.Empty;
+            var name = dto.Name?.Trim() ?? string.Empty;
 
             if (string.IsNullOrWhiteSpace(sku))
                 throw new Exception("SKU is required.");
+
+            if (string.IsNullOrWhiteSpace(name))
+                throw new Exception("Product name is required.");
+
+            if (dto.Price <= 0)
+                throw new Exception("Price must be greater than zero.");
+
+            if (dto.Quantity < 0)
+                throw new Exception("Quantity cannot be negative.");
+
+            if (dto.ReorderLevel < 0)
+                throw new Exception("Reorder level cannot be negative.");
 
             var categoryExists =
                 await categoryRepository.AnyAsync(
@@ -171,6 +194,11 @@ public class ProductService : IProductService
             if (duplicateSku)
                 throw new Exception("SKU already exists.");
 
+            var stockDelta = dto.Quantity - product.StockQuantity;
+
+            await _unitOfWork.BeginTransactionAsync();
+            transactionStarted = true;
+
             product.Name = name;
             product.Sku = sku;
             product.Description = dto.Description?.Trim();
@@ -181,12 +209,34 @@ public class ProductService : IProductService
 
             productRepository.Update(product);
 
+            if (stockDelta != 0)
+            {
+                await _unitOfWork
+                    .GenaricRepository<StockMovement>()
+                    .AddAsync(
+                        new StockMovement
+                        {
+                            ProductId = product.Id,
+                            Quantity = stockDelta,
+                            MovementType = StockMovementType.Adjustment.ToString(),
+                            MovementDate = DateTime.UtcNow,
+                            ReferenceType = "Manual",
+                            ReferenceId = null,
+                            Reason = "Stock quantity adjusted through product edit"
+                        });
+            }
+
             await _unitOfWork.SaveChangesAsync();
+            await _unitOfWork.CommitTransactionAsync();
+            transactionStarted = false;
 
             return true;
         }
         catch (Exception ex)
         {
+            if (transactionStarted)
+                await _unitOfWork.RollbackTransactionAsync();
+
             throw new Exception(
                 "Error while updating product.",
                 ex);
