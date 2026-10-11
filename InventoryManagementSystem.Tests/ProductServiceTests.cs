@@ -26,6 +26,10 @@ public class ProductServiceTests
             .Callback<Product>(p => p.Id = 25)
             .Returns(Task.CompletedTask);
 
+        _uow.Repository<StockMovement>()
+            .Setup(r => r.AddAsync(It.IsAny<StockMovement>()))
+            .Returns(Task.CompletedTask);
+
         var dto = new ProductDTO
         {
             SKU = "SKU-25",
@@ -62,6 +66,7 @@ public class ProductServiceTests
 
         var dto = new ProductDTO
         {
+            SKU = "SKU-99",
             Name = "Keyboard",
             Price = 1200m,
             Quantity = 10,
