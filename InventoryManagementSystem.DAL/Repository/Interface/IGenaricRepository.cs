@@ -8,7 +8,7 @@ public interface IGenaricRepository<T>
 {
     Task<IEnumerable<T>> GetAllAsync();
 
-    Task<T> GetByIdAsync(int id);
+    Task<T?> GetByIdAsync(int id);
 
     Task<bool> AnyAsync(
         Expression<Func<T, bool>> predicate);

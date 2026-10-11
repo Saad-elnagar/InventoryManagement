@@ -22,13 +22,13 @@ public class GenaricRepository<T> : IGenaricRepository<T>
             .ToListAsync();
     }
 
-    public async Task<T> GetByIdAsync(int id)
+    public async Task<T?> GetByIdAsync(int id)
     {
         var item = await _context
             .Set<T>()
             .FindAsync(id);
 
-        return item!;
+        return item;
     }
 
     public async Task<bool> AnyAsync(
