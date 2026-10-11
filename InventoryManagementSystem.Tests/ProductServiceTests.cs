@@ -57,7 +57,7 @@ public class ProductServiceTests
     }
 
     [Fact]
-    public async Task CreateAsync_MissingCategory_ThrowsWrappedException()
+    public async Task CreateAsync_MissingCategory_ThrowsAndRollsBack()
     {
         _uow
             .Repository<Category>()
@@ -76,8 +76,8 @@ public class ProductServiceTests
 
         var ex = await Assert.ThrowsAsync<Exception>(() => Sut.CreateAsync(dto));
 
-        Assert.Equal("Error while creating product.", ex.Message);
-        Assert.Equal("Category not found.", ex.InnerException?.Message);
+        Assert.Equal("Category not found.", ex.Message);
+        _uow.VerifyRolledBack(Times.Once());
     }
 
     [Fact]
