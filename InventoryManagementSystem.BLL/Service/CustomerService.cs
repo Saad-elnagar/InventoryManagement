@@ -40,14 +40,7 @@ public class CustomerService : ICustomerService
 
     public async Task<int> CreateAsync(CustomerDTO dto)
     {
-        var customer = new Customer
-        {
-            CustomerName = dto.Name,
-            ContactName = dto.ContactName,
-            Phone = dto.Phone,
-            Address = dto.Address,
-            Email = dto.Email
-        };
+        var customer = dto.ToEntity();
 
         await _unitOfWork.GenaricRepository<Customer>()
             .AddAsync(customer);
@@ -66,11 +59,7 @@ public class CustomerService : ICustomerService
         if (customer == null)
             return 0;
 
-        customer.CustomerName = dto.Name;
-        customer.ContactName = dto.ContactName;
-        customer.Phone = dto.Phone;
-        customer.Address = dto.Address;
-        customer.Email = dto.Email;
+        dto.ApplyTo(customer);
 
         _unitOfWork.GenaricRepository<Customer>()
             .Update(customer);

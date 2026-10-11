@@ -17,4 +17,25 @@ public static class CustomerMappingExtensions
             Email = customer.Email
         };
     }
+    public static Customer ToEntity(this CustomerDTO dto)
+    {
+        return new Customer
+        {
+            CustomerName = dto.Name,
+            ContactName = dto.ContactName,
+            Phone = dto.Phone,
+            Address = dto.Address,
+            Email = dto.Email
+        };
+    }
+
+    public static void ApplyTo(this CustomerDTO dto, Customer customer)
+    {
+        customer.CustomerName = dto.Name;
+        customer.ContactName = dto.ContactName;
+        customer.Phone = dto.Phone;
+        customer.Address = dto.Address;
+        customer.Email = dto.Email;
+    }
+
 }
