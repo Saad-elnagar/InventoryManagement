@@ -278,6 +278,15 @@ public class ProductService : IProductService
                 throw new Exception(
                     "Cannot delete product because it has sales history.");
 
+            var hasStockMovementHistory =
+                await _unitOfWork
+                    .GenaricRepository<StockMovement>()
+                    .AnyAsync(movement => movement.ProductId == id);
+
+            if (hasStockMovementHistory)
+                throw new Exception(
+                    "Cannot delete product because it has stock movement history.");
+
             productRepository.Delete(product);
 
             await _unitOfWork.SaveChangesAsync();

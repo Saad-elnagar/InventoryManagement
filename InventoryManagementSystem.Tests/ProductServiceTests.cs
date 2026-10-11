@@ -226,6 +226,32 @@ public class ProductServiceTests
     }
 
     [Fact]
+    public async Task DeleteAsync_ProductWithStockMovementHistory_Throws()
+    {
+        _uow.Repository<Product>()
+            .Setup(r => r.GetByIdAsync(9))
+            .ReturnsAsync(new Product { Id = 9, Name = "Inventory tracked" });
+
+        _uow.Repository<PurchaseItem>()
+            .Setup(r => r.AnyAsync(It.IsAny<System.Linq.Expressions.Expression<Func<PurchaseItem, bool>>>()))
+            .ReturnsAsync(false);
+
+        _uow.Repository<SaleItem>()
+            .Setup(r => r.AnyAsync(It.IsAny<System.Linq.Expressions.Expression<Func<SaleItem, bool>>>()))
+            .ReturnsAsync(false);
+
+        _uow.Repository<StockMovement>()
+            .Setup(r => r.AnyAsync(It.IsAny<System.Linq.Expressions.Expression<Func<StockMovement, bool>>>()))
+            .ReturnsAsync(true);
+
+        var ex = await Assert.ThrowsAsync<Exception>(() => Sut.DeleteAsync(9));
+
+        Assert.Equal("Error while deleting product.", ex.Message);
+        Assert.Contains("stock movement history", ex.InnerException?.Message);
+        _uow.Repository<Product>().Verify(r => r.Delete(It.IsAny<Product>()), Times.Never);
+    }
+
+    [Fact]
     public async Task GetPagedAsync_ReturnsCorrectMetadata()
     {
         _uow.Repository<Product>()
