@@ -44,4 +44,25 @@ public static class SaleMappingExtensions
             UnitPrice = item.UnitPrice
         };
     }
+    public static Sale ToEntity(this SaleDTO dto, decimal totalAmount)
+    {
+        return new Sale
+        {
+            CustomerId = dto.CustomerId,
+            SaleDate = dto.SaleDate,
+            TotalAmount = totalAmount
+        };
+    }
+
+    public static SaleItem ToEntity(this SaleItemDTO item, int saleId)
+    {
+        return new SaleItem
+        {
+            SaleId = saleId,
+            ProductId = item.ProductId,
+            Quantity = item.Quantity,
+            UnitPrice = item.UnitPrice
+        };
+    }
+
 }

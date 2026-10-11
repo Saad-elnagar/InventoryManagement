@@ -175,12 +175,7 @@ public class SaleService : ISaleService
                     x => x.Quantity * x.UnitPrice);
             }
 
-            var sale = new Sale
-            {
-                CustomerId = dto.CustomerId,
-                SaleDate = dto.SaleDate,
-                TotalAmount = totalAmount
-            };
+            var sale = dto.ToEntity(totalAmount);
 
             await _unitOfWork
                 .GenaricRepository<Sale>()
@@ -192,14 +187,7 @@ public class SaleService : ISaleService
             {
                 await _unitOfWork
                     .GenaricRepository<SaleItem>()
-                    .AddAsync(
-                        new SaleItem
-                        {
-                            SaleId = sale.Id,
-                            ProductId = item.ProductId,
-                            Quantity = item.Quantity,
-                            UnitPrice = item.UnitPrice
-                        });
+                    .AddAsync(item.ToEntity(sale.Id));
 
                 var product = products[item.ProductId];
 
