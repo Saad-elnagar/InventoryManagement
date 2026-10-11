@@ -14,4 +14,19 @@ public static class CategoryMappingExtensions
             Description = category.Description
         };
     }
+    public static Category ToEntity(this CategoryDTO dto)
+    {
+        return new Category
+        {
+            Name = dto.Name.Trim(),
+            Description = dto.Description?.Trim()
+        };
+    }
+
+    public static void ApplyTo(this CategoryDTO dto, Category category)
+    {
+        category.Name = dto.Name.Trim();
+        category.Description = dto.Description?.Trim();
+    }
+
 }

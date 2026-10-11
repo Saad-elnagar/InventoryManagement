@@ -79,11 +79,7 @@ public class CategoryService : ICategoryService
                 throw new Exception(
                     "Category already exists.");
 
-            var category = new Category
-            {
-                Name = dto.Name,
-                Description = dto.Description
-            };
+            var category = dto.ToEntity();
 
             await _unitOfWork
                 .GenaricRepository<Category>()
@@ -130,9 +126,7 @@ public class CategoryService : ICategoryService
                 throw new Exception(
                     "Category already exists.");
 
-            category.Name = dto.Name;
-            category.Description =
-                dto.Description?.Trim();
+            dto.ApplyTo(category);
 
             _unitOfWork
                 .GenaricRepository<Category>()
