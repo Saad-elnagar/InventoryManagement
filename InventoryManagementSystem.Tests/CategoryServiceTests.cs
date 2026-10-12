@@ -1,5 +1,8 @@
 using InventoryManagementSystem.BLL.DTOs;
+using InventoryManagementSystem.BLL.Exceptions;
 using InventoryManagementSystem.BLL.Service;
+using InventoryManagementSystem.BLL.Pagination;
+using System.Linq.Expressions;
 using InventoryManagementSystem.DAL.Entities;
 using InventoryManagementSystem.Tests.TestDoubles;
 using Moq;
@@ -45,12 +48,11 @@ public class CategoryServiceTests
             .Setup(r => r.AnyAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Category, bool>>>()))
             .ReturnsAsync(true);
 
-        var ex = await Assert.ThrowsAsync<Exception>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             new CategoryService(uow.Object).CreateAsync(
                 new CategoryDTO { Name = "Electronics" }));
 
-        Assert.Equal("Error while creating category.", ex.Message);
-        Assert.Equal("Category already exists.", ex.InnerException?.Message);
+        Assert.Equal("Category already exists.", ex.Message);
     }
 
     [Fact]
@@ -66,10 +68,52 @@ public class CategoryServiceTests
             .Setup(r => r.AnyAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Product, bool>>>()))
             .ReturnsAsync(true);
 
-        var ex = await Assert.ThrowsAsync<Exception>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             new CategoryService(uow.Object).DeleteAsync(5));
 
-        Assert.Contains("contains products", ex.InnerException?.Message);
+        Assert.Contains("contains products", ex.Message);
         uow.Repository<Category>().Verify(r => r.Delete(It.IsAny<Category>()), Times.Never);
     }
+
+    [Fact]
+    public async Task SearchAsync_ReturnsFilteredPaginatedCategories()
+    {
+        var uow = new UnitOfWorkMock();
+        var repo = uow.Repository<Category>();
+
+        repo.Setup(r => r.GetPagedAsync(
+                1,
+                100,
+                It.IsAny<Expression<Func<Category, bool>>?>(),
+                It.IsAny<Expression<Func<Category, string>>>()))
+            .ReturnsAsync((
+                (IEnumerable<Category>)new[]
+                {
+                    new Category
+                    {
+                        Id = 3,
+                        Name = "Electronics",
+                        Description = "Devices"
+                    }
+                },
+                12));
+
+        var result = await new CategoryService(uow.Object)
+            .SearchAsync("  Electronics  ", page: 0, pageSize: 500);
+
+        Assert.Single(result.Data);
+        Assert.Equal("Electronics", result.Data[0].Name);
+        Assert.Equal(12, result.TotalCount);
+        Assert.Equal(1, result.Page);
+        Assert.Equal(100, result.PageSize);
+        Assert.Equal(1, result.TotalPages);
+
+        repo.Verify(r => r.GetPagedAsync(
+                1,
+                100,
+                It.Is<Expression<Func<Category, bool>>?>(predicate => predicate != null),
+                It.IsAny<Expression<Func<Category, string>>>()),
+            Times.Once);
+    }
+
 }

@@ -1,5 +1,3 @@
-using InventoryManagementSystem.DAL.Entities;
-
 namespace InventoryManagementSystem.BLL.Pagination;
 
 public static class PaginationHelper

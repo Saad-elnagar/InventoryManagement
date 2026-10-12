@@ -1,6 +1,9 @@
 using InventoryManagementSystem.BLL.DTOs;
+using InventoryManagementSystem.BLL.Exceptions;
 using InventoryManagementSystem.BLL.Enums;
 using InventoryManagementSystem.BLL.Interfaces;
+using InventoryManagementSystem.BLL.Mappings;
+using InventoryManagementSystem.DAL;
 using InventoryManagementSystem.DAL.Entities;
 
 namespace InventoryManagementSystem.BLL.Service;
@@ -42,19 +45,9 @@ public class SaleService : ISaleService
 
             return sales
                 .OrderByDescending(s => s.SaleDate)
-                .Select(s => new SaleDTO
-                {
-                    Id = s.Id,
-                    CustomerId = s.CustomerId,
-                    CustomerName =
-                        customerDictionary.TryGetValue(
-                            s.CustomerId,
-                            out var customerName)
-                            ? customerName
-                            : null,
-                    SaleDate = s.SaleDate,
-                    TotalAmount = s.TotalAmount
-                });
+                .Select(s => s.ToDto(
+                    customerDictionary.GetValueOrDefault(s.CustomerId)));
+
         }
         catch (Exception ex)
         {
@@ -104,31 +97,11 @@ public class SaleService : ISaleService
                     x => x.Id,
                     x => x.Name);
 
-            return new SaleDTO
-            {
-                Id = sale.Id,
-                CustomerId = sale.CustomerId,
-                CustomerName = customer?.CustomerName,
-                SaleDate = sale.SaleDate,
-                TotalAmount = sale.TotalAmount,
-                Items = saleItems
-                    .OrderBy(x => x.Id)
-                    .Select(x => new SaleItemDTO
-                    {
-                        Id = x.Id,
-                        SaleId = x.SaleId,
-                        ProductId = x.ProductId,
-                        ProductName =
-                            productDictionary.TryGetValue(
-                                x.ProductId,
-                                out var productName)
-                                ? productName
-                                : null,
-                        Quantity = x.Quantity,
-                        UnitPrice = x.UnitPrice
-                    })
-                    .ToList()
-            };
+            return sale.ToDto(
+                customer?.CustomerName,
+                saleItems,
+                productDictionary);
+
         }
         catch (Exception ex)
         {
@@ -145,7 +118,7 @@ public class SaleService : ISaleService
         try
         {
             if (dto.CustomerId <= 0)
-                throw new Exception("Please select a customer.");
+                throw new BusinessRuleException("Please select a customer.");
 
             var customerExists =
                 await _unitOfWork
@@ -153,23 +126,23 @@ public class SaleService : ISaleService
                     .AnyAsync(c => c.Id == dto.CustomerId);
 
             if (!customerExists)
-                throw new Exception("Customer not found.");
+                throw new BusinessRuleException("Customer not found.");
 
             if (dto.Items == null || dto.Items.Count == 0)
-                throw new Exception(
+                throw new BusinessRuleException(
                     "Sale must contain at least one item.");
 
             foreach (var item in dto.Items)
             {
                 if (item.ProductId <= 0)
-                    throw new Exception("Please select a product.");
+                    throw new BusinessRuleException("Please select a product.");
 
                 if (item.Quantity <= 0)
-                    throw new Exception(
+                    throw new BusinessRuleException(
                         "Quantity must be greater than zero.");
 
                 if (item.UnitPrice <= 0)
-                    throw new Exception(
+                    throw new BusinessRuleException(
                         "Unit price must be greater than zero.");
             }
 
@@ -184,7 +157,7 @@ public class SaleService : ISaleService
                         .GetByIdAsync(group.Key);
 
                 if (product == null)
-                    throw new Exception(
+                    throw new BusinessRuleException(
                         $"Product {group.Key} not found.");
 
                 var totalQuantity =
@@ -192,7 +165,7 @@ public class SaleService : ISaleService
 
                 if (product.StockQuantity < totalQuantity)
                 {
-                    throw new Exception(
+                    throw new BusinessRuleException(
                         $"Not enough stock for product {product.Name}. " +
                         $"Available: {product.StockQuantity}.");
                 }
@@ -203,12 +176,7 @@ public class SaleService : ISaleService
                     x => x.Quantity * x.UnitPrice);
             }
 
-            var sale = new Sale
-            {
-                CustomerId = dto.CustomerId,
-                SaleDate = dto.SaleDate,
-                TotalAmount = totalAmount
-            };
+            var sale = dto.ToEntity(totalAmount);
 
             await _unitOfWork
                 .GenaricRepository<Sale>()
@@ -220,14 +188,7 @@ public class SaleService : ISaleService
             {
                 await _unitOfWork
                     .GenaricRepository<SaleItem>()
-                    .AddAsync(
-                        new SaleItem
-                        {
-                            SaleId = sale.Id,
-                            ProductId = item.ProductId,
-                            Quantity = item.Quantity,
-                            UnitPrice = item.UnitPrice
-                        });
+                    .AddAsync(item.ToEntity(sale.Id));
 
                 var product = products[item.ProductId];
 

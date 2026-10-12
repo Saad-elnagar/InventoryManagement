@@ -5,8 +5,6 @@ using InventoryManagementSystem.BLL.Interfaces;
 using InventoryManagementSystem.BLL.Service;
 using InventoryManagementSystem.DAL;
 using InventoryManagementSystem.DAL.Entities;
-using InventoryManagementSystem.DAL.Repository;
-using InventoryManagementSystem.DAL.Repository.Implementation;
 using InventoryManagementSystem.Infrastructure;
 using InventoryManagementSystem.Settings;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -138,9 +136,9 @@ builder.Services
                 var isHtmlRequest =
                     HttpMethods.IsGet(request.Method) &&
                     request.Headers.Accept.Any(
-                        x => x.Contains(
+                        x => x?.Contains(
                             "text/html",
-                            StringComparison.OrdinalIgnoreCase));
+                            StringComparison.OrdinalIgnoreCase) == true);
 
                 var isApiRequest =
                     request.Path.StartsWithSegments("/api");
@@ -171,9 +169,9 @@ builder.Services
                 var isHtmlRequest =
                     HttpMethods.IsGet(request.Method) &&
                     request.Headers.Accept.Any(
-                        x => x.Contains(
+                        x => x?.Contains(
                             "text/html",
-                            StringComparison.OrdinalIgnoreCase));
+                            StringComparison.OrdinalIgnoreCase) == true);
 
                 var isApiRequest =
                     request.Path.StartsWithSegments("/api");
@@ -194,10 +192,6 @@ builder.Services.AddAuthorizationBuilder()
         new AuthorizationPolicyBuilder()
             .RequireAuthenticatedUser()
             .Build());
-
-builder.Services.AddScoped(
-    typeof(IGenaricRepository<>),
-    typeof(GenaricRepository<>));
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 

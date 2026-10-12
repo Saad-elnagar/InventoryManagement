@@ -1,6 +1,11 @@
 using InventoryManagementSystem.BLL.DTOs;
+using InventoryManagementSystem.BLL.Exceptions;
 using InventoryManagementSystem.BLL.Enums;
 using InventoryManagementSystem.BLL.Interfaces;
+using InventoryManagementSystem.BLL.Mappings;
+using System.Linq.Expressions;
+using Microsoft.EntityFrameworkCore;
+using InventoryManagementSystem.DAL;
 using InventoryManagementSystem.DAL.Entities;
 
 namespace InventoryManagementSystem.BLL.Service;
@@ -23,108 +28,47 @@ public class StockMovementService : IStockMovementService
     {
         try
         {
-            var movements =
-                await _unitOfWork
-                    .GenaricRepository<StockMovement>()
-                    .GetAllAsync();
+            var from = fromDate?.Date;
+            var toExclusive = toDate?.Date.AddDays(1);
+            var type = string.IsNullOrWhiteSpace(movementType)
+                ? null
+                : movementType.Trim();
 
-            if (productId.HasValue)
-            {
-                movements =
-                    movements.Where(
-                        x => x.ProductId == productId.Value);
-            }
+            Expression<Func<StockMovement, bool>> predicate = movement =>
+                (!productId.HasValue || movement.ProductId == productId.Value) &&
+                (type == null ||
+                 EF.Functions.Collate(
+                     movement.MovementType,
+                     "SQL_Latin1_General_CP1_CI_AS") == type) &&
+                (!from.HasValue || movement.MovementDate >= from.Value) &&
+                (!toExclusive.HasValue || movement.MovementDate < toExclusive.Value);
 
-            if (!string.IsNullOrWhiteSpace(movementType))
-            {
-                movements =
-                    movements.Where(
-                        x =>
-                            string.Equals(
-                                x.MovementType,
-                                movementType,
-                                StringComparison.OrdinalIgnoreCase));
-            }
+            var movements = await _unitOfWork
+                .GenaricRepository<StockMovement>()
+                .GetWhereAsync(predicate);
 
-            if (fromDate.HasValue)
-            {
-                var from = fromDate.Value.Date;
+            movements = movements
+                .OrderByDescending(x => x.MovementDate)
+                .ThenByDescending(x => x.Id);
 
-                movements =
-                    movements.Where(
-                        x => x.MovementDate >= from);
-            }
+            var productIds = movements
+                .Select(x => x.ProductId)
+                .Distinct()
+                .ToList();
 
-            if (toDate.HasValue)
-            {
-                var to =
-                    toDate.Value.Date.AddDays(1).AddTicks(-1);
+            var products = productIds.Count == 0
+                ? Enumerable.Empty<Product>()
+                : await _unitOfWork
+                    .GenaricRepository<Product>()
+                    .GetWhereAsync(x => productIds.Contains(x.Id));
 
-                movements =
-                    movements.Where(
-                        x => x.MovementDate <= to);
-            }
-
-            movements =
-                movements
-                    .OrderByDescending(
-                        x => x.MovementDate)
-                    .ThenByDescending(
-                        x => x.Id);
-
-            var productIds =
-                movements
-                    .Select(x => x.ProductId)
-                    .Distinct()
-                    .ToList();
-
-            var products =
-                productIds.Count == 0
-                    ? Enumerable.Empty<Product>()
-                    : await _unitOfWork
-                        .GenaricRepository<Product>()
-                        .GetWhereAsync(
-                            x => productIds.Contains(x.Id));
-
-            var productDictionary =
-                products.ToDictionary(
-                    x => x.Id,
-                    x => x.Name);
+            var productDictionary = products.ToDictionary(
+                x => x.Id,
+                x => x.Name);
 
             return movements.Select(
-                x => new StockMovementDTO
-                {
-                    Id = x.Id,
+                x => x.ToDto(productDictionary.GetValueOrDefault(x.ProductId)));
 
-                    ProductId = x.ProductId,
-
-                    ProductName =
-                        productDictionary.TryGetValue(
-                            x.ProductId,
-                            out var productName)
-                            ? productName
-                            : null,
-
-                    Quantity = x.Quantity,
-
-                    MovementType =
-                        x.MovementType,
-
-                    MovementDate =
-                        x.MovementDate,
-
-                    ReferenceType =
-                        x.ReferenceType,
-
-                    ReferenceId =
-                        x.ReferenceId,
-
-                    Reason =
-                        x.Reason,
-
-                    Notes =
-                        x.Notes
-                });
         }
         catch (Exception ex)
         {
@@ -153,38 +97,8 @@ public class StockMovementService : IStockMovementService
                     .GetByIdAsync(
                         movement.ProductId);
 
-            return new StockMovementDTO
-            {
-                Id =
-                    movement.Id,
+            return movement.ToDto(product?.Name);
 
-                ProductId =
-                    movement.ProductId,
-
-                ProductName =
-                    product?.Name,
-
-                Quantity =
-                    movement.Quantity,
-
-                MovementType =
-                    movement.MovementType,
-
-                MovementDate =
-                    movement.MovementDate,
-
-                ReferenceType =
-                    movement.ReferenceType,
-
-                ReferenceId =
-                    movement.ReferenceId,
-
-                Reason =
-                    movement.Reason,
-
-                Notes =
-                    movement.Notes
-            };
         }
         catch (Exception ex)
         {
@@ -213,19 +127,19 @@ public class StockMovementService : IStockMovementService
         if (!dto.MovementType.HasValue ||
             !manualTypes.Contains(dto.MovementType.Value))
         {
-            throw new Exception(
+            throw new BusinessRuleException(
                 "Purchase and Sale movements are created automatically.");
         }
 
         if (dto.Quantity <= 0)
         {
-            throw new Exception(
+            throw new BusinessRuleException(
                 "Quantity must be greater than zero.");
         }
 
         if (string.IsNullOrWhiteSpace(dto.Reason))
         {
-            throw new Exception(
+            throw new BusinessRuleException(
                 "Reason is required.");
         }
 
@@ -237,7 +151,7 @@ public class StockMovementService : IStockMovementService
 
         if (product == null)
         {
-            throw new Exception(
+            throw new BusinessRuleException(
                 "Product not found.");
         }
 
@@ -287,7 +201,7 @@ public class StockMovementService : IStockMovementService
         if (delta < 0 &&
             product.StockQuantity < Math.Abs(delta))
         {
-            throw new Exception(
+            throw new BusinessRuleException(
                 $"Not enough stock. Available: {product.StockQuantity}.");
         }
 
@@ -339,38 +253,8 @@ public class StockMovementService : IStockMovementService
 
             await _unitOfWork.CommitTransactionAsync();
 
-            return new StockMovementDTO
-            {
-                Id =
-                    movement.Id,
+            return movement.ToDto(product.Name);
 
-                ProductId =
-                    product.Id,
-
-                ProductName =
-                    product.Name,
-
-                Quantity =
-                    movement.Quantity,
-
-                MovementType =
-                    movement.MovementType,
-
-                MovementDate =
-                    movement.MovementDate,
-
-                ReferenceType =
-                    movement.ReferenceType,
-
-                ReferenceId =
-                    movement.ReferenceId,
-
-                Reason =
-                    movement.Reason,
-
-                Notes =
-                    movement.Notes
-            };
         }
         catch
         {

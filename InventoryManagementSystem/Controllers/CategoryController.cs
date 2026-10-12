@@ -17,10 +17,18 @@ public class CategoryController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(
+        string? search,
+        int page = 1,
+        int pageSize = 10)
     {
+        ViewBag.Search = search;
+
         var categories =
-            await _categoryService.GetAllAsync();
+            await _categoryService.SearchAsync(
+                search,
+                page,
+                pageSize);
 
         return View(categories);
     }

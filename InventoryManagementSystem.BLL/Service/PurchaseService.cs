@@ -1,6 +1,9 @@
 using InventoryManagementSystem.BLL.DTOs;
+using InventoryManagementSystem.BLL.Exceptions;
 using InventoryManagementSystem.BLL.Enums;
 using InventoryManagementSystem.BLL.Interfaces;
+using InventoryManagementSystem.BLL.Mappings;
+using InventoryManagementSystem.DAL;
 using InventoryManagementSystem.DAL.Entities;
 
 namespace InventoryManagementSystem.BLL.Service;
@@ -42,19 +45,9 @@ public class PurchaseService : IPurchaseService
 
             return purchases
                 .OrderByDescending(p => p.PurchaseDate)
-                .Select(p => new PurchaseDTO
-                {
-                    Id = p.Id,
-                    SupplierId = p.SupplierId,
-                    SupplierName =
-                        supplierDictionary.TryGetValue(
-                            p.SupplierId,
-                            out var supplierName)
-                            ? supplierName
-                            : null,
-                    PurchaseDate = p.PurchaseDate,
-                    TotalAmount = p.TotalAmount
-                });
+                .Select(p => p.ToDto(
+                    supplierDictionary.GetValueOrDefault(p.SupplierId)));
+
         }
         catch (Exception ex)
         {
@@ -104,31 +97,11 @@ public class PurchaseService : IPurchaseService
                     x => x.Id,
                     x => x.Name);
 
-            return new PurchaseDTO
-            {
-                Id = purchase.Id,
-                SupplierId = purchase.SupplierId,
-                SupplierName = supplier?.SupplierName,
-                PurchaseDate = purchase.PurchaseDate,
-                TotalAmount = purchase.TotalAmount,
-                Items = purchaseItems
-                    .OrderBy(x => x.Id)
-                    .Select(x => new PurchaseItemDTO
-                    {
-                        Id = x.Id,
-                        PurchaseId = x.PurchaseId,
-                        ProductId = x.ProductId,
-                        ProductName =
-                            productDictionary.TryGetValue(
-                                x.ProductId,
-                                out var productName)
-                                ? productName
-                                : null,
-                        Quantity = x.Quantity,
-                        UnitPrice = x.UnitCost
-                    })
-                    .ToList()
-            };
+            return purchase.ToDto(
+                supplier?.SupplierName,
+                purchaseItems,
+                productDictionary);
+
         }
         catch (Exception ex)
         {
@@ -145,7 +118,7 @@ public class PurchaseService : IPurchaseService
         try
         {
             if (dto.SupplierId <= 0)
-                throw new Exception("Please select a supplier.");
+                throw new BusinessRuleException("Please select a supplier.");
 
             var supplierExists =
                 await _unitOfWork
@@ -153,23 +126,23 @@ public class PurchaseService : IPurchaseService
                     .AnyAsync(s => s.Id == dto.SupplierId);
 
             if (!supplierExists)
-                throw new Exception("Supplier not found.");
+                throw new BusinessRuleException("Supplier not found.");
 
             if (dto.Items == null || dto.Items.Count == 0)
-                throw new Exception(
+                throw new BusinessRuleException(
                     "Purchase must contain at least one item.");
 
             foreach (var item in dto.Items)
             {
                 if (item.ProductId <= 0)
-                    throw new Exception("Please select a product.");
+                    throw new BusinessRuleException("Please select a product.");
 
                 if (item.Quantity <= 0)
-                    throw new Exception(
+                    throw new BusinessRuleException(
                         "Quantity must be greater than zero.");
 
                 if (item.UnitPrice <= 0)
-                    throw new Exception(
+                    throw new BusinessRuleException(
                         "Unit cost must be greater than zero.");
             }
 
@@ -184,7 +157,7 @@ public class PurchaseService : IPurchaseService
                         .GetByIdAsync(group.Key);
 
                 if (product == null)
-                    throw new Exception(
+                    throw new BusinessRuleException(
                         $"Product {group.Key} not found.");
 
                 products[group.Key] = product;
@@ -193,12 +166,7 @@ public class PurchaseService : IPurchaseService
                     x => x.Quantity * x.UnitPrice);
             }
 
-            var purchase = new Purchase
-            {
-                SupplierId = dto.SupplierId,
-                PurchaseDate = dto.PurchaseDate,
-                TotalAmount = totalAmount
-            };
+            var purchase = dto.ToEntity(totalAmount);
 
             await _unitOfWork
                 .GenaricRepository<Purchase>()
@@ -210,14 +178,7 @@ public class PurchaseService : IPurchaseService
             {
                 await _unitOfWork
                     .GenaricRepository<PurchaseItem>()
-                    .AddAsync(
-                        new PurchaseItem
-                        {
-                            PurchaseId = purchase.Id,
-                            ProductId = item.ProductId,
-                            Quantity = item.Quantity,
-                            UnitCost = item.UnitPrice
-                        });
+                    .AddAsync(item.ToEntity(purchase.Id));
 
                 var product = products[item.ProductId];
                 product.StockQuantity += item.Quantity;

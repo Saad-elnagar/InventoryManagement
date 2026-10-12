@@ -1,4 +1,5 @@
 using InventoryManagementSystem.BLL.DTOs;
+using InventoryManagementSystem.BLL.Exceptions;
 using InventoryManagementSystem.BLL.Enums;
 using InventoryManagementSystem.BLL.Service;
 using InventoryManagementSystem.DAL.Entities;
@@ -140,7 +141,7 @@ public class StockMovementServiceTests
             Reason = "Should not be manual"
         };
 
-        var ex = await Assert.ThrowsAsync<Exception>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             new StockMovementService(uow.Object).CreateAsync(dto));
 
         Assert.Contains("created automatically", ex.Message);
@@ -169,7 +170,7 @@ public class StockMovementServiceTests
             Reason = "Damage"
         };
 
-        var ex = await Assert.ThrowsAsync<Exception>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             new StockMovementService(uow.Object).CreateAsync(dto));
 
         Assert.Contains("Not enough stock", ex.Message);
@@ -189,7 +190,7 @@ public class StockMovementServiceTests
             Reason = "   "
         };
 
-        var ex = await Assert.ThrowsAsync<Exception>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             new StockMovementService(uow.Object).CreateAsync(dto));
 
         Assert.Equal("Reason is required.", ex.Message);

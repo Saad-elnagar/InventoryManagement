@@ -1,5 +1,8 @@
 using InventoryManagementSystem.BLL.DTOs;
+using InventoryManagementSystem.BLL.Exceptions;
 using InventoryManagementSystem.BLL.Interfaces;
+using InventoryManagementSystem.BLL.Mappings;
+using InventoryManagementSystem.DAL;
 using InventoryManagementSystem.DAL.Entities;
 
 namespace InventoryManagementSystem.BLL.Service;
@@ -20,15 +23,7 @@ public class CustomerService : ICustomerService
                 .GetAllAsync();
 
         return customers
-            .Select(c => new CustomerDTO
-            {
-                Id = c.Id,
-                Name = c.CustomerName,
-                ContactName = c.ContactName,
-                Phone = c.Phone,
-                Address = c.Address,
-                Email = c.Email
-            })
+            .Select(c => c.ToDto())
             .ToList();
     }
 
@@ -41,27 +36,12 @@ public class CustomerService : ICustomerService
         if (customer == null)
             return null;
 
-        return new CustomerDTO
-        {
-            Id = customer.Id,
-            Name = customer.CustomerName,
-            ContactName = customer.ContactName,
-            Phone = customer.Phone,
-            Address = customer.Address,
-            Email = customer.Email
-        };
+        return customer.ToDto();
     }
 
     public async Task<int> CreateAsync(CustomerDTO dto)
     {
-        var customer = new Customer
-        {
-            CustomerName = dto.Name,
-            ContactName = dto.ContactName,
-            Phone = dto.Phone,
-            Address = dto.Address,
-            Email = dto.Email
-        };
+        var customer = dto.ToEntity();
 
         await _unitOfWork.GenaricRepository<Customer>()
             .AddAsync(customer);
@@ -80,11 +60,7 @@ public class CustomerService : ICustomerService
         if (customer == null)
             return 0;
 
-        customer.CustomerName = dto.Name;
-        customer.ContactName = dto.ContactName;
-        customer.Phone = dto.Phone;
-        customer.Address = dto.Address;
-        customer.Email = dto.Email;
+        dto.ApplyTo(customer);
 
         _unitOfWork.GenaricRepository<Customer>()
             .Update(customer);
@@ -102,6 +78,13 @@ public class CustomerService : ICustomerService
 
         if (customer == null)
             return 0;
+
+        var hasSales =
+            await _unitOfWork.GenaricRepository<Sale>()
+                .AnyAsync(sale => sale.CustomerId == id);
+
+        if (hasSales)
+            throw new BusinessRuleException("Cannot delete customer because it has sales history.");
 
         _unitOfWork.GenaricRepository<Customer>()
             .Delete(customer);

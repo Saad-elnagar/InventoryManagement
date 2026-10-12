@@ -8,7 +8,7 @@ public interface IGenaricRepository<T>
 {
     Task<IEnumerable<T>> GetAllAsync();
 
-    Task<T> GetByIdAsync(int id);
+    Task<T?> GetByIdAsync(int id);
 
     Task<bool> AnyAsync(
         Expression<Func<T, bool>> predicate);
@@ -28,6 +28,12 @@ public interface IGenaricRepository<T>
         int page,
         int pageSize,
         Expression<Func<T, bool>>? predicate = null);
+
+    Task<(IEnumerable<T> Items, int TotalCount)> GetPagedAsync<TKey>(
+        int page,
+        int pageSize,
+        Expression<Func<T, bool>>? predicate,
+        Expression<Func<T, TKey>> orderBy);
 
 
     Task AddAsync(T entity);

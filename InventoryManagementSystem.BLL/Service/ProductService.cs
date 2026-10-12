@@ -1,5 +1,7 @@
 using InventoryManagementSystem.BLL.DTOs;
+using InventoryManagementSystem.BLL.Exceptions;
 using InventoryManagementSystem.BLL.Interfaces;
+using InventoryManagementSystem.BLL.Mappings;
 using InventoryManagementSystem.BLL.Pagination;
 using InventoryManagementSystem.DAL;
 using InventoryManagementSystem.DAL.Entities;
@@ -26,17 +28,7 @@ public class ProductService : IProductService
                     .GenaricRepository<Product>()
                     .GetAllAsync();
 
-            return products.Select(p => new ProductDTO
-            {
-                Id = p.Id,
-                SKU = p.Sku,
-                Name = p.Name,
-                Description = p.Description,
-                Price = p.UnitPrice,
-                Quantity = p.StockQuantity,
-                ReorderLevel = p.LowStockThreshold,
-                CategoryId = p.CategoryId
-            });
+            return products.Select(p => p.ToDto());
         }
         catch (Exception ex)
         {
@@ -61,18 +53,7 @@ public class ProductService : IProductService
                 .GenaricRepository<Category>()
                 .GetByIdAsync(product.CategoryId);
 
-        return new ProductDTO
-        {
-            Id = product.Id,
-            SKU = product.Sku,
-            Name = product.Name,
-            Description = product.Description,
-            Price = product.UnitPrice,
-            Quantity = product.StockQuantity,
-            ReorderLevel = product.LowStockThreshold,
-            CategoryId = product.CategoryId,
-            CategoryName = category?.Name
-        };
+        return product.ToDto(category?.Name);
     }
 
     public async Task<ProductDTO> CreateAsync(ProductDTO dto)
@@ -81,15 +62,23 @@ public class ProductService : IProductService
 
         try
         {
-            var sku = dto.SKU.Trim();
-            var name = dto.Name.Trim();
-            var description = dto.Description?.Trim();
+            var sku = dto.SKU?.Trim() ?? string.Empty;
+            var name = dto.Name?.Trim() ?? string.Empty;
 
             if (string.IsNullOrWhiteSpace(sku))
-                throw new Exception("SKU is required.");
+                throw new BusinessRuleException("SKU is required.");
 
             if (string.IsNullOrWhiteSpace(name))
-                throw new Exception("Product name is required.");
+                throw new BusinessRuleException("Product name is required.");
+
+            if (dto.Price <= 0)
+                throw new BusinessRuleException("Price must be greater than zero.");
+
+            if (dto.Quantity < 0)
+                throw new BusinessRuleException("Quantity cannot be negative.");
+
+            if (dto.ReorderLevel < 0)
+                throw new BusinessRuleException("Reorder level cannot be negative.");
 
             var categoryExists =
                 await _unitOfWork
@@ -97,7 +86,7 @@ public class ProductService : IProductService
                     .AnyAsync(c => c.Id == dto.CategoryId);
 
             if (!categoryExists)
-                throw new Exception("Category not found.");
+                throw new BusinessRuleException("Category not found.");
 
             var skuExists =
                 await _unitOfWork
@@ -105,18 +94,9 @@ public class ProductService : IProductService
                     .AnyAsync(p => p.Sku == sku);
 
             if (skuExists)
-                throw new Exception("SKU already exists.");
+                throw new BusinessRuleException("SKU already exists.");
 
-            var product = new Product
-            {
-                Name = name,
-                Sku = sku,
-                Description = description,
-                UnitPrice = dto.Price,
-                StockQuantity = dto.Quantity,
-                LowStockThreshold = dto.ReorderLevel,
-                CategoryId = dto.CategoryId
-            };
+            var product = dto.ToEntity();
 
             await _unitOfWork
                 .GenaricRepository<Product>()
@@ -146,16 +126,7 @@ public class ProductService : IProductService
 
             await _unitOfWork.CommitTransactionAsync();
 
-            dto.Id = product.Id;
-            dto.SKU = product.Sku;
-            dto.Name = product.Name;
-            dto.Description = product.Description;
-            dto.Quantity = product.StockQuantity;
-            dto.Price = product.UnitPrice;
-            dto.ReorderLevel = product.LowStockThreshold;
-            dto.CategoryId = product.CategoryId;
-
-            return dto;
+            return product.ToDto();
         }
         catch
         {
@@ -166,6 +137,8 @@ public class ProductService : IProductService
 
     public async Task<bool> UpdateAsync(int id, ProductDTO dto)
     {
+        var transactionStarted = false;
+
         try
         {
             var productRepository =
@@ -180,42 +153,82 @@ public class ProductService : IProductService
             if (product == null)
                 return false;
 
-            var sku = dto.SKU.Trim();
-            var name = dto.Name.Trim();
+            var sku = dto.SKU?.Trim() ?? string.Empty;
+            var name = dto.Name?.Trim() ?? string.Empty;
 
             if (string.IsNullOrWhiteSpace(sku))
-                throw new Exception("SKU is required.");
+                throw new BusinessRuleException("SKU is required.");
+
+            if (string.IsNullOrWhiteSpace(name))
+                throw new BusinessRuleException("Product name is required.");
+
+            if (dto.Price <= 0)
+                throw new BusinessRuleException("Price must be greater than zero.");
+
+            if (dto.Quantity < 0)
+                throw new BusinessRuleException("Quantity cannot be negative.");
+
+            if (dto.ReorderLevel < 0)
+                throw new BusinessRuleException("Reorder level cannot be negative.");
 
             var categoryExists =
                 await categoryRepository.AnyAsync(
                     c => c.Id == dto.CategoryId);
 
             if (!categoryExists)
-                throw new Exception("Category not found.");
+                throw new BusinessRuleException("Category not found.");
 
             var duplicateSku =
                 await productRepository.AnyAsync(
                     p => p.Id != id && p.Sku == sku);
 
             if (duplicateSku)
-                throw new Exception("SKU already exists.");
+                throw new BusinessRuleException("SKU already exists.");
 
-            product.Name = name;
-            product.Sku = sku;
-            product.Description = dto.Description?.Trim();
-            product.UnitPrice = dto.Price;
-            product.StockQuantity = dto.Quantity;
-            product.LowStockThreshold = dto.ReorderLevel;
-            product.CategoryId = dto.CategoryId;
+            var stockDelta = dto.Quantity - product.StockQuantity;
+
+            await _unitOfWork.BeginTransactionAsync();
+            transactionStarted = true;
+
+            dto.ApplyTo(product);
 
             productRepository.Update(product);
 
+            if (stockDelta != 0)
+            {
+                await _unitOfWork
+                    .GenaricRepository<StockMovement>()
+                    .AddAsync(
+                        new StockMovement
+                        {
+                            ProductId = product.Id,
+                            Quantity = stockDelta,
+                            MovementType = StockMovementType.Adjustment.ToString(),
+                            MovementDate = DateTime.UtcNow,
+                            ReferenceType = "Manual",
+                            ReferenceId = null,
+                            Reason = "Stock quantity adjusted through product edit"
+                        });
+            }
+
             await _unitOfWork.SaveChangesAsync();
+            await _unitOfWork.CommitTransactionAsync();
+            transactionStarted = false;
 
             return true;
         }
+        catch (BusinessRuleException)
+        {
+            if (transactionStarted)
+                await _unitOfWork.RollbackTransactionAsync();
+
+            throw;
+        }
         catch (Exception ex)
         {
+            if (transactionStarted)
+                await _unitOfWork.RollbackTransactionAsync();
+
             throw new Exception(
                 "Error while updating product.",
                 ex);
@@ -246,22 +259,32 @@ public class ProductService : IProductService
                     x => x.ProductId == id);
 
             if (hasPurchaseHistory)
-                throw new Exception(
-                    "Cannot delete product because it has purchase history.");
+                throw new BusinessRuleException("Cannot delete product because it has purchase history.");
 
             var hasSaleHistory =
                 await saleItemRepository.AnyAsync(
                     x => x.ProductId == id);
 
             if (hasSaleHistory)
-                throw new Exception(
-                    "Cannot delete product because it has sales history.");
+                throw new BusinessRuleException("Cannot delete product because it has sales history.");
+
+            var hasStockMovementHistory =
+                await _unitOfWork
+                    .GenaricRepository<StockMovement>()
+                    .AnyAsync(movement => movement.ProductId == id);
+
+            if (hasStockMovementHistory)
+                throw new BusinessRuleException("Cannot delete product because it has stock movement history.");
 
             productRepository.Delete(product);
 
             await _unitOfWork.SaveChangesAsync();
 
             return true;
+        }
+        catch (BusinessRuleException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -281,17 +304,7 @@ public class ProductService : IProductService
                     .GetWhereAsync(
                         p => p.StockQuantity <= p.LowStockThreshold);
 
-            return products.Select(p => new ProductDTO
-            {
-                Id = p.Id,
-                SKU = p.Sku,
-                Name = p.Name,
-                Description = p.Description,
-                Price = p.UnitPrice,
-                Quantity = p.StockQuantity,
-                ReorderLevel = p.LowStockThreshold,
-                CategoryId = p.CategoryId
-            });
+            return products.Select(p => p.ToDto());
         }
         catch (Exception ex)
         {
@@ -313,6 +326,8 @@ public class ProductService : IProductService
                 PageSize = pageSize
             };
 
+            parameters.Normalize();
+
             var result =
                 await _unitOfWork
                     .GenaricRepository<Product>()
@@ -322,17 +337,7 @@ public class ProductService : IProductService
 
             var data =
                 result.Items
-                    .Select(p => new ProductDTO
-                    {
-                        Id = p.Id,
-                        SKU = p.Sku,
-                        Name = p.Name,
-                        Description = p.Description,
-                        Price = p.UnitPrice,
-                        Quantity = p.StockQuantity,
-                        ReorderLevel = p.LowStockThreshold,
-                        CategoryId = p.CategoryId
-                    })
+                    .Select(p => p.ToDto())
                     .ToList();
 
             return PaginationHelper.Create(
@@ -358,12 +363,19 @@ public class ProductService : IProductService
 
         search = search.Trim();
 
+        var parameters = new PaginationParams
+        {
+            Page = page,
+            PageSize = pageSize
+        };
+        parameters.Normalize();
+
         var result =
             await _unitOfWork
                 .GenaricRepository<Product>()
                 .GetPagedAsync(
-                    page,
-                    pageSize,
+                    parameters.Page,
+                    parameters.PageSize,
                     p =>
                         EF.Functions.Like(
                             EF.Functions.Collate(
@@ -388,24 +400,10 @@ public class ProductService : IProductService
 
         var data =
             result.Items
-                .Select(p => new ProductDTO
-                {
-                    Id = p.Id,
-                    SKU = p.Sku,
-                    Name = p.Name,
-                    Description = p.Description,
-                    Price = p.UnitPrice,
-                    Quantity = p.StockQuantity,
-                    ReorderLevel = p.LowStockThreshold,
-                    CategoryId = p.CategoryId
-                })
+                .Select(p => p.ToDto())
                 .ToList();
 
-        var parameters = new PaginationParams
-        {
-            Page = page,
-            PageSize = pageSize
-        };
+
 
         return PaginationHelper.Create(
             data,

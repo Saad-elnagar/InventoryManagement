@@ -1,4 +1,6 @@
 using InventoryManagementSystem.BLL.DTOs;
+using InventoryManagementSystem.BLL.Exceptions;
+using InventoryManagementSystem.BLL.Enums;
 using InventoryManagementSystem.BLL.Service;
 using InventoryManagementSystem.DAL.Entities;
 using InventoryManagementSystem.Tests.TestDoubles;
@@ -24,6 +26,10 @@ public class ProductServiceTests
         productRepo
             .Setup(r => r.AddAsync(It.IsAny<Product>()))
             .Callback<Product>(p => p.Id = 25)
+            .Returns(Task.CompletedTask);
+
+        _uow.Repository<StockMovement>()
+            .Setup(r => r.AddAsync(It.IsAny<StockMovement>()))
             .Returns(Task.CompletedTask);
 
         var dto = new ProductDTO
@@ -53,7 +59,7 @@ public class ProductServiceTests
     }
 
     [Fact]
-    public async Task CreateAsync_MissingCategory_ThrowsWrappedException()
+    public async Task CreateAsync_MissingCategory_ThrowsAndRollsBack()
     {
         _uow
             .Repository<Category>()
@@ -62,6 +68,7 @@ public class ProductServiceTests
 
         var dto = new ProductDTO
         {
+            SKU = "SKU-99",
             Name = "Keyboard",
             Price = 1200m,
             Quantity = 10,
@@ -69,10 +76,10 @@ public class ProductServiceTests
             CategoryId = 99
         };
 
-        var ex = await Assert.ThrowsAsync<Exception>(() => Sut.CreateAsync(dto));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Sut.CreateAsync(dto));
 
-        Assert.Equal("Error while creating product.", ex.Message);
-        Assert.Equal("Category not found.", ex.InnerException?.Message);
+        Assert.Equal("Category not found.", ex.Message);
+        _uow.VerifyRolledBack(Times.Once());
     }
 
     [Fact]
@@ -161,6 +168,12 @@ public class ProductServiceTests
             .Setup(r => r.AnyAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Category, bool>>>()))
             .ReturnsAsync(true);
 
+        StockMovement? stockMovement = null;
+        _uow.Repository<StockMovement>()
+            .Setup(r => r.AddAsync(It.IsAny<StockMovement>()))
+            .Callback<StockMovement>(movement => stockMovement = movement)
+            .Returns(Task.CompletedTask);
+
         var dto = new ProductDTO
         {
             SKU = "SKU-5",
@@ -183,6 +196,12 @@ public class ProductServiceTests
         Assert.Equal(2, product.CategoryId);
 
         _uow.Repository<Product>().Verify(r => r.Update(product), Times.Once);
+        Assert.NotNull(stockMovement);
+        Assert.Equal(4, stockMovement!.Quantity);
+        Assert.Equal(StockMovementType.Adjustment.ToString(), stockMovement.MovementType);
+        Assert.Equal("Stock quantity adjusted through product edit", stockMovement.Reason);
+        _uow.VerifyTransactionStarted(Times.Once());
+        _uow.VerifyCommitted(Times.Once());
     }
 
     [Fact]
@@ -200,10 +219,34 @@ public class ProductServiceTests
             .Setup(r => r.AnyAsync(It.IsAny<System.Linq.Expressions.Expression<Func<SaleItem, bool>>>()))
             .ReturnsAsync(true);
 
-        var ex = await Assert.ThrowsAsync<Exception>(() => Sut.DeleteAsync(8));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Sut.DeleteAsync(8));
 
-        Assert.Equal("Error while deleting product.", ex.Message);
-        Assert.Contains("sales history", ex.InnerException?.Message);
+        Assert.Contains("sales history", ex.Message);
+        _uow.Repository<Product>().Verify(r => r.Delete(It.IsAny<Product>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_ProductWithStockMovementHistory_Throws()
+    {
+        _uow.Repository<Product>()
+            .Setup(r => r.GetByIdAsync(9))
+            .ReturnsAsync(new Product { Id = 9, Name = "Inventory tracked" });
+
+        _uow.Repository<PurchaseItem>()
+            .Setup(r => r.AnyAsync(It.IsAny<System.Linq.Expressions.Expression<Func<PurchaseItem, bool>>>()))
+            .ReturnsAsync(false);
+
+        _uow.Repository<SaleItem>()
+            .Setup(r => r.AnyAsync(It.IsAny<System.Linq.Expressions.Expression<Func<SaleItem, bool>>>()))
+            .ReturnsAsync(false);
+
+        _uow.Repository<StockMovement>()
+            .Setup(r => r.AnyAsync(It.IsAny<System.Linq.Expressions.Expression<Func<StockMovement, bool>>>()))
+            .ReturnsAsync(true);
+
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Sut.DeleteAsync(9));
+
+        Assert.Contains("stock movement history", ex.Message);
         _uow.Repository<Product>().Verify(r => r.Delete(It.IsAny<Product>()), Times.Never);
     }
 
@@ -231,4 +274,25 @@ public class ProductServiceTests
         Assert.True(result.HasPrevious);
         Assert.True(result.HasNext);
     }
+
+    [Fact]
+    public async Task GetPagedAsync_NormalizesPageAndPageSizeBeforeQuerying()
+    {
+        var repo = _uow.Repository<Product>();
+
+        repo.Setup(r => r.GetPagedAsync(1, 100, null))
+            .ReturnsAsync((
+                (IEnumerable<Product>)Array.Empty<Product>(),
+                250));
+
+        var result = await Sut.GetPagedAsync(page: 0, pageSize: 1000);
+
+        Assert.Equal(1, result.Page);
+        Assert.Equal(100, result.PageSize);
+        Assert.Equal(250, result.TotalCount);
+        Assert.Equal(3, result.TotalPages);
+
+        repo.Verify(r => r.GetPagedAsync(1, 100, null), Times.Once);
+    }
+
 }

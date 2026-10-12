@@ -1,4 +1,5 @@
 using InventoryManagementSystem.BLL.DTOs;
+using InventoryManagementSystem.BLL.Exceptions;
 using InventoryManagementSystem.BLL.Service;
 using InventoryManagementSystem.DAL.Entities;
 using InventoryManagementSystem.Tests.TestDoubles;
@@ -48,5 +49,29 @@ public class CustomerServiceTests
         var result = await new CustomerService(uow.Object).GetByIdAsync(404);
 
         Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_CustomerWithSalesHistory_IsRejected()
+    {
+        var uow = new UnitOfWorkMock();
+
+        uow.Repository<Customer>()
+            .Setup(r => r.GetByIdAsync(7))
+            .ReturnsAsync(new Customer { Id = 7, CustomerName = "Ahmed" });
+
+        uow.Repository<Sale>()
+            .Setup(r => r.AnyAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Sale, bool>>>()))
+            .ReturnsAsync(true);
+
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
+            () => new CustomerService(uow.Object).DeleteAsync(7));
+
+        Assert.Equal(
+            "Cannot delete customer because it has sales history.",
+            ex.Message);
+
+        uow.Repository<Customer>()
+            .Verify(r => r.Delete(It.IsAny<Customer>()), Times.Never);
     }
 }

@@ -1,6 +1,7 @@
 using System.Text;
 using InventoryManagementSystem.BLL.DTOs;
 using InventoryManagementSystem.BLL.Interfaces;
+using InventoryManagementSystem.DAL;
 using InventoryManagementSystem.DAL.Entities;
 using Microsoft.Extensions.Logging;
 using Microsoft.ML;

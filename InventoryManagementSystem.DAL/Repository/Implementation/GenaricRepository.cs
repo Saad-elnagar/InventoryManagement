@@ -22,13 +22,13 @@ public class GenaricRepository<T> : IGenaricRepository<T>
             .ToListAsync();
     }
 
-    public async Task<T> GetByIdAsync(int id)
+    public async Task<T?> GetByIdAsync(int id)
     {
         var item = await _context
             .Set<T>()
             .FindAsync(id);
 
-        return item!;
+        return item;
     }
 
     public async Task<bool> AnyAsync(
@@ -70,11 +70,27 @@ public class GenaricRepository<T> : IGenaricRepository<T>
             .ToListAsync();
     }
 
-    public async Task<(IEnumerable<T> Items, int TotalCount)> GetPagedAsync(
+    public Task<(IEnumerable<T> Items, int TotalCount)> GetPagedAsync(
         int page,
         int pageSize,
         Expression<Func<T, bool>>? predicate = null)
     {
+        return GetPagedAsync(
+            page,
+            pageSize,
+            predicate,
+            entity => entity.Id);
+    }
+
+    public async Task<(IEnumerable<T> Items, int TotalCount)> GetPagedAsync<TKey>(
+        int page,
+        int pageSize,
+        Expression<Func<T, bool>>? predicate,
+        Expression<Func<T, TKey>> orderBy)
+    {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+
         var query = _context
             .Set<T>()
             .AsNoTracking();
@@ -86,11 +102,23 @@ public class GenaricRepository<T> : IGenaricRepository<T>
 
         var totalCount = await query.CountAsync();
 
-        var items = await query
-            .OrderBy(x => x.Id)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
+        var skip = (long)(page - 1) * pageSize;
+
+        List<T> items;
+
+        if (skip >= totalCount)
+        {
+            items = [];
+        }
+        else
+        {
+            items = await query
+                .OrderBy(orderBy)
+                .ThenBy(entity => entity.Id)
+                .Skip((int)skip)
+                .Take(pageSize)
+                .ToListAsync();
+        }
 
         return (items, totalCount);
     }
