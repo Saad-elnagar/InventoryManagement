@@ -1,4 +1,5 @@
 using InventoryManagementSystem.BLL.DTOs;
+using InventoryManagementSystem.BLL.Exceptions;
 using InventoryManagementSystem.BLL.Enums;
 using InventoryManagementSystem.BLL.Service;
 using InventoryManagementSystem.DAL.Entities;
@@ -118,7 +119,7 @@ public class SaleServiceTests
             }
         };
 
-        var ex = await Assert.ThrowsAsync<Exception>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             new SaleService(uow.Object).CreateAsync(dto));
 
         Assert.Contains("Not enough stock", ex.Message);
@@ -149,7 +150,7 @@ public class SaleServiceTests
             }
         };
 
-        var ex = await Assert.ThrowsAsync<Exception>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             new SaleService(uow.Object).CreateAsync(dto));
 
         Assert.Equal("Customer not found.", ex.Message);

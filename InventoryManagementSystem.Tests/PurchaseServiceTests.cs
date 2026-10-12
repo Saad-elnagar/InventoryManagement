@@ -1,4 +1,5 @@
 using InventoryManagementSystem.BLL.DTOs;
+using InventoryManagementSystem.BLL.Exceptions;
 using InventoryManagementSystem.BLL.Enums;
 using InventoryManagementSystem.DAL.Entities;
 using InventoryManagementSystem.BLL.Service;
@@ -109,7 +110,7 @@ public class PurchaseServiceTests
             }
         };
 
-        var ex = await Assert.ThrowsAsync<Exception>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             new PurchaseService(uow.Object).CreateAsync(dto));
 
         Assert.Equal("Supplier not found.", ex.Message);
@@ -128,7 +129,7 @@ public class PurchaseServiceTests
 
         var dto = new PurchaseDTO { SupplierId = 1 };
 
-        var ex = await Assert.ThrowsAsync<Exception>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             new PurchaseService(uow.Object).CreateAsync(dto));
 
         Assert.Equal("Purchase must contain at least one item.", ex.Message);
