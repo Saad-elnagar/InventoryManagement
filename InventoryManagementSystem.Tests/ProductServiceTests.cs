@@ -1,4 +1,5 @@
 using InventoryManagementSystem.BLL.DTOs;
+using InventoryManagementSystem.BLL.Exceptions;
 using InventoryManagementSystem.BLL.Enums;
 using InventoryManagementSystem.BLL.Service;
 using InventoryManagementSystem.DAL.Entities;
@@ -75,7 +76,7 @@ public class ProductServiceTests
             CategoryId = 99
         };
 
-        var ex = await Assert.ThrowsAsync<Exception>(() => Sut.CreateAsync(dto));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Sut.CreateAsync(dto));
 
         Assert.Equal("Category not found.", ex.Message);
         _uow.VerifyRolledBack(Times.Once());
@@ -218,10 +219,9 @@ public class ProductServiceTests
             .Setup(r => r.AnyAsync(It.IsAny<System.Linq.Expressions.Expression<Func<SaleItem, bool>>>()))
             .ReturnsAsync(true);
 
-        var ex = await Assert.ThrowsAsync<Exception>(() => Sut.DeleteAsync(8));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Sut.DeleteAsync(8));
 
-        Assert.Equal("Error while deleting product.", ex.Message);
-        Assert.Contains("sales history", ex.InnerException?.Message);
+        Assert.Contains("sales history", ex.Message);
         _uow.Repository<Product>().Verify(r => r.Delete(It.IsAny<Product>()), Times.Never);
     }
 
@@ -244,10 +244,9 @@ public class ProductServiceTests
             .Setup(r => r.AnyAsync(It.IsAny<System.Linq.Expressions.Expression<Func<StockMovement, bool>>>()))
             .ReturnsAsync(true);
 
-        var ex = await Assert.ThrowsAsync<Exception>(() => Sut.DeleteAsync(9));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Sut.DeleteAsync(9));
 
-        Assert.Equal("Error while deleting product.", ex.Message);
-        Assert.Contains("stock movement history", ex.InnerException?.Message);
+        Assert.Contains("stock movement history", ex.Message);
         _uow.Repository<Product>().Verify(r => r.Delete(It.IsAny<Product>()), Times.Never);
     }
 

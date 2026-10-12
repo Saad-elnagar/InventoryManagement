@@ -1,4 +1,5 @@
 using InventoryManagementSystem.BLL.DTOs;
+using InventoryManagementSystem.BLL.Exceptions;
 using InventoryManagementSystem.BLL.Service;
 using InventoryManagementSystem.BLL.Pagination;
 using System.Linq.Expressions;
@@ -47,12 +48,11 @@ public class CategoryServiceTests
             .Setup(r => r.AnyAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Category, bool>>>()))
             .ReturnsAsync(true);
 
-        var ex = await Assert.ThrowsAsync<Exception>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             new CategoryService(uow.Object).CreateAsync(
                 new CategoryDTO { Name = "Electronics" }));
 
-        Assert.Equal("Error while creating category.", ex.Message);
-        Assert.Equal("Category already exists.", ex.InnerException?.Message);
+        Assert.Equal("Category already exists.", ex.Message);
     }
 
     [Fact]
@@ -68,10 +68,10 @@ public class CategoryServiceTests
             .Setup(r => r.AnyAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Product, bool>>>()))
             .ReturnsAsync(true);
 
-        var ex = await Assert.ThrowsAsync<Exception>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             new CategoryService(uow.Object).DeleteAsync(5));
 
-        Assert.Contains("contains products", ex.InnerException?.Message);
+        Assert.Contains("contains products", ex.Message);
         uow.Repository<Category>().Verify(r => r.Delete(It.IsAny<Category>()), Times.Never);
     }
 

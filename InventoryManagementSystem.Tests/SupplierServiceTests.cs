@@ -1,4 +1,5 @@
 using InventoryManagementSystem.BLL.DTOs;
+using InventoryManagementSystem.BLL.Exceptions;
 using InventoryManagementSystem.BLL.Service;
 using InventoryManagementSystem.DAL.Entities;
 using InventoryManagementSystem.Tests.TestDoubles;
@@ -17,7 +18,7 @@ public class SupplierServiceTests
             .Setup(r => r.AnyAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Supplier, bool>>>()))
             .ReturnsAsync(true);
 
-        var ex = await Assert.ThrowsAsync<Exception>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             new SupplierService(uow.Object).CreateAsync(
                 new SupplierDTO
                 {
@@ -40,7 +41,7 @@ public class SupplierServiceTests
             .Setup(r => r.AnyAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Purchase, bool>>>()))
             .ReturnsAsync(true);
 
-        var ex = await Assert.ThrowsAsync<Exception>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             new SupplierService(uow.Object).DeleteAsync(4));
 
         Assert.Contains("purchase history", ex.Message);

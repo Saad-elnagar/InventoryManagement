@@ -1,4 +1,5 @@
 using InventoryManagementSystem.BLL.DTOs;
+using InventoryManagementSystem.BLL.Exceptions;
 using InventoryManagementSystem.BLL.Service;
 using InventoryManagementSystem.DAL.Entities;
 using InventoryManagementSystem.Tests.TestDoubles;
@@ -63,7 +64,7 @@ public class CustomerServiceTests
             .Setup(r => r.AnyAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Sale, bool>>>()))
             .ReturnsAsync(true);
 
-        var ex = await Assert.ThrowsAsync<Exception>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => new CustomerService(uow.Object).DeleteAsync(7));
 
         Assert.Equal(
