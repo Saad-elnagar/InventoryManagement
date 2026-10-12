@@ -1,4 +1,5 @@
 using InventoryManagementSystem.BLL.DTOs;
+using InventoryManagementSystem.BLL.Exceptions;
 using InventoryManagementSystem.BLL.Enums;
 using InventoryManagementSystem.BLL.Interfaces;
 using InventoryManagementSystem.BLL.Mappings;
@@ -126,19 +127,19 @@ public class StockMovementService : IStockMovementService
         if (!dto.MovementType.HasValue ||
             !manualTypes.Contains(dto.MovementType.Value))
         {
-            throw new Exception(
+            throw new BusinessRuleException(
                 "Purchase and Sale movements are created automatically.");
         }
 
         if (dto.Quantity <= 0)
         {
-            throw new Exception(
+            throw new BusinessRuleException(
                 "Quantity must be greater than zero.");
         }
 
         if (string.IsNullOrWhiteSpace(dto.Reason))
         {
-            throw new Exception(
+            throw new BusinessRuleException(
                 "Reason is required.");
         }
 
@@ -150,7 +151,7 @@ public class StockMovementService : IStockMovementService
 
         if (product == null)
         {
-            throw new Exception(
+            throw new BusinessRuleException(
                 "Product not found.");
         }
 
@@ -200,7 +201,7 @@ public class StockMovementService : IStockMovementService
         if (delta < 0 &&
             product.StockQuantity < Math.Abs(delta))
         {
-            throw new Exception(
+            throw new BusinessRuleException(
                 $"Not enough stock. Available: {product.StockQuantity}.");
         }
 

@@ -1,4 +1,5 @@
 using InventoryManagementSystem.BLL.DTOs;
+using InventoryManagementSystem.BLL.Exceptions;
 using InventoryManagementSystem.BLL.Enums;
 using InventoryManagementSystem.BLL.Interfaces;
 using InventoryManagementSystem.BLL.Mappings;
@@ -117,7 +118,7 @@ public class SaleService : ISaleService
         try
         {
             if (dto.CustomerId <= 0)
-                throw new Exception("Please select a customer.");
+                throw new BusinessRuleException("Please select a customer.");
 
             var customerExists =
                 await _unitOfWork
@@ -125,23 +126,23 @@ public class SaleService : ISaleService
                     .AnyAsync(c => c.Id == dto.CustomerId);
 
             if (!customerExists)
-                throw new Exception("Customer not found.");
+                throw new BusinessRuleException("Customer not found.");
 
             if (dto.Items == null || dto.Items.Count == 0)
-                throw new Exception(
+                throw new BusinessRuleException(
                     "Sale must contain at least one item.");
 
             foreach (var item in dto.Items)
             {
                 if (item.ProductId <= 0)
-                    throw new Exception("Please select a product.");
+                    throw new BusinessRuleException("Please select a product.");
 
                 if (item.Quantity <= 0)
-                    throw new Exception(
+                    throw new BusinessRuleException(
                         "Quantity must be greater than zero.");
 
                 if (item.UnitPrice <= 0)
-                    throw new Exception(
+                    throw new BusinessRuleException(
                         "Unit price must be greater than zero.");
             }
 
@@ -156,7 +157,7 @@ public class SaleService : ISaleService
                         .GetByIdAsync(group.Key);
 
                 if (product == null)
-                    throw new Exception(
+                    throw new BusinessRuleException(
                         $"Product {group.Key} not found.");
 
                 var totalQuantity =
@@ -164,7 +165,7 @@ public class SaleService : ISaleService
 
                 if (product.StockQuantity < totalQuantity)
                 {
-                    throw new Exception(
+                    throw new BusinessRuleException(
                         $"Not enough stock for product {product.Name}. " +
                         $"Available: {product.StockQuantity}.");
                 }

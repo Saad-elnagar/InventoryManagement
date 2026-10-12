@@ -1,4 +1,5 @@
 using InventoryManagementSystem.BLL.DTOs;
+using InventoryManagementSystem.BLL.Exceptions;
 using InventoryManagementSystem.BLL.Enums;
 using InventoryManagementSystem.BLL.Interfaces;
 using InventoryManagementSystem.BLL.Mappings;
@@ -117,7 +118,7 @@ public class PurchaseService : IPurchaseService
         try
         {
             if (dto.SupplierId <= 0)
-                throw new Exception("Please select a supplier.");
+                throw new BusinessRuleException("Please select a supplier.");
 
             var supplierExists =
                 await _unitOfWork
@@ -125,23 +126,23 @@ public class PurchaseService : IPurchaseService
                     .AnyAsync(s => s.Id == dto.SupplierId);
 
             if (!supplierExists)
-                throw new Exception("Supplier not found.");
+                throw new BusinessRuleException("Supplier not found.");
 
             if (dto.Items == null || dto.Items.Count == 0)
-                throw new Exception(
+                throw new BusinessRuleException(
                     "Purchase must contain at least one item.");
 
             foreach (var item in dto.Items)
             {
                 if (item.ProductId <= 0)
-                    throw new Exception("Please select a product.");
+                    throw new BusinessRuleException("Please select a product.");
 
                 if (item.Quantity <= 0)
-                    throw new Exception(
+                    throw new BusinessRuleException(
                         "Quantity must be greater than zero.");
 
                 if (item.UnitPrice <= 0)
-                    throw new Exception(
+                    throw new BusinessRuleException(
                         "Unit cost must be greater than zero.");
             }
 
@@ -156,7 +157,7 @@ public class PurchaseService : IPurchaseService
                         .GetByIdAsync(group.Key);
 
                 if (product == null)
-                    throw new Exception(
+                    throw new BusinessRuleException(
                         $"Product {group.Key} not found.");
 
                 products[group.Key] = product;
