@@ -1,4 +1,5 @@
 using InventoryManagementSystem.BLL.DTOs;
+using InventoryManagementSystem.BLL.Exceptions;
 using InventoryManagementSystem.BLL.Interfaces;
 using InventoryManagementSystem.BLL.Mappings;
 using InventoryManagementSystem.BLL.Pagination;
@@ -63,22 +64,21 @@ public class ProductService : IProductService
         {
             var sku = dto.SKU?.Trim() ?? string.Empty;
             var name = dto.Name?.Trim() ?? string.Empty;
-            var description = dto.Description?.Trim();
 
             if (string.IsNullOrWhiteSpace(sku))
-                throw new Exception("SKU is required.");
+                throw new BusinessRuleException("SKU is required.");
 
             if (string.IsNullOrWhiteSpace(name))
-                throw new Exception("Product name is required.");
+                throw new BusinessRuleException("Product name is required.");
 
             if (dto.Price <= 0)
-                throw new Exception("Price must be greater than zero.");
+                throw new BusinessRuleException("Price must be greater than zero.");
 
             if (dto.Quantity < 0)
-                throw new Exception("Quantity cannot be negative.");
+                throw new BusinessRuleException("Quantity cannot be negative.");
 
             if (dto.ReorderLevel < 0)
-                throw new Exception("Reorder level cannot be negative.");
+                throw new BusinessRuleException("Reorder level cannot be negative.");
 
             var categoryExists =
                 await _unitOfWork
@@ -86,7 +86,7 @@ public class ProductService : IProductService
                     .AnyAsync(c => c.Id == dto.CategoryId);
 
             if (!categoryExists)
-                throw new Exception("Category not found.");
+                throw new BusinessRuleException("Category not found.");
 
             var skuExists =
                 await _unitOfWork
@@ -94,7 +94,7 @@ public class ProductService : IProductService
                     .AnyAsync(p => p.Sku == sku);
 
             if (skuExists)
-                throw new Exception("SKU already exists.");
+                throw new BusinessRuleException("SKU already exists.");
 
             var product = dto.ToEntity();
 
@@ -157,33 +157,33 @@ public class ProductService : IProductService
             var name = dto.Name?.Trim() ?? string.Empty;
 
             if (string.IsNullOrWhiteSpace(sku))
-                throw new Exception("SKU is required.");
+                throw new BusinessRuleException("SKU is required.");
 
             if (string.IsNullOrWhiteSpace(name))
-                throw new Exception("Product name is required.");
+                throw new BusinessRuleException("Product name is required.");
 
             if (dto.Price <= 0)
-                throw new Exception("Price must be greater than zero.");
+                throw new BusinessRuleException("Price must be greater than zero.");
 
             if (dto.Quantity < 0)
-                throw new Exception("Quantity cannot be negative.");
+                throw new BusinessRuleException("Quantity cannot be negative.");
 
             if (dto.ReorderLevel < 0)
-                throw new Exception("Reorder level cannot be negative.");
+                throw new BusinessRuleException("Reorder level cannot be negative.");
 
             var categoryExists =
                 await categoryRepository.AnyAsync(
                     c => c.Id == dto.CategoryId);
 
             if (!categoryExists)
-                throw new Exception("Category not found.");
+                throw new BusinessRuleException("Category not found.");
 
             var duplicateSku =
                 await productRepository.AnyAsync(
                     p => p.Id != id && p.Sku == sku);
 
             if (duplicateSku)
-                throw new Exception("SKU already exists.");
+                throw new BusinessRuleException("SKU already exists.");
 
             var stockDelta = dto.Quantity - product.StockQuantity;
 
@@ -216,6 +216,13 @@ public class ProductService : IProductService
             transactionStarted = false;
 
             return true;
+        }
+        catch (BusinessRuleException)
+        {
+            if (transactionStarted)
+                await _unitOfWork.RollbackTransactionAsync();
+
+            throw;
         }
         catch (Exception ex)
         {
@@ -252,16 +259,14 @@ public class ProductService : IProductService
                     x => x.ProductId == id);
 
             if (hasPurchaseHistory)
-                throw new Exception(
-                    "Cannot delete product because it has purchase history.");
+                throw new BusinessRuleException("Cannot delete product because it has purchase history.");
 
             var hasSaleHistory =
                 await saleItemRepository.AnyAsync(
                     x => x.ProductId == id);
 
             if (hasSaleHistory)
-                throw new Exception(
-                    "Cannot delete product because it has sales history.");
+                throw new BusinessRuleException("Cannot delete product because it has sales history.");
 
             var hasStockMovementHistory =
                 await _unitOfWork
@@ -269,14 +274,17 @@ public class ProductService : IProductService
                     .AnyAsync(movement => movement.ProductId == id);
 
             if (hasStockMovementHistory)
-                throw new Exception(
-                    "Cannot delete product because it has stock movement history.");
+                throw new BusinessRuleException("Cannot delete product because it has stock movement history.");
 
             productRepository.Delete(product);
 
             await _unitOfWork.SaveChangesAsync();
 
             return true;
+        }
+        catch (BusinessRuleException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

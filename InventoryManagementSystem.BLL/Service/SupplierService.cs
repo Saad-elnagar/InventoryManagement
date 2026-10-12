@@ -1,4 +1,5 @@
 using InventoryManagementSystem.BLL.DTOs;
+using InventoryManagementSystem.BLL.Exceptions;
 using InventoryManagementSystem.BLL.Interfaces;
 using InventoryManagementSystem.BLL.Mappings;
 using InventoryManagementSystem.DAL;
@@ -43,7 +44,7 @@ public class SupplierService : ISupplierService
                 .AnyAsync(s => s.SupplierName == dto.SupplierName);
 
         if (exists)
-            throw new Exception("Supplier already exists.");
+            throw new BusinessRuleException("Supplier already exists.");
 
         var supplier = dto.ToEntity();
 
@@ -73,7 +74,7 @@ public class SupplierService : ISupplierService
                     s.SupplierName == dto.SupplierName);
 
         if (exists)
-            throw new Exception("Supplier already exists.");
+            throw new BusinessRuleException("Supplier already exists.");
 
         dto.ApplyTo(supplier);
 
@@ -99,8 +100,7 @@ public class SupplierService : ISupplierService
                 .AnyAsync(p => p.SupplierId == id);
 
         if (hasPurchases)
-            throw new Exception(
-                "Cannot delete supplier because it has purchase history.");
+            throw new BusinessRuleException("Cannot delete supplier because it has purchase history.");
 
         _unitOfWork.GenaricRepository<Supplier>()
             .Delete(supplier);

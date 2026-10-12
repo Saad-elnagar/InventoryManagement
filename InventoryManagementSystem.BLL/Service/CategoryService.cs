@@ -1,4 +1,5 @@
 ﻿using InventoryManagementSystem.BLL.DTOs;
+using InventoryManagementSystem.BLL.Exceptions;
 using InventoryManagementSystem.BLL.Interfaces;
 using InventoryManagementSystem.BLL.Mappings;
 using InventoryManagementSystem.DAL;
@@ -31,6 +32,10 @@ public class CategoryService : ICategoryService
                 .OrderBy(c => c.Name)
                 .Select(c => c.ToDto());
         }
+        catch (BusinessRuleException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             throw new Exception(
@@ -52,6 +57,10 @@ public class CategoryService : ICategoryService
                 return null;
 
             return category.ToDto();
+        }
+        catch (BusinessRuleException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -76,8 +85,7 @@ public class CategoryService : ICategoryService
                         c => c.Name == dto.Name);
 
             if (exists)
-                throw new Exception(
-                    "Category already exists.");
+                throw new BusinessRuleException("Category already exists.");
 
             var category = dto.ToEntity();
 
@@ -90,6 +98,10 @@ public class CategoryService : ICategoryService
             dto.Id = category.Id;
 
             return category.ToDto();
+        }
+        catch (BusinessRuleException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -123,8 +135,7 @@ public class CategoryService : ICategoryService
                              c.Name == dto.Name);
 
             if (exists)
-                throw new Exception(
-                    "Category already exists.");
+                throw new BusinessRuleException("Category already exists.");
 
             dto.ApplyTo(category);
 
@@ -135,6 +146,10 @@ public class CategoryService : ICategoryService
             await _unitOfWork.SaveChangesAsync();
 
             return true;
+        }
+        catch (BusinessRuleException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -164,8 +179,7 @@ public class CategoryService : ICategoryService
 
             if (hasProducts)
             {
-                throw new Exception(
-                    "Cannot delete category because it contains products.");
+                throw new BusinessRuleException("Cannot delete category because it contains products.");
             }
 
             _unitOfWork
@@ -175,6 +189,10 @@ public class CategoryService : ICategoryService
             await _unitOfWork.SaveChangesAsync();
 
             return true;
+        }
+        catch (BusinessRuleException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

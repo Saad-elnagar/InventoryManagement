@@ -1,4 +1,5 @@
 using InventoryManagementSystem.BLL.DTOs;
+using InventoryManagementSystem.BLL.Exceptions;
 using InventoryManagementSystem.BLL.Interfaces;
 using InventoryManagementSystem.BLL.Mappings;
 using InventoryManagementSystem.DAL;
@@ -83,8 +84,7 @@ public class CustomerService : ICustomerService
                 .AnyAsync(sale => sale.CustomerId == id);
 
         if (hasSales)
-            throw new Exception(
-                "Cannot delete customer because it has sales history.");
+            throw new BusinessRuleException("Cannot delete customer because it has sales history.");
 
         _unitOfWork.GenaricRepository<Customer>()
             .Delete(customer);
